@@ -183,6 +183,14 @@ body {
   align-items: center;
   gap: 6px;
 }
+.online-user-badge.server-plex {
+  background: #e5a00d;
+  color: black;
+}
+.online-user-badge.server-emby {
+  background: #4caf50;
+  color: white;
+}
 .server-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; }
 .server-card {
   background: var(--card);
@@ -1110,6 +1118,18 @@ function renderOnlineUsers() {
     Array.from(uniqueUsers).sort().forEach(user => {
         const badge = document.createElement('div');
         badge.className = 'online-user-badge';
+
+        // Find session to determine server type
+        const sessions = Object.values(ALL_SESSIONS).flat();
+        const userSession = sessions.find(s => s.user === user);
+
+        if (userSession) {
+            const server = SERVERS.find(s => s.name === userSession.server);
+            if (server) {
+                badge.classList.add('server-' + server.type);
+            }
+        }
+
         badge.innerHTML = `👤 ${esc(user)}`;
         container.appendChild(badge);
     });
@@ -1118,6 +1138,7 @@ function renderOnlineUsers() {
 // Fetch and render dashboard users
 async function fetchDashboardUsers() {
     try {
+        const res = await fetch('get_active_users.php?_=' + Date.now());
         const res = await fetch('get_active_users.php');
         const data = await res.json();
         renderDashboardUsers(data.users || []);
