@@ -13,27 +13,26 @@
 6. **logout.php** (77B) - Logout handler
 7. **manage_users.php** (5.1KB) - User management API
 8. **get_user.php** (167B) - Current user info API
-9. **get_active_users.php** (200B) - Active dashboard users API
+11. **get_active_users.php** (200B) - Active dashboard users API
 
 ### Server Management (Admin Only)
-10. **add_server.php** (3.2KB) - Add new servers
-11. **update_server.php** (2.7KB) - Edit existing servers
-12. **delete_server.php** (910B) - Delete servers
-13. **update_order.php** (1.1KB) - Reorder servers via drag-drop
+9. **add_server.php** (3.2KB) - Add new servers
+10. **update_server.php** (2.7KB) - Edit existing servers
+11. **delete_server.php** (910B) - Delete servers
+12. **update_order.php** (1.1KB) - Reorder servers via drag-drop
 
 ### Media Content APIs
-14. **get_item_details.php** (11KB) - Fetch detailed item metadata
-15. **get_image.php** (2.7KB) - Proxy images via HTTPS
+13. **get_item_details.php** (11KB) - Fetch detailed item metadata
+14. **get_image.php** (2.7KB) - Proxy images via HTTPS
 
 ### Configuration
-16. **.htaccess** (390B) - Apache configuration
-17. **AUTH_README.md** (3.5KB) - Documentation
+15. **.htaccess** (390B) - Apache configuration
+16. **AUTH_README.md** (3.5KB) - Documentation
 
 ### Generated Files (Created Automatically)
 - **users.json** - User database (created during setup)
-- **activity.json** - User activity log
 
-## Total File Count: 17 files + 2 auto-generated
+## Total File Count: 16 files + 1 auto-generated
 
 ## Deployment Checklist
 
@@ -41,16 +40,14 @@
 ```bash
 cd /var/www/html/dash
 
-# Upload all files listed above
+# Upload all 16 files listed above
 
 # Set directory permissions
 sudo chmod 775 /var/www/html/dash
 sudo chown www-data:www-data /var/www/html/dash
-
-# Set file permissions (if files exist manually, otherwise web server creates them)
-# Note: In a production environment, use more restrictive permissions (e.g. 640 or 660) if possible.
-sudo touch activity.json users.json servers.json
-sudo chmod 666 activity.json users.json servers.json
+sudo chown 666 activity.json
+sudo chown 666 users.json
+sudo chown 666 servers.json
 
 ### First Access
 1. Navigate to `https://bntv.ca/dash/`
