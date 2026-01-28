@@ -183,14 +183,6 @@ body {
   align-items: center;
   gap: 6px;
 }
-.online-user-badge.server-plex {
-  background: #e5a00d !important;
-  color: black !important;
-}
-.online-user-badge.server-emby {
-  background: #4caf50 !important;
-  color: white !important;
-}
 .server-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; }
 .server-card {
   background: var(--card);
@@ -1099,61 +1091,38 @@ function renderOnlineUsers() {
     const container = document.querySelector("#online-users .user-list-content");
     if (!container) return;
 
-    try {
-        if (!ALL_SESSIONS) return;
+    const uniqueUsers = new Set();
 
-        const uniqueUsers = new Set();
-
-        // Collect all unique users from all sessions
-        Object.values(ALL_SESSIONS).flat().forEach(session => {
-            if (session && session.user && session.user !== 'Unknown') {
-                uniqueUsers.add(session.user);
-            }
-        });
-
-        if (uniqueUsers.size === 0) {
-            container.innerHTML = '<span style="color:var(--muted);font-size:0.9rem;">No users online</span>';
-            return;
+    // Collect all unique users from all sessions
+    Object.values(ALL_SESSIONS).flat().forEach(session => {
+        if (session.user && session.user !== 'Unknown') {
+            uniqueUsers.add(session.user);
         }
+    });
 
-        container.innerHTML = '';
-        // Sort users alphabetically
-        Array.from(uniqueUsers).sort().forEach(user => {
-            const badge = document.createElement('div');
-            badge.className = 'online-user-badge';
-
-            // Find session to determine server type
-            const sessions = Object.values(ALL_SESSIONS).flat();
-            const userSession = sessions.find(s => s && s.user === user);
-
-            if (userSession && userSession.server && typeof SERVERS !== 'undefined') {
-                const server = SERVERS.find(s => s.name === userSession.server);
-                if (server && server.type) {
-                    const type = server.type.toLowerCase();
-                    badge.classList.add('server-' + type);
-                    // console.log('Theming badge for', user, 'as', type);
-                }
-            }
-
-            badge.innerHTML = `👤 ${esc(user)}`;
-            container.appendChild(badge);
-        });
-    } catch(e) {
-        console.error("Error rendering online users:", e);
-        container.innerHTML = '<span style="color:var(--muted);font-size:0.9rem;">Error loading users</span>';
+    if (uniqueUsers.size === 0) {
+        container.innerHTML = '<span style="color:var(--muted);font-size:0.9rem;">No users online</span>';
+        return;
     }
+
+    container.innerHTML = '';
+    // Sort users alphabetically
+    Array.from(uniqueUsers).sort().forEach(user => {
+        const badge = document.createElement('div');
+        badge.className = 'online-user-badge';
+        badge.innerHTML = `👤 ${esc(user)}`;
+        container.appendChild(badge);
+    });
 }
 
 // Fetch and render dashboard users
 async function fetchDashboardUsers() {
     try {
-        const res = await fetch('get_active_users.php?_=' + Date.now());
-        if (!res.ok) throw new Error('API Error');
+        const res = await fetch('get_active_users.php');
         const data = await res.json();
         renderDashboardUsers(data.users || []);
     } catch (e) {
         console.error('Error fetching dashboard users:', e);
-        // Don't clear list on error, just log it
     }
 }
 
@@ -1161,7 +1130,7 @@ function renderDashboardUsers(users) {
     const container = document.querySelector("#dashboard-users .user-list-content");
     if (!container) return;
 
-    if (!users || users.length === 0) {
+    if (users.length === 0) {
         container.innerHTML = '<span style="color:var(--muted);font-size:0.9rem;">No users active</span>';
         return;
     }
@@ -1178,12 +1147,8 @@ function renderDashboardUsers(users) {
 
 // Render server cards
 function renderServerGrid() {
-    try {
-        renderOnlineUsers();
-        fetchDashboardUsers();
-    } catch(e) {
-        console.error("Error in user rendering:", e);
-    }
+    renderOnlineUsers();
+    fetchDashboardUsers();
 
     const container = document.getElementById("server-grid");
     container.innerHTML = "";
