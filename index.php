@@ -1044,6 +1044,7 @@ async function fetchServer(server){
         if(server.type==="emby"){
             return data.filter(s=>s.NowPlayingItem).map(s=>({
                 server: server.name,
+                type: server.type,
                 user: s.UserName,
                 title: s.NowPlayingItem.Name,
                 series: s.NowPlayingItem.SeriesName||"",
@@ -1063,6 +1064,7 @@ async function fetchServer(server){
             const meta = data.MediaContainer?.Metadata || [];
             return meta.map(m=>({
                 server: server.name,
+                type: server.type,
                 user: m.User?.title||"Unknown",
                 title: m.title,
                 series: m.grandparentTitle||"",
@@ -1102,12 +1104,14 @@ function renderOnlineUsers() {
     try {
         if (!ALL_SESSIONS) return;
 
-        const uniqueUsers = new Set();
+        const uniqueUsers = new Map(); // Use Map to store user session for type lookup
 
         // Collect all unique users from all sessions
         Object.values(ALL_SESSIONS).flat().forEach(session => {
             if (session && session.user && session.user !== 'Unknown') {
-                uniqueUsers.add(session.user);
+                if (!uniqueUsers.has(session.user)) {
+                    uniqueUsers.set(session.user, session);
+                }
             }
         });
 
@@ -1118,21 +1122,13 @@ function renderOnlineUsers() {
 
         container.innerHTML = '';
         // Sort users alphabetically
-        Array.from(uniqueUsers).sort().forEach(user => {
+        Array.from(uniqueUsers.keys()).sort().forEach(user => {
+            const session = uniqueUsers.get(user);
             const badge = document.createElement('div');
             badge.className = 'online-user-badge';
 
-            // Find session to determine server type
-            const sessions = Object.values(ALL_SESSIONS).flat();
-            const userSession = sessions.find(s => s && s.user === user);
-
-            if (userSession && userSession.server && typeof SERVERS !== 'undefined') {
-                const server = SERVERS.find(s => s.name === userSession.server);
-                if (server && server.type) {
-                    const type = server.type.toLowerCase();
-                    badge.classList.add('server-' + type);
-                    // console.log('Theming badge for', user, 'as', type);
-                }
+            if (session.type) {
+                badge.classList.add('server-' + session.type.toLowerCase());
             }
 
             badge.innerHTML = `👤 ${esc(user)}`;
@@ -1147,13 +1143,11 @@ function renderOnlineUsers() {
 // Fetch and render dashboard users
 async function fetchDashboardUsers() {
     try {
-        const res = await fetch('get_active_users.php?_=' + Date.now());
-        if (!res.ok) throw new Error('API Error');
+        const res = await fetch('get_active_users.php');
         const data = await res.json();
         renderDashboardUsers(data.users || []);
     } catch (e) {
         console.error('Error fetching dashboard users:', e);
-        // Don't clear list on error, just log it
     }
 }
 
@@ -1161,7 +1155,7 @@ function renderDashboardUsers(users) {
     const container = document.querySelector("#dashboard-users .user-list-content");
     if (!container) return;
 
-    if (!users || users.length === 0) {
+    if (users.length === 0) {
         container.innerHTML = '<span style="color:var(--muted);font-size:0.9rem;">No users active</span>';
         return;
     }
@@ -1178,12 +1172,8 @@ function renderDashboardUsers(users) {
 
 // Render server cards
 function renderServerGrid() {
-    try {
-        renderOnlineUsers();
-        fetchDashboardUsers();
-    } catch(e) {
-        console.error("Error in user rendering:", e);
-    }
+    renderOnlineUsers();
+    fetchDashboardUsers();
 
     const container = document.getElementById("server-grid");
     container.innerHTML = "";
