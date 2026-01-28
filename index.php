@@ -142,6 +142,29 @@ body {
 }
 
 /* Server Grid View */
+.online-users {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  min-height: 24px;
+  margin-top: 20px;
+}
+.online-user-badge {
+  background: var(--accent);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 .server-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; }
 .server-card {
   background: var(--card);
@@ -734,6 +757,9 @@ form button:hover { background:#45a049; }
 
 <!-- Server Grid View -->
 <div id="server-view" class="view-container visible">
+  <div id="online-users" class="online-users">
+    <span style="color:var(--muted);font-size:0.9rem;">No users online</span>
+  </div>
   <div id="server-grid" class="server-grid"></div>
 </div>
 
@@ -1031,8 +1057,39 @@ async function fetchServer(server){
     }
 }
 
+// Render online users list
+function renderOnlineUsers() {
+    const container = document.getElementById("online-users");
+    if (!container) return;
+
+    const uniqueUsers = new Set();
+
+    // Collect all unique users from all sessions
+    Object.values(ALL_SESSIONS).flat().forEach(session => {
+        if (session.user && session.user !== 'Unknown') {
+            uniqueUsers.add(session.user);
+        }
+    });
+
+    if (uniqueUsers.size === 0) {
+        container.innerHTML = '<span style="color:var(--muted);font-size:0.9rem;">No users online</span>';
+        return;
+    }
+
+    container.innerHTML = '';
+    // Sort users alphabetically
+    Array.from(uniqueUsers).sort().forEach(user => {
+        const badge = document.createElement('div');
+        badge.className = 'online-user-badge';
+        badge.innerHTML = `👤 ${esc(user)}`;
+        container.appendChild(badge);
+    });
+}
+
 // Render server cards
 function renderServerGrid() {
+    renderOnlineUsers();
+
     const container = document.getElementById("server-grid");
     container.innerHTML = "";
     
