@@ -1,3 +1,9 @@
+A multi-server dashboard for Plex/Emby servers
+
+<img width="1573" height="395" alt="image" src="https://github.com/user-attachments/assets/2c4c318d-fb63-463d-b11c-73a44d67ebce" />
+<img width="1573" height="279" alt="image" src="https://github.com/user-attachments/assets/5992d8cc-0948-43be-bfec-4ee85bcff85a" />
+<img width="834" height="504" alt="image" src="https://github.com/user-attachments/assets/dfe97c5d-7af1-49c1-b97c-1e0d89e3f986" />
+
 # Media Server Dashboard - Deployment Files
 
 ## Essential Files (Upload to `/var/www/html/dash/`)
@@ -31,13 +37,6 @@
 ### Generated Files (Created Automatically)
 - **users.json** - User database (created during setup)
 
-## Files NOT Needed (Already Removed)
-- ❌ script.js (was for failed externalization)
-- ❌ styles.css (was for failed externalization)
-- ❌ email_config.php (email feature removed)
-- ❌ EMAIL_SETUP.md (email feature removed)
-- ❌ Various guide/analysis markdown files
-
 ## Total File Count: 16 files + 1 auto-generated
 
 ## Deployment Checklist
@@ -51,10 +50,6 @@ cd /var/www/html/dash
 # Set directory permissions
 sudo chmod 775 /var/www/html/dash
 sudo chown www-data:www-data /var/www/html/dash
-
-# Protect JSON files
-sudo chmod 666 servers.json  # If it exists
-```
 
 ### First Access
 1. Navigate to `https://bntv.ca/dash/`
@@ -84,6 +79,5 @@ sudo chmod 666 servers.json  # If it exists
 ## Notes
 - All files are optimized and production-ready
 - No external dependencies required
-- Works with existing `proxy.php` on your server
 - Authentication system is fully integrated
 - All admin features are protected
