@@ -80,6 +80,12 @@ body {
 .btn.users:hover {
   background: #1976d2;
 }
+.btn.update {
+  background: #9c27b0;
+}
+.btn.update:hover {
+  background: #7b1fa2;
+}
 .bottom-bar-center {
   flex: 1;
   justify-content: center;
@@ -827,6 +833,7 @@ form button:hover { background:#45a049; }
     </div>
     <button class="btn reorder" id="reorder-btn" title="Toggle Reorder Mode">Reorder</button>
     <button class="btn users" id="users-btn" title="Manage Users">👥 Users</button>
+    <button class="btn update" id="update-btn" title="Update Application">⬇️ Update</button>
     <?php endif; ?>
     <button class="btn activeonly" id="activeonly-btn" title="Show Only Active Servers">Active Only</button>
     <button class="btn showall" id="showall-btn" title="Toggle All Sessions">Show All</button>
@@ -1777,6 +1784,34 @@ if (IS_ADMIN) {
     document.getElementById('users-btn').addEventListener('click', function() {
         openUsersModal();
     });
+
+    // Update button
+    const updateBtn = document.getElementById('update-btn');
+    if (updateBtn) {
+        updateBtn.addEventListener('click', async function() {
+            if (!confirm('Are you sure you want to check for updates and pull changes from git?')) return;
+
+            const originalText = this.textContent;
+            this.disabled = true;
+            this.textContent = 'Updating...';
+
+            try {
+                const res = await fetch('git_update.php');
+                const result = await res.json();
+
+                alert(result.output || (result.success ? 'Update successful' : 'Update failed'));
+
+                if (result.success) {
+                    location.reload();
+                }
+            } catch (err) {
+                alert('Failed to update: ' + err.message);
+            } finally {
+                this.disabled = false;
+                this.textContent = originalText;
+            }
+        });
+    }
 }
 
 function openUsersModal() {
