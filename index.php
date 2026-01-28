@@ -1036,6 +1036,7 @@ async function fetchServer(server){
         if(server.type==="emby"){
             return data.filter(s=>s.NowPlayingItem).map(s=>({
                 server: server.name,
+                type: server.type,
                 user: s.UserName,
                 title: s.NowPlayingItem.Name,
                 series: s.NowPlayingItem.SeriesName||"",
@@ -1055,6 +1056,7 @@ async function fetchServer(server){
             const meta = data.MediaContainer?.Metadata || [];
             return meta.map(m=>({
                 server: server.name,
+                type: server.type,
                 user: m.User?.title||"Unknown",
                 title: m.title,
                 series: m.grandparentTitle||"",
@@ -1091,7 +1093,19 @@ function renderOnlineUsers() {
     const container = document.querySelector("#online-users .user-list-content");
     if (!container) return;
 
-    const uniqueUsers = new Set();
+    try {
+        if (!ALL_SESSIONS) return;
+
+        const uniqueUsers = new Map(); // Use Map to store user session for type lookup
+
+        // Collect all unique users from all sessions
+        Object.values(ALL_SESSIONS).flat().forEach(session => {
+            if (session && session.user && session.user !== 'Unknown') {
+                if (!uniqueUsers.has(session.user)) {
+                    uniqueUsers.set(session.user, session);
+                }
+            }
+        });
 
     // Collect all unique users from all sessions
     Object.values(ALL_SESSIONS).flat().forEach(session => {
@@ -1100,9 +1114,23 @@ function renderOnlineUsers() {
         }
     });
 
-    if (uniqueUsers.size === 0) {
-        container.innerHTML = '<span style="color:var(--muted);font-size:0.9rem;">No users online</span>';
-        return;
+        container.innerHTML = '';
+        // Sort users alphabetically
+        Array.from(uniqueUsers.keys()).sort().forEach(user => {
+            const session = uniqueUsers.get(user);
+            const badge = document.createElement('div');
+            badge.className = 'online-user-badge';
+
+            if (session.type) {
+                badge.classList.add('server-' + session.type.toLowerCase());
+            }
+
+            badge.innerHTML = `👤 ${esc(user)}`;
+            container.appendChild(badge);
+        });
+    } catch(e) {
+        console.error("Error rendering online users:", e);
+        container.innerHTML = '<span style="color:var(--muted);font-size:0.9rem;">Error loading users</span>';
     }
 
     container.innerHTML = '';
