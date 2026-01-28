@@ -142,6 +142,55 @@ body {
 }
 
 /* Server Grid View */
+.user-lists-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+.online-users {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  min-height: 24px;
+}
+.list-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.user-list-content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.online-user-badge {
+  background: var(--accent);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.online-user-badge.server-plex {
+  background: #e5a00d;
+  color: black;
+}
+.online-user-badge.server-emby {
+  background: #4caf50;
+  color: white;
+}
 .server-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; }
 .server-card {
   background: var(--card);
@@ -734,6 +783,20 @@ form button:hover { background:#45a049; }
 
 <!-- Server Grid View -->
 <div id="server-view" class="view-container visible">
+  <div class="user-lists-container">
+    <div id="dashboard-users" class="online-users">
+      <div class="list-label">Dashboard Users</div>
+      <div class="user-list-content">
+        <span style="color:var(--muted);font-size:0.9rem;">Loading...</span>
+      </div>
+    </div>
+    <div id="online-users" class="online-users">
+      <div class="list-label">Now Watching</div>
+      <div class="user-list-content">
+        <span style="color:var(--muted);font-size:0.9rem;">No users online</span>
+      </div>
+    </div>
+  </div>
   <div id="server-grid" class="server-grid"></div>
 </div>
 
@@ -1031,8 +1094,82 @@ async function fetchServer(server){
     }
 }
 
+// Render online users list (Watchers)
+function renderOnlineUsers() {
+    const container = document.querySelector("#online-users .user-list-content");
+    if (!container) return;
+
+    const uniqueUsers = new Set();
+
+    // Collect all unique users from all sessions
+    Object.values(ALL_SESSIONS).flat().forEach(session => {
+        if (session.user && session.user !== 'Unknown') {
+            uniqueUsers.add(session.user);
+        }
+    });
+
+    if (uniqueUsers.size === 0) {
+        container.innerHTML = '<span style="color:var(--muted);font-size:0.9rem;">No users online</span>';
+        return;
+    }
+
+    container.innerHTML = '';
+    // Sort users alphabetically
+    Array.from(uniqueUsers).sort().forEach(user => {
+        const badge = document.createElement('div');
+        badge.className = 'online-user-badge';
+
+        // Find session to determine server type
+        const sessions = Object.values(ALL_SESSIONS).flat();
+        const userSession = sessions.find(s => s.user === user);
+
+        if (userSession) {
+            const server = SERVERS.find(s => s.name === userSession.server);
+            if (server) {
+                badge.classList.add('server-' + server.type);
+            }
+        }
+
+        badge.innerHTML = `👤 ${esc(user)}`;
+        container.appendChild(badge);
+    });
+}
+
+// Fetch and render dashboard users
+async function fetchDashboardUsers() {
+    try {
+        const res = await fetch('get_active_users.php?_=' + Date.now());
+        const data = await res.json();
+        renderDashboardUsers(data.users || []);
+    } catch (e) {
+        console.error('Error fetching dashboard users:', e);
+    }
+}
+
+function renderDashboardUsers(users) {
+    const container = document.querySelector("#dashboard-users .user-list-content");
+    if (!container) return;
+
+    if (users.length === 0) {
+        container.innerHTML = '<span style="color:var(--muted);font-size:0.9rem;">No users active</span>';
+        return;
+    }
+
+    container.innerHTML = '';
+    users.forEach(user => {
+        const badge = document.createElement('div');
+        badge.className = 'online-user-badge';
+        badge.style.background = '#2196f3'; // Different color for dashboard users
+        badge.innerHTML = `👤 ${esc(user)}`;
+        container.appendChild(badge);
+    });
+}
+
 // Render server cards
 function renderServerGrid() {
+    renderOnlineUsers();
+    fetchDashboardUsers();
+
     const container = document.getElementById("server-grid");
     container.innerHTML = "";
     
