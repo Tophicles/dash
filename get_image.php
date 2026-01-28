@@ -1,4 +1,8 @@
 <?php
+require_once 'auth.php';
+require_once 'encryption_helper.php';
+requireLogin();
+
 $serverName = $_GET['server'] ?? '';
 $itemId = $_GET['itemId'] ?? '';
 $type = $_GET['type'] ?? 'Primary';
@@ -30,6 +34,10 @@ if (!$server) {
     http_response_code(404);
     exit;
 }
+
+// Decrypt keys before use
+if (isset($server['apiKey'])) $server['apiKey'] = decrypt($server['apiKey']);
+if (isset($server['token'])) $server['token'] = decrypt($server['token']);
 
 // Ensure URL has protocol
 function ensureProtocol($url) {

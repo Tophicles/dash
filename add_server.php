@@ -1,5 +1,6 @@
 <?php
 require_once 'auth.php';
+require_once 'encryption_helper.php';
 requireLogin();
 requireAdmin();
 
@@ -53,12 +54,12 @@ $newServer = [
     'color' => randomMutedColor()
 ];
 
-// Add optional fields
+// Add optional fields with encryption
 if (!empty($data['apiKey'])) {
-    $newServer['apiKey'] = $data['apiKey'];
+    $newServer['apiKey'] = encrypt($data['apiKey']);
 }
 if (!empty($data['token'])) {
-    $newServer['token'] = $data['token'];
+    $newServer['token'] = encrypt($data['token']);
 }
 
 $config['servers'][] = $newServer;

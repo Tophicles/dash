@@ -1,4 +1,8 @@
 <?php
+require_once 'auth.php';
+require_once 'encryption_helper.php';
+requireLogin();
+
 header('Content-Type: application/json');
 
 $serverName = $_GET['server'] ?? '';
@@ -20,7 +24,7 @@ function ensureProtocol($url) {
 if ($server['type'] === 'plex') {
     $baseUrl = ensureProtocol($server['url']);
     $url = rtrim($baseUrl, '/') . '/status/sessions';
-    $token = $server['token'] ?? '';
+    $token = isset($server['token']) ? decrypt($server['token']) : '';
 
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);
@@ -52,7 +56,7 @@ if ($server['type'] === 'plex') {
 if ($server['type'] === 'emby') {
     $baseUrl = ensureProtocol($server['url']);
     $url = rtrim($baseUrl, '/') . '/Sessions';
-    $apiKey = $server['apiKey'] ?? '';
+    $apiKey = isset($server['apiKey']) ? decrypt($server['apiKey']) : '';
 
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);

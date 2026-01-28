@@ -41,6 +41,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $jsonData = json_encode($users, JSON_PRETTY_PRINT);
         $result = file_put_contents($usersFile, $jsonData);
         
+        // Initialize servers.json if it doesn't exist
+        $serversFile = 'servers.json';
+        if (!file_exists($serversFile)) {
+            $initialServers = [
+                'refreshSeconds' => 5,
+                'servers' => []
+            ];
+            file_put_contents($serversFile, json_encode($initialServers, JSON_PRETTY_PRINT));
+            @chmod($serversFile, 0666);
+        }
+        
         if ($result !== false) {
             // Verify the file was created
             if (file_exists($usersFile)) {

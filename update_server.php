@@ -1,5 +1,6 @@
 <?php
 require_once 'auth.php';
+require_once 'encryption_helper.php';
 requireLogin();
 requireAdmin();
 
@@ -37,8 +38,8 @@ $servers['servers'][$serverIndex] = [
     "name" => $newName,
     "type" => $data['type'] ?? $existingServer['type'],
     "url" => $data['url'] ?? $existingServer['url'],
-    "apiKey" => isset($data['apiKey']) && $data['apiKey'] !== '' ? $data['apiKey'] : ($existingServer['apiKey'] ?? ''),
-    "token" => isset($data['token']) && $data['token'] !== '' ? $data['token'] : ($existingServer['token'] ?? ''),
+    "apiKey" => isset($data['apiKey']) && $data['apiKey'] !== '' ? encrypt($data['apiKey']) : ($existingServer['apiKey'] ?? ''),
+    "token" => isset($data['token']) && $data['token'] !== '' ? encrypt($data['token']) : ($existingServer['token'] ?? ''),
     "color" => $existingServer['color'] ?? randomMutedColor(),
     "enabled" => true,
     "order" => $existingServer['order'] ?? (count($servers['servers']) + 1)

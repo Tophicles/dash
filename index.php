@@ -720,7 +720,6 @@ form button:hover { background:#45a049; }
 .view-container { display: none; }
 .view-container.visible { display: block; }
 </style>
-<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
 </head>
 <body>
 
@@ -836,6 +835,14 @@ form button:hover { background:#45a049; }
 </div>
 
 <script>
+// Helper to escape HTML and prevent XSS
+function esc(str) {
+    if (str === null || str === undefined) return '';
+    const temp = document.createElement('div');
+    temp.textContent = str;
+    return temp.innerHTML.replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+}
+
 let SERVERS = [];
 let ALL_SESSIONS = {};
 const SERVER_COLORS = {};
@@ -917,9 +924,9 @@ document.getElementById('back-btn').addEventListener('click', function() {
     showServerView();
 });
 
-// Load servers.json
+// Load config via PHP to handle decryption and permissions
 async function loadConfig() {
-    const res = await fetch('servers.json?_=' + Date.now());
+    const res = await fetch('get_config.php?_=' + Date.now());
     const config = await res.json();
     SERVERS = config.servers.filter(s=>s.enabled).sort((a,b)=> {
         // First sort by type (emby before plex)
@@ -1065,10 +1072,10 @@ function renderServerGrid() {
         
         card.innerHTML = `
             ${dragHandle}
-            <div class="server-name">${server.name}</div>
-            <div class="server-type">${server.type}</div>
+            <div class="server-name">${esc(server.name)}</div>
+            <div class="server-type">${esc(server.type)}</div>
             <div class="server-status">
-                <div class="status-dot ${isActive ? 'active server-' + server.type : ''}"></div>
+                <div class="status-dot ${isActive ? 'active server-' + esc(server.type) : ''}"></div>
                 ${isActive ? `${sessions.length} playing` : 'Idle'}
             </div>
         `;
@@ -1157,15 +1164,15 @@ function renderSessions(serverName = null) {
         let badges = '';
         if (qualityBadge || playIcon) {
             badges = `<div class="stream-badges">`;
-            if (playIcon) badges += `<span class="badge play-badge" title="${s.playMethod}">${playIcon}</span>`;
-            if (qualityBadge) badges += `<span class="badge quality-badge">${qualityBadge}</span>`;
+            if (playIcon) badges += `<span class="badge play-badge" title="${esc(s.playMethod)}">${playIcon}</span>`;
+            if (qualityBadge) badges += `<span class="badge quality-badge">${esc(qualityBadge)}</span>`;
             badges += `</div>`;
         }
         
         card.innerHTML = `
-            <div class="user-label">${s.user}${badges}</div>
-            <div class="title">${s.title}</div>
-            ${s.series ? `<div class="subtitle">${s.series}${episodeInfo}</div>` : ``}
+            <div class="user-label">${esc(s.user)}${badges}</div>
+            <div class="title">${esc(s.title)}</div>
+            ${s.series ? `<div class="subtitle">${esc(s.series)}${esc(episodeInfo)}</div>` : ``}
             <div class="muted">
                 ${isLive ? "🔴 Live" :
                 `${msToTime(s.position)} / ${msToTime(s.duration)} • ${s.paused ? "Paused" : "Playing"}`}
@@ -1387,40 +1394,40 @@ async function showItemDetails(serverName, itemId, serverType) {
         if (item.poster) {
             html += `
                 <div class="modal-poster">
-                    <img src="${item.poster}" alt="${item.title}" onerror="this.style.display='none'">
+                    <img src="${esc(item.poster)}" alt="${esc(item.title)}" onerror="this.style.display='none'">
                 </div>
             `;
         }
         
         // Right side: Title, meta, and overview
         html += '<div class="modal-content-right">';
-        html += `<div class="modal-title">${item.title}</div>`;
+        html += `<div class="modal-title">${esc(item.title)}</div>`;
         
         if (item.subtitle) {
-            html += `<div class="modal-subtitle">${item.subtitle}</div>`;
+            html += `<div class="modal-subtitle">${esc(item.subtitle)}</div>`;
         }
         
         // Show season and episode numbers for TV shows
         if (item.season && item.episode) {
-            html += `<div class="modal-episode">Season ${item.season}, Episode ${item.episode}</div>`;
+            html += `<div class="modal-episode">Season ${esc(item.season)}, Episode ${esc(item.episode)}</div>`;
         }
         
         // Meta information
         html += '<div class="modal-meta">';
         if (item.year) {
-            html += `<div class="modal-meta-item"><span class="modal-meta-label">Year:</span> ${item.year}</div>`;
+            html += `<div class="modal-meta-item"><span class="modal-meta-label">Year:</span> ${esc(item.year)}</div>`;
         }
         if (item.rating) {
-            html += `<div class="modal-meta-item"><span class="modal-meta-label">Rating:</span> ${item.rating}</div>`;
+            html += `<div class="modal-meta-item"><span class="modal-meta-label">Rating:</span> ${esc(item.rating)}</div>`;
         }
         if (item.runtime) {
-            html += `<div class="modal-meta-item"><span class="modal-meta-label">Runtime:</span> ${item.runtime}</div>`;
+            html += `<div class="modal-meta-item"><span class="modal-meta-label">Runtime:</span> ${esc(item.runtime)}</div>`;
         }
         html += '</div>';
         
         // Overview inline with poster
         if (item.overview) {
-            html += `<div class="modal-overview-inline">${item.overview}</div>`;
+            html += `<div class="modal-overview-inline">${esc(item.overview)}</div>`;
         }
         
         html += '</div></div>'; // Close modal-content-right and modal-header-new
@@ -1433,7 +1440,7 @@ async function showItemDetails(serverName, itemId, serverType) {
                 html += `
                     <div class="modal-detail-item">
                         <div class="modal-detail-label">Genres</div>
-                        <div class="modal-detail-value">${item.genres}</div>
+                        <div class="modal-detail-value">${esc(item.genres)}</div>
                     </div>
                 `;
             }
@@ -1441,7 +1448,7 @@ async function showItemDetails(serverName, itemId, serverType) {
                 html += `
                     <div class="modal-detail-item">
                         <div class="modal-detail-label">Director</div>
-                        <div class="modal-detail-value">${item.director}</div>
+                        <div class="modal-detail-value">${esc(item.director)}</div>
                     </div>
                 `;
             }
@@ -1449,7 +1456,7 @@ async function showItemDetails(serverName, itemId, serverType) {
                 html += `
                     <div class="modal-detail-item">
                         <div class="modal-detail-label">Studio</div>
-                        <div class="modal-detail-value">${item.studio}</div>
+                        <div class="modal-detail-value">${esc(item.studio)}</div>
                     </div>
                 `;
             }
@@ -1457,7 +1464,7 @@ async function showItemDetails(serverName, itemId, serverType) {
                 html += `
                     <div class="modal-detail-item">
                         <div class="modal-detail-label">Content Rating</div>
-                        <div class="modal-detail-value">${item.contentRating}</div>
+                        <div class="modal-detail-value">${esc(item.contentRating)}</div>
                     </div>
                 `;
             }
@@ -1489,14 +1496,14 @@ async function showItemDetails(serverName, itemId, serverType) {
             }
             
             // Build single line with all info
-            let infoLine = `👤 <strong>${sessionData.user}</strong>`;
+            let infoLine = `👤 <strong>${esc(sessionData.user)}</strong>`;
             
             if (sessionData.device) {
-                infoLine += ` • ${sessionData.device}`;
+                infoLine += ` • ${esc(sessionData.device)}`;
             }
             
             if (sessionData.quality) {
-                infoLine += ` • <span class="quality-badge">${sessionData.quality}</span>`;
+                infoLine += ` • <span class="quality-badge">${esc(sessionData.quality)}</span>`;
             }
             
             html += `<div class="modal-playback-info-wrapper">${topBadges}<div class="modal-playback-info">${infoLine}</div></div>`;
@@ -1797,16 +1804,16 @@ async function loadUsersList() {
             container.innerHTML = data.users.map(user => `
                 <div class="user-item">
                     <div class="user-item-info">
-                        <div class="user-item-username">${user.username}</div>
+                        <div class="user-item-username">${esc(user.username)}</div>
                         <div class="user-item-meta">
-                            <span class="user-item-role ${user.role}">${user.role.toUpperCase()}</span>
-                            Created: ${user.created}
+                            <span class="user-item-role ${esc(user.role)}">${esc(user.role).toUpperCase()}</span>
+                            Created: ${esc(user.created)}
                         </div>
                     </div>
                     <div class="user-item-actions">
-                        <button class="btn" onclick="changeUserPassword('${user.username}')">🔑 Change Password</button>
-                        <button class="btn" onclick="toggleUserRole('${user.username}', '${user.role}')">${user.role === 'admin' ? '👤 Make Viewer' : '👑 Make Admin'}</button>
-                        <button class="btn delete" onclick="deleteUser('${user.username}')">🗑️ Delete</button>
+                        <button class="btn" onclick="changeUserPassword('${esc(user.username)}')">🔑 Change Password</button>
+                        <button class="btn" onclick="toggleUserRole('${esc(user.username)}', '${esc(user.role)}')">${user.role === 'admin' ? '👤 Make Viewer' : '👑 Make Admin'}</button>
+                        <button class="btn delete" onclick="deleteUser('${esc(user.username)}')">🗑️ Delete</button>
                     </div>
                 </div>
             `).join('');

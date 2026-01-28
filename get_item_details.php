@@ -1,4 +1,8 @@
 <?php
+require_once 'auth.php';
+require_once 'encryption_helper.php';
+requireLogin();
+
 header('Content-Type: application/json');
 
 $serverName = $_GET['server'] ?? '';
@@ -30,6 +34,10 @@ if (!$server) {
     echo json_encode(['success' => false, 'error' => 'Server not found']);
     exit;
 }
+
+// Decrypt keys before use
+if (isset($server['apiKey'])) $server['apiKey'] = decrypt($server['apiKey']);
+if (isset($server['token'])) $server['token'] = decrypt($server['token']);
 
 // Ensure URL has protocol
 function ensureProtocol($url) {
