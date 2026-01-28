@@ -183,14 +183,6 @@ body {
   align-items: center;
   gap: 6px;
 }
-.online-user-badge.server-plex {
-  background: #e5a00d !important;
-  color: black !important;
-}
-.online-user-badge.server-emby {
-  background: #4caf50 !important;
-  color: white !important;
-}
 .server-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; }
 .server-card {
   background: var(--card);
@@ -1115,10 +1107,12 @@ function renderOnlineUsers() {
             }
         });
 
-        if (uniqueUsers.size === 0) {
-            container.innerHTML = '<span style="color:var(--muted);font-size:0.9rem;">No users online</span>';
-            return;
+    // Collect all unique users from all sessions
+    Object.values(ALL_SESSIONS).flat().forEach(session => {
+        if (session.user && session.user !== 'Unknown') {
+            uniqueUsers.add(session.user);
         }
+    });
 
         container.innerHTML = '';
         // Sort users alphabetically
@@ -1138,6 +1132,15 @@ function renderOnlineUsers() {
         console.error("Error rendering online users:", e);
         container.innerHTML = '<span style="color:var(--muted);font-size:0.9rem;">Error loading users</span>';
     }
+
+    container.innerHTML = '';
+    // Sort users alphabetically
+    Array.from(uniqueUsers).sort().forEach(user => {
+        const badge = document.createElement('div');
+        badge.className = 'online-user-badge';
+        badge.innerHTML = `👤 ${esc(user)}`;
+        container.appendChild(badge);
+    });
 }
 
 // Fetch and render dashboard users
