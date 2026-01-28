@@ -45,6 +45,9 @@ cd /var/www/html/dash
 # Set directory permissions
 sudo chmod 775 /var/www/html/dash
 sudo chown www-data:www-data /var/www/html/dash
+sudo chown 666 activity.json
+sudo chown 666 users.json
+sudo chown 666 servers.json
 
 ### First Access
 1. Navigate to `https://bntv.ca/dash/`
@@ -67,7 +70,7 @@ sudo chown www-data:www-data /var/www/html/dash
 - `get_image.php` - Image proxy
 
 ### Configuration
-- `servers.json` - Your 10 media servers
+- `servers.json` - Your media servers
 - `users.json` - User accounts (auto-created)
 - `.htaccess` - Web server rules
 

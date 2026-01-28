@@ -1118,7 +1118,7 @@ function renderOnlineUsers() {
 // Fetch and render dashboard users
 async function fetchDashboardUsers() {
     try {
-        const res = await fetch('get_active_users.php?_=' + Date.now());
+        const res = await fetch('get_active_users.php');
         const data = await res.json();
         renderDashboardUsers(data.users || []);
     } catch (e) {
