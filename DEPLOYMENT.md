@@ -73,7 +73,7 @@ sudo chmod 666 activity.json users.json servers.json
 - `get_image.php` - Image proxy
 
 ### Configuration
-- `servers.json` - Your media servers
+- `servers.json` - Your 10 media servers
 - `users.json` - User accounts (auto-created)
 - `.htaccess` - Web server rules
 
