@@ -31,13 +31,6 @@
 ### Generated Files (Created Automatically)
 - **users.json** - User database (created during setup)
 
-## Files NOT Needed (Already Removed)
-- ❌ script.js (was for failed externalization)
-- ❌ styles.css (was for failed externalization)
-- ❌ email_config.php (email feature removed)
-- ❌ EMAIL_SETUP.md (email feature removed)
-- ❌ Various guide/analysis markdown files
-
 ## Total File Count: 16 files + 1 auto-generated
 
 ## Deployment Checklist
