@@ -13,6 +13,7 @@
 6. **logout.php** (77B) - Logout handler
 7. **manage_users.php** (5.1KB) - User management API
 8. **get_user.php** (167B) - Current user info API
+11. **get_active_users.php** (200B) - Active dashboard users API
 
 ### Server Management (Admin Only)
 9. **add_server.php** (3.2KB) - Add new servers

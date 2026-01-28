@@ -142,17 +142,35 @@ body {
 }
 
 /* Server Grid View */
+.user-lists-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
 .online-users {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 8px;
-  margin-bottom: 20px;
   padding: 12px;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 8px;
   min-height: 24px;
-  margin-top: 20px;
+}
+.list-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.user-list-content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 .online-user-badge {
   background: var(--accent);
@@ -757,8 +775,19 @@ form button:hover { background:#45a049; }
 
 <!-- Server Grid View -->
 <div id="server-view" class="view-container visible">
-  <div id="online-users" class="online-users">
-    <span style="color:var(--muted);font-size:0.9rem;">No users online</span>
+  <div class="user-lists-container">
+    <div id="dashboard-users" class="online-users">
+      <div class="list-label">Dashboard Users</div>
+      <div class="user-list-content">
+        <span style="color:var(--muted);font-size:0.9rem;">Loading...</span>
+      </div>
+    </div>
+    <div id="online-users" class="online-users">
+      <div class="list-label">Now Watching</div>
+      <div class="user-list-content">
+        <span style="color:var(--muted);font-size:0.9rem;">No users online</span>
+      </div>
+    </div>
   </div>
   <div id="server-grid" class="server-grid"></div>
 </div>
@@ -1057,9 +1086,9 @@ async function fetchServer(server){
     }
 }
 
-// Render online users list
+// Render online users list (Watchers)
 function renderOnlineUsers() {
-    const container = document.getElementById("online-users");
+    const container = document.querySelector("#online-users .user-list-content");
     if (!container) return;
 
     const uniqueUsers = new Set();
@@ -1086,9 +1115,40 @@ function renderOnlineUsers() {
     });
 }
 
+// Fetch and render dashboard users
+async function fetchDashboardUsers() {
+    try {
+        const res = await fetch('get_active_users.php');
+        const data = await res.json();
+        renderDashboardUsers(data.users || []);
+    } catch (e) {
+        console.error('Error fetching dashboard users:', e);
+    }
+}
+
+function renderDashboardUsers(users) {
+    const container = document.querySelector("#dashboard-users .user-list-content");
+    if (!container) return;
+
+    if (users.length === 0) {
+        container.innerHTML = '<span style="color:var(--muted);font-size:0.9rem;">No users active</span>';
+        return;
+    }
+
+    container.innerHTML = '';
+    users.forEach(user => {
+        const badge = document.createElement('div');
+        badge.className = 'online-user-badge';
+        badge.style.background = '#2196f3'; // Different color for dashboard users
+        badge.innerHTML = `👤 ${esc(user)}`;
+        container.appendChild(badge);
+    });
+}
+
 // Render server cards
 function renderServerGrid() {
     renderOnlineUsers();
+    fetchDashboardUsers();
 
     const container = document.getElementById("server-grid");
     container.innerHTML = "";
