@@ -61,12 +61,39 @@ function logout() {
     unset($_SESSION['user']);
 }
 
+// Update user activity timestamp
+function updateActivity() {
+    if (!isLoggedIn()) return;
+
+    $activityFile = 'activity.json';
+    $user = getCurrentUser()['username'];
+    $now = time();
+
+    $activity = [];
+    if (file_exists($activityFile)) {
+        $json = file_get_contents($activityFile);
+        $activity = json_decode($json, true) ?: [];
+    }
+
+    $activity[$user] = $now;
+
+    // Optional: Prune very old entries (older than 1 hour) to keep file small
+    foreach ($activity as $u => $time) {
+        if ($now - $time > 3600) {
+            unset($activity[$u]);
+        }
+    }
+
+    file_put_contents($activityFile, json_encode($activity), LOCK_EX);
+}
+
 // Require login - redirect to login page if not logged in
 function requireLogin() {
     if (!isLoggedIn()) {
         header('Location: login.php');
         exit;
     }
+    updateActivity();
 }
 
 // Require admin - return error if not admin
