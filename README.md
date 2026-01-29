@@ -8,6 +8,7 @@ A lightweight, self-hosted dashboard for monitoring multiple Plex, Emby, and Jel
 
 *   **Unified Monitoring:** View active sessions from multiple Plex, Emby, and Jellyfin servers in a single grid.
 *   **Real-time Updates:** Auto-refreshing status for "Now Watching" and dashboard users.
+*   **Dynamic Server Management:** Easily add and edit servers using a modal interface with protocol selection and automatic port suggestions.
 *   **Library Management:** List and trigger scans for media libraries on connected Plex, Emby, and Jellyfin servers.
 *   **User Management:** Built-in authentication with Admin and Viewer roles.
 *   **Logging System:** Comprehensive system logging with a built-in "tailable" log viewer (filterable by level and search).
@@ -21,7 +22,7 @@ Secure login system with role-based access control.
 ![Login](screenshots/login.png)
 
 ### Server Management
-Easily add, edit, and reorder your media servers.
+Easily add, edit, and reorder your media servers via a user-friendly modal.
 ![Add Server](screenshots/add_server.png)
 
 ### User Administration
