@@ -171,6 +171,15 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  transition: max-height 0.3s ease-out;
+  overflow: hidden;
+}
+.user-list-content.hidden {
+  display: none;
+}
+.list-label {
+  cursor: pointer;
+  user-select: none;
 }
 .online-user-badge {
   background: var(--accent);
@@ -791,8 +800,8 @@ form button:hover { background:#45a049; }
       </div>
     </div>
     <div id="online-users" class="online-users">
-      <div class="list-label">Now Watching</div>
-      <div class="user-list-content">
+      <div class="list-label" id="online-users-label">Now Watching</div>
+      <div class="user-list-content hidden">
         <span style="color:var(--muted);font-size:0.9rem;">No users online</span>
       </div>
     </div>
@@ -1097,6 +1106,7 @@ async function fetchServer(server){
 // Render online users list (Watchers)
 function renderOnlineUsers() {
     const container = document.querySelector("#online-users .user-list-content");
+    const label = document.getElementById("online-users-label");
     if (!container) return;
 
     const onlineUsers = [];
@@ -1112,6 +1122,10 @@ function renderOnlineUsers() {
         }
     });
 
+    if (label) {
+        label.textContent = `${onlineUsers.length} NOW WATCHING`;
+    }
+
     if (onlineUsers.length === 0) {
         container.innerHTML = '<span style="color:var(--muted);font-size:0.9rem;">No users online</span>';
         return;
@@ -1125,6 +1139,14 @@ function renderOnlineUsers() {
         container.appendChild(badge);
     });
 }
+
+// Toggle online users visibility
+document.getElementById('online-users-label')?.addEventListener('click', function() {
+    const container = document.querySelector("#online-users .user-list-content");
+    if (container) {
+        container.classList.toggle('hidden');
+    }
+});
 
 // Fetch and render dashboard users
 async function fetchDashboardUsers() {
