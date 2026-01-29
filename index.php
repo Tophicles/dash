@@ -1235,6 +1235,11 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
+// Initialize toggles
+toggleSection('online-users-label', '#online-users .user-list-content');
+toggleSection('dashboard-users-label', '#dashboard-users .user-list-content');
+toggleSection('menu-label', '#menu-content');
+
 // Fetch and render dashboard users
 async function fetchDashboardUsers() {
     try {
