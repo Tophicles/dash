@@ -1395,11 +1395,16 @@ function renderSessions(serverName = null) {
     
     if (serverName) {
         // Single server
-        sessions = ALL_SESSIONS[serverName] || [];
+        sessions = (ALL_SESSIONS[serverName] || []).slice();
+        sessions.sort((a, b) => a.user.localeCompare(b.user));
     } else {
         // All servers
         sessions = Object.values(ALL_SESSIONS).flat();
-        sessions.sort((a,b)=>a.server.localeCompare(b.server));
+        sessions.sort((a,b) => {
+            const serverDiff = a.server.localeCompare(b.server);
+            if (serverDiff !== 0) return serverDiff;
+            return a.user.localeCompare(b.user);
+        });
     }
     
     container.innerHTML = "";
