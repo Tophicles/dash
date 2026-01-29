@@ -1099,17 +1099,31 @@ function renderOnlineUsers() {
     const container = document.querySelector("#online-users .user-list-content");
     if (!container) return;
 
-    const uniqueUsers = new Set();
+    const onlineUsers = [];
+    const processedUsers = new Set();
 
-        if (uniqueUsers.size === 0) {
-            container.innerHTML = '<span style="color:var(--muted);font-size:0.9rem;">No users online</span>';
-            return;
+    Object.values(ALL_SESSIONS).flat().forEach(session => {
+        if (!processedUsers.has(session.user)) {
+            processedUsers.add(session.user);
+            // Find server type
+            const server = SERVERS.find(s => s.name === session.server);
+            const type = server ? server.type : 'emby';
+            onlineUsers.push({ name: session.user, type: type });
         }
+    });
 
-    if (uniqueUsers.size === 0) {
+    if (onlineUsers.length === 0) {
         container.innerHTML = '<span style="color:var(--muted);font-size:0.9rem;">No users online</span>';
         return;
     }
+
+    container.innerHTML = '';
+    onlineUsers.forEach(u => {
+        const badge = document.createElement('div');
+        badge.className = `online-user-badge server-${esc(u.type)}`;
+        badge.innerHTML = `👤 ${esc(u.name)}`;
+        container.appendChild(badge);
+    });
 }
 
 // Fetch and render dashboard users
