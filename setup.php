@@ -1,4 +1,5 @@
 <?php
+require_once 'logging.php';
 session_start();
 
 // Check if users.json already exists
@@ -40,6 +41,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Save to users.json
         $jsonData = json_encode($users, JSON_PRETTY_PRINT);
         $result = file_put_contents($usersFile, $jsonData);
+        if ($result !== false) {
+            @chmod($usersFile, 0666);
+            writeLog("Setup: Created users.json");
+        }
         
         // Initialize servers.json if it doesn't exist
         $serversFile = 'servers.json';
@@ -51,11 +56,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             file_put_contents($serversFile, json_encode($initialServers, JSON_PRETTY_PRINT));
             @chmod($serversFile, 0666);
         }
+
+        // Initialize activity.json if it doesn't exist
+        $activityFile = 'activity.json';
+        if (!file_exists($activityFile)) {
+            file_put_contents($activityFile, '{}');
+            @chmod($activityFile, 0666);
+        }
         
         if ($result !== false) {
             // Verify the file was created
             if (file_exists($usersFile)) {
                 $success = true;
+                writeLog("Setup completed successfully by user: $username", "INFO");
                 // Auto-login the new admin
                 $_SESSION['user'] = [
                     'username' => $username,
@@ -65,9 +78,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header('Refresh: 2; URL=index.php');
             } else {
                 $error = 'File write succeeded but file does not exist. Path: ' . realpath('.') . '/' . $usersFile;
+                writeLog("Setup Error: $error", "ERROR");
             }
         } else {
             $error = 'Failed to write to users.json. Directory: ' . realpath('.') . ' - Check permissions.';
+            writeLog("Setup Error: $error", "ERROR");
         }
     }
 }

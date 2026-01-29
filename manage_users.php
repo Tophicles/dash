@@ -1,5 +1,6 @@
 <?php
 require_once 'auth.php';
+require_once 'logging.php';
 requireLogin();
 requireAdmin();
 
@@ -58,8 +59,11 @@ if ($method === 'POST' && isset($input['action']) && $input['action'] === 'add')
     ];
     
     if (saveUsers($users)) {
+        $admin = getCurrentUser()['username'];
+        writeLog("User '$admin' created new user '$username' with role '$role'", "AUTH");
         echo json_encode(['success' => true, 'message' => 'User added successfully']);
     } else {
+        writeLog("Failed to create user '$username'", "ERROR");
         echo json_encode(['success' => false, 'error' => 'Failed to save user']);
     }
     exit;
@@ -90,6 +94,8 @@ if ($method === 'POST' && isset($input['action']) && $input['action'] === 'updat
             exit;
         }
         $users[$username]['password'] = password_hash($newPassword, PASSWORD_DEFAULT);
+        $admin = getCurrentUser()['username'];
+        writeLog("User '$admin' changed password for user '$username'", "AUTH");
     }
     
     // Update role if provided
@@ -110,11 +116,14 @@ if ($method === 'POST' && isset($input['action']) && $input['action'] === 'updat
         }
         
         $users[$username]['role'] = $newRole;
+        $admin = getCurrentUser()['username'];
+        writeLog("User '$admin' changed role for user '$username' to '$newRole'", "AUTH");
     }
     
     if (saveUsers($users)) {
         echo json_encode(['success' => true, 'message' => 'User updated successfully']);
     } else {
+        writeLog("Failed to update user '$username'", "ERROR");
         echo json_encode(['success' => false, 'error' => 'Failed to update user']);
     }
     exit;
@@ -159,8 +168,11 @@ if ($method === 'POST' && isset($input['action']) && $input['action'] === 'delet
     unset($users[$username]);
     
     if (saveUsers($users)) {
+        $admin = getCurrentUser()['username'];
+        writeLog("User '$admin' deleted user '$username'", "AUTH");
         echo json_encode(['success' => true, 'message' => 'User deleted successfully']);
     } else {
+        writeLog("Failed to delete user '$username'", "ERROR");
         echo json_encode(['success' => false, 'error' => 'Failed to delete user']);
     }
     exit;

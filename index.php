@@ -1,5 +1,6 @@
 <?php
 require_once 'auth.php';
+require_once 'logging.php';
 requireLogin();
 $user = getCurrentUser();
 $isAdmin = isAdmin();
@@ -51,6 +52,38 @@ body {
   margin-bottom: 20px;
   overflow: hidden;
 }
+.top-bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+}
+.header-section {
+  display: flex;
+  align-items: center;
+}
+.header-section.center {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  font-weight: 600;
+}
+.header-badge {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+.header-section.left:hover .header-badge {
+   background: rgba(255, 255, 255, 0.2);
+}
 .menu-content {
   padding: 12px 16px;
   display: flex;
@@ -87,6 +120,12 @@ body {
 }
 .btn.users:hover {
   background: #1976d2;
+}
+.btn.logs {
+  background: #607d8b;
+}
+.btn.logs:hover {
+  background: #546e7a;
 }
 .top-bar-center {
   flex: 1;
@@ -433,7 +472,7 @@ body {
   flex-shrink: 0;
 }
 .modal-poster img {
-  width: 200px;
+  width: 160px;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.5);
 }
@@ -801,16 +840,23 @@ form button:hover { background:#45a049; }
 
 <!-- Top Menu Bar -->
 <div class="top-bar">
-  <div class="list-label" id="menu-label" style="padding: 12px; margin: 0; cursor: pointer;">MENU +</div>
+  <div class="top-bar-header" id="menu-header">
+    <div class="header-section left" id="header-reload-btn" title="Reload Dashboard">
+      <span class="header-badge">MultiDash</span>
+    </div>
+    <div class="header-section center" id="menu-toggle-label">
+      MENU +
+    </div>
+    <div class="header-section right" id="header-clock-btn">
+      <span class="header-badge" id="header-clock">--:--</span>
+    </div>
+  </div>
   <div id="menu-content" class="menu-content hidden">
     <div class="top-bar-left">
       <span class="user-info">👤 <?php echo htmlspecialchars($user['username']); ?> (<?php echo htmlspecialchars($user['role']); ?>)</span>
       <?php if ($isAdmin): ?>
       <button class="btn" id="toggle-form">Add Server</button>
       <?php endif; ?>
-    </div>
-    <div class="top-bar-center">
-      <button class="btn reload" id="reload-btn">🔄 Reload</button>
     </div>
     <div class="top-bar-right">
       <?php if ($isAdmin): ?>
@@ -820,6 +866,7 @@ form button:hover { background:#45a049; }
       </div>
       <button class="btn reorder" id="reorder-btn" title="Toggle Reorder Mode">Reorder</button>
       <button class="btn users" id="users-btn" title="Manage Users">👥 Users</button>
+      <button class="btn logs" id="logs-btn" title="View System Logs" onclick="window.open('view_logs.php', '_blank')">📜 Logs</button>
       <?php endif; ?>
       <button class="btn activeonly" id="activeonly-btn" title="Show Only Active Servers">Active Only</button>
       <button class="btn showall" id="showall-btn" title="Toggle All Sessions">Show All</button>
@@ -940,7 +987,6 @@ function esc(str) {
 
 let SERVERS = [];
 let ALL_SESSIONS = {};
-const SERVER_COLORS = {};
 let refreshTimer = null;
 let currentView = 'servers'; // 'servers', 'sessions', or 'all'
 let selectedServerId = null;
@@ -963,18 +1009,6 @@ if (IS_ADMIN) {
         }
     });
 }
-
-// Reload button
-document.getElementById('reload-btn').addEventListener('click', function() {
-    if (currentView === 'servers') {
-        // In server view, reload the page
-        location.reload();
-    } else {
-        // In sessions view, go back to server list
-        showServerView();
-        window.scrollTo(0, 0);
-    }
-});
 
 // Show All button (toggleable)
 document.getElementById('showall-btn').addEventListener('click', function() {
@@ -1031,7 +1065,6 @@ async function loadConfig() {
         // Then sort by order
         return (a.order||0) - (b.order||0);
     });
-    SERVERS.forEach(s=>{ if(s.color) SERVER_COLORS[s.name] = s.color; });
     return config.refreshSeconds || 5;
 }
 
@@ -1203,7 +1236,38 @@ function toggleSection(labelId, contentSelector) {
 // Initialize toggles
 toggleSection('online-users-label', '#online-users .user-list-content');
 toggleSection('dashboard-users-label', '#dashboard-users .user-list-content');
-toggleSection('menu-label', '#menu-content');
+
+// Top Bar Header Logic
+function updateClock() {
+    const now = new Date();
+    const options = { weekday: 'short', month: 'short', day: 'numeric' };
+    const dateStr = now.toLocaleDateString('en-US', options);
+    const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    const clockEl = document.getElementById('header-clock');
+    if (clockEl) {
+        clockEl.textContent = `${dateStr} • ${timeStr}`;
+    }
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+document.getElementById('header-reload-btn').addEventListener('click', function(e) {
+    e.stopPropagation();
+    if (currentView === 'servers') {
+        location.reload();
+    } else {
+        showServerView();
+        window.scrollTo(0, 0);
+    }
+});
+
+document.getElementById('menu-header').addEventListener('click', function() {
+    const content = document.getElementById('menu-content');
+    const label = document.getElementById('menu-toggle-label');
+    content.classList.toggle('hidden');
+    const isHidden = content.classList.contains('hidden');
+    label.textContent = 'MENU ' + (isHidden ? '+' : '-');
+});
 
 // Fetch and render dashboard users
 async function fetchDashboardUsers() {
@@ -1331,11 +1395,16 @@ function renderSessions(serverName = null) {
     
     if (serverName) {
         // Single server
-        sessions = ALL_SESSIONS[serverName] || [];
+        sessions = (ALL_SESSIONS[serverName] || []).slice();
+        sessions.sort((a, b) => a.user.localeCompare(b.user));
     } else {
         // All servers
         sessions = Object.values(ALL_SESSIONS).flat();
-        sessions.sort((a,b)=>a.server.localeCompare(b.server));
+        sessions.sort((a,b) => {
+            const serverDiff = a.server.localeCompare(b.server);
+            if (serverDiff !== 0) return serverDiff;
+            return a.user.localeCompare(b.user);
+        });
     }
     
     container.innerHTML = "";
@@ -1428,8 +1497,6 @@ function showServerView() {
     document.getElementById('showall-btn').classList.remove('hideall');
     document.getElementById('showall-btn').style.display = showActiveOnly ? 'none' : '';
     
-    document.getElementById('reload-btn').textContent = '🔄 Reload';
-    document.getElementById('reload-btn').classList.remove('tolist');
     document.getElementById('server-actions').classList.remove('visible');
     selectedServerId = null;
     window.scrollTo(0, 0);
@@ -1459,8 +1526,6 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
     document.getElementById('activeonly-btn').style.display = 'none';
     document.getElementById('showall-btn').style.display = 'none';
     
-    document.getElementById('reload-btn').textContent = 'Server List';
-    document.getElementById('reload-btn').classList.add('tolist');
     document.getElementById('server-actions').classList.add('visible');
     window.scrollTo(0, 0);
     
@@ -1507,8 +1572,6 @@ function showAllSessions() {
     }
     document.getElementById('activeonly-btn').style.display = 'none';
     
-    document.getElementById('reload-btn').textContent = 'Server List';
-    document.getElementById('reload-btn').classList.add('tolist');
     document.getElementById('server-actions').classList.remove('visible');
     window.scrollTo(0, 0);
     renderSessions(null); // null = show all
