@@ -43,20 +43,28 @@ body {
   border-color: #555;
 }
 
-/* Bottom Control Bar */
-.bottom-bar {
+/* Top Menu Bar */
+.top-bar {
   background: var(--card);
-  border-top: 1px solid var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+.menu-content {
   padding: 12px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  margin-top: 20px;
+  border-top: 1px solid var(--border);
 }
-.bottom-bar-left,
-.bottom-bar-center,
-.bottom-bar-right {
+.menu-content.hidden {
+  display: none !important;
+}
+.top-bar-left,
+.top-bar-center,
+.top-bar-right {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -80,7 +88,7 @@ body {
 .btn.users:hover {
   background: #1976d2;
 }
-.bottom-bar-center {
+.top-bar-center {
   flex: 1;
   justify-content: center;
 }
@@ -791,6 +799,35 @@ form button:hover { background:#45a049; }
 </head>
 <body>
 
+<!-- Top Menu Bar -->
+<div class="top-bar">
+  <div class="list-label" id="menu-label" style="padding: 12px; margin: 0; cursor: pointer;">MENU +</div>
+  <div id="menu-content" class="menu-content hidden">
+    <div class="top-bar-left">
+      <span class="user-info">👤 <?php echo htmlspecialchars($user['username']); ?> (<?php echo htmlspecialchars($user['role']); ?>)</span>
+      <?php if ($isAdmin): ?>
+      <button class="btn" id="toggle-form">Add Server</button>
+      <?php endif; ?>
+    </div>
+    <div class="top-bar-center">
+      <button class="btn reload" id="reload-btn">🔄 Reload</button>
+    </div>
+    <div class="top-bar-right">
+      <?php if ($isAdmin): ?>
+      <div class="server-actions" id="server-actions">
+        <button class="btn edit" id="edit-server-btn">✏️ Edit</button>
+        <button class="btn delete" id="delete-server-btn">🗑️ Delete</button>
+      </div>
+      <button class="btn reorder" id="reorder-btn" title="Toggle Reorder Mode">Reorder</button>
+      <button class="btn users" id="users-btn" title="Manage Users">👥 Users</button>
+      <?php endif; ?>
+      <button class="btn activeonly" id="activeonly-btn" title="Show Only Active Servers">Active Only</button>
+      <button class="btn showall" id="showall-btn" title="Toggle All Sessions">Show All</button>
+      <button class="btn logout" onclick="window.location.href='logout.php'">Logout</button>
+    </div>
+  </div>
+</div>
+
 <!-- Loading Indicator -->
 <div id="loading-indicator" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(26, 26, 26, 0.95); display: flex; align-items: center; justify-content: center; z-index: 9999;">
   <div style="text-align: center;">
@@ -819,31 +856,6 @@ form button:hover { background:#45a049; }
   </div>
 </div>
 
-<!-- Bottom Control Bar -->
-<div class="bottom-bar">
-  <div class="bottom-bar-left">
-    <span class="user-info">👤 <?php echo htmlspecialchars($user['username']); ?> (<?php echo htmlspecialchars($user['role']); ?>)</span>
-    <?php if ($isAdmin): ?>
-    <button class="btn" id="toggle-form">Add Server</button>
-    <?php endif; ?>
-  </div>
-  <div class="bottom-bar-center">
-    <button class="btn reload" id="reload-btn">🔄 Reload</button>
-  </div>
-  <div class="bottom-bar-right">
-    <?php if ($isAdmin): ?>
-    <div class="server-actions" id="server-actions">
-      <button class="btn edit" id="edit-server-btn">✏️ Edit</button>
-      <button class="btn delete" id="delete-server-btn">🗑️ Delete</button>
-    </div>
-    <button class="btn reorder" id="reorder-btn" title="Toggle Reorder Mode">Reorder</button>
-    <button class="btn users" id="users-btn" title="Manage Users">👥 Users</button>
-    <?php endif; ?>
-    <button class="btn activeonly" id="activeonly-btn" title="Show Only Active Servers">Active Only</button>
-    <button class="btn showall" id="showall-btn" title="Toggle All Sessions">Show All</button>
-    <button class="btn logout" onclick="window.location.href='logout.php'">Logout</button>
-  </div>
-</div>
 
 <!-- Sessions View -->
 <div id="sessions-view" class="view-container">
@@ -1191,6 +1203,7 @@ function toggleSection(labelId, contentSelector) {
 // Initialize toggles
 toggleSection('online-users-label', '#online-users .user-list-content');
 toggleSection('dashboard-users-label', '#dashboard-users .user-list-content');
+toggleSection('menu-label', '#menu-content');
 
 // Fetch and render dashboard users
 async function fetchDashboardUsers() {
