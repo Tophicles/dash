@@ -50,7 +50,7 @@ function ensureProtocol($url) {
 $baseUrl = ensureProtocol($server['url']);
 
 try {
-    if ($server['type'] === 'emby') {
+    if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
         // Emby API call - Get data from Sessions endpoint instead
         $sessionsUrl = $baseUrl . '/emby/Sessions?api_key=' . $server['apiKey'];
         
@@ -104,7 +104,8 @@ try {
                 curl_setopt($ch, CURLOPT_TIMEOUT, 10);
                 curl_setopt($ch, CURLOPT_HTTPHEADER, [
                     'Accept: application/json',
-                    'X-Emby-Token: ' . $server['apiKey']
+                    'X-Emby-Token: ' . $server['apiKey'],
+                    'X-MediaBrowser-Token: ' . $server['apiKey']
                 ]);
                 
                 $metadataResponse = curl_exec($ch);

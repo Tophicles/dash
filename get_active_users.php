@@ -3,6 +3,9 @@ require_once 'auth.php';
 require_once 'logging.php';
 requireLogin();
 
+// Close session early to release lock
+session_write_close();
+
 header('Content-Type: application/json');
 
 $activityFile = 'activity.json';
