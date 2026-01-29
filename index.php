@@ -89,6 +89,9 @@ $isAdmin = isAdmin();
 <div id="sessions-view" class="view-container">
   <button class="back-btn" id="back-btn">← Back to Servers</button>
   <div id="server-title"></div>
+  <div class="search-container">
+    <input type="text" id="session-search" placeholder="Filter sessions...">
+  </div>
   <div id="sessions" class="session-grid"></div>
 </div>
 

@@ -447,7 +447,7 @@ function renderServerGrid() {
         card.innerHTML = `
             ${dragHandle}
             <div class="server-name">${esc(server.name)}</div>
-            <div class="server-address">${esc(displayUrl)}</div>
+            <div class="server-address"><a href="${esc(server.url)}" target="_blank" onclick="event.stopPropagation()">${esc(displayUrl)}</a></div>
             <div class="server-status">
                 <div class="status-dot ${isActive ? 'active server-' + esc(server.type) : ''}"></div>
                 ${isActive ? `${sessions.length} playing` : 'Idle'}
@@ -498,10 +498,27 @@ function renderSessions(serverName = null) {
         });
     }
 
+    // Apply search filter if input exists
+    const searchInput = document.getElementById('session-search');
+    if (searchInput && searchInput.value.trim() !== '') {
+        const query = searchInput.value.toLowerCase();
+        sessions = sessions.filter(s =>
+            (s.user && s.user.toLowerCase().includes(query)) ||
+            (s.title && s.title.toLowerCase().includes(query)) ||
+            (s.series && s.series.toLowerCase().includes(query)) ||
+            (s.device && s.device.toLowerCase().includes(query))
+        );
+    }
+
     container.innerHTML = "";
 
     if(!sessions.length) {
-        container.innerHTML = '<div class="empty">Nothing playing</div>';
+        // If searching, show "No results" instead of "Nothing playing"
+        if (searchInput && searchInput.value.trim() !== '') {
+            container.innerHTML = '<div class="empty">No matching sessions found</div>';
+        } else {
+            container.innerHTML = '<div class="empty">Nothing playing</div>';
+        }
         return;
     }
 
@@ -668,6 +685,20 @@ function showAllSessions() {
     document.getElementById('server-actions').classList.remove('visible');
     window.scrollTo(0, 0);
     renderSessions(null); // null = show all
+}
+
+// Session Filter
+const sessionSearch = document.getElementById('session-search');
+if (sessionSearch) {
+    sessionSearch.addEventListener('input', () => {
+        if (currentView === 'sessions' && selectedServerId) {
+            // Find the server name
+            const server = SERVERS.find(s => s.id === selectedServerId);
+            if (server) renderSessions(server.name);
+        } else if (currentView === 'all') {
+            renderSessions(null);
+        }
+    });
 }
 
 // Toggle reorder mode (admin only)

@@ -333,6 +333,14 @@ body {
   text-overflow: ellipsis;
   margin-bottom: 2px;
 }
+.server-address a {
+  color: inherit;
+  text-decoration: none;
+}
+.server-address a:hover {
+  text-decoration: underline;
+  color: var(--text);
+}
 
 .server-status {
   margin-top: 2px;
@@ -391,6 +399,26 @@ body {
 /* Sessions View */
 .sessions-view { display: none; }
 .sessions-view.visible { display: block; }
+
+/* Search Container */
+.search-container {
+  margin-bottom: 16px;
+  position: relative;
+}
+#session-search {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 0.95rem;
+  transition: border-color 0.2s;
+}
+#session-search:focus {
+  outline: none;
+  border-color: var(--accent);
+}
 
 /* Modal Styles */
 .modal {
@@ -806,6 +834,40 @@ body {
 .url-input-group input {
   flex: 1;
 }
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .top-bar-header {
+    padding: 10px 12px;
+  }
+  .header-section.center {
+    display: none; /* Hide MENU text on mobile to save space */
+  }
+  .menu-content {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .top-bar-left, .top-bar-right {
+    flex-direction: column;
+    width: 100%;
+  }
+  .top-bar-left .btn, .top-bar-right .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .server-actions {
+    flex-direction: row;
+    width: 100%;
+  }
+  .server-actions .btn {
+    flex: 1;
+  }
+  .user-info {
+    text-align: center;
+  }
+}
+
 form input, form select, form button { padding:8px 12px; font-size:0.9rem; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:4px; }
 form button { background:var(--accent); border:none; cursor:pointer; font-weight:600; }
 form button:hover { background:#45a049; }
