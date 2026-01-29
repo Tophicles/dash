@@ -247,12 +247,12 @@ async function fetchServer(server){
 }
 
 // Render online users list (Watchers)
-function renderOnlineUsers() {
+function renderOnlineUsers(filterText = '') {
     const container = document.querySelector("#online-users .user-list-content");
     const label = document.getElementById("online-users-label");
     if (!container) return;
 
-    const onlineUsers = [];
+    let onlineUsers = [];
     const processedUsers = new Set();
     const allSessions = Object.values(ALL_SESSIONS).flat();
 
@@ -276,13 +276,26 @@ function renderOnlineUsers() {
         }
     });
 
+    // Filter if text is provided
+    if (filterText) {
+        const lowerFilter = filterText.toLowerCase();
+        onlineUsers = onlineUsers.filter(u => u.name.toLowerCase().includes(lowerFilter));
+
+        // Auto-expand if we have results and a filter
+        if (onlineUsers.length > 0) {
+            container.classList.remove('hidden');
+        }
+    }
+
     if (label) {
         const isHidden = container.classList.contains('hidden');
         label.textContent = `${onlineUsers.length} NOW WATCHING ${isHidden ? '+' : '-'}`;
     }
 
     if (onlineUsers.length === 0) {
-        container.innerHTML = '<span style="color:var(--muted);font-size:0.9rem;">No users online</span>';
+        container.innerHTML = filterText
+            ? '<span style="color:var(--muted);font-size:0.9rem;">No matching users</span>'
+            : '<span style="color:var(--muted);font-size:0.9rem;">No users online</span>';
         return;
     }
 
@@ -396,8 +409,12 @@ function renderDashboardUsers(users) {
 
 // Render server cards
 function renderServerGrid() {
+    // Get search filter
+    const searchInput = document.getElementById('server-search');
+    const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
     try {
-        renderOnlineUsers();
+        renderOnlineUsers(query);
         fetchDashboardUsers();
     } catch(e) {
         console.error("Error in user rendering:", e);
@@ -405,10 +422,6 @@ function renderServerGrid() {
 
     const container = document.getElementById("server-grid");
     container.innerHTML = "";
-
-    // Get search filter
-    const searchInput = document.getElementById('server-search');
-    const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
 
     let currentType = null;
     let hasActiveServers = false;
