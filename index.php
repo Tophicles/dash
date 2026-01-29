@@ -43,20 +43,28 @@ body {
   border-color: #555;
 }
 
-/* Bottom Control Bar */
-.bottom-bar {
+/* Top Menu Bar */
+.top-bar {
   background: var(--card);
-  border-top: 1px solid var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+.menu-content {
   padding: 12px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  margin-top: 20px;
+  border-top: 1px solid var(--border);
 }
-.bottom-bar-left,
-.bottom-bar-center,
-.bottom-bar-right {
+.menu-content.hidden {
+  display: none !important;
+}
+.top-bar-left,
+.top-bar-center,
+.top-bar-right {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -80,7 +88,7 @@ body {
 .btn.users:hover {
   background: #1976d2;
 }
-.bottom-bar-center {
+.top-bar-center {
   flex: 1;
   justify-content: center;
 }
@@ -171,6 +179,15 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  transition: max-height 0.3s ease-out;
+  overflow: hidden;
+}
+.user-list-content.hidden {
+  display: none;
+}
+.list-label {
+  cursor: pointer;
+  user-select: none;
 }
 .online-user-badge {
   background: var(--accent);
@@ -768,9 +785,48 @@ form button:hover { background:#45a049; }
 
 .view-container { display: none; }
 .view-container.visible { display: block; }
+.session.highlight-session {
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 15px rgba(76, 175, 80, 0.4);
+  animation: pulse-highlight 2s infinite;
+}
+@keyframes pulse-highlight {
+  0% { box-shadow: 0 0 5px rgba(76, 175, 80, 0.4); }
+  50% { box-shadow: 0 0 20px rgba(76, 175, 80, 0.6); }
+  100% { box-shadow: 0 0 5px rgba(76, 175, 80, 0.4); }
+}
 </style>
 </head>
 <body>
+
+<!-- Top Menu Bar -->
+<div class="top-bar">
+  <div class="list-label" id="menu-label" style="padding: 12px; margin: 0; cursor: pointer;">MENU +</div>
+  <div id="menu-content" class="menu-content hidden">
+    <div class="top-bar-left">
+      <span class="user-info">👤 <?php echo htmlspecialchars($user['username']); ?> (<?php echo htmlspecialchars($user['role']); ?>)</span>
+      <?php if ($isAdmin): ?>
+      <button class="btn" id="toggle-form">Add Server</button>
+      <?php endif; ?>
+    </div>
+    <div class="top-bar-center">
+      <button class="btn reload" id="reload-btn">🔄 Reload</button>
+    </div>
+    <div class="top-bar-right">
+      <?php if ($isAdmin): ?>
+      <div class="server-actions" id="server-actions">
+        <button class="btn edit" id="edit-server-btn">✏️ Edit</button>
+        <button class="btn delete" id="delete-server-btn">🗑️ Delete</button>
+      </div>
+      <button class="btn reorder" id="reorder-btn" title="Toggle Reorder Mode">Reorder</button>
+      <button class="btn users" id="users-btn" title="Manage Users">👥 Users</button>
+      <?php endif; ?>
+      <button class="btn activeonly" id="activeonly-btn" title="Show Only Active Servers">Active Only</button>
+      <button class="btn showall" id="showall-btn" title="Toggle All Sessions">Show All</button>
+      <button class="btn logout" onclick="window.location.href='logout.php'">Logout</button>
+    </div>
+  </div>
+</div>
 
 <!-- Loading Indicator -->
 <div id="loading-indicator" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(26, 26, 26, 0.95); display: flex; align-items: center; justify-content: center; z-index: 9999;">
@@ -783,22 +839,23 @@ form button:hover { background:#45a049; }
 
 <!-- Server Grid View -->
 <div id="server-view" class="view-container visible">
+  <div id="server-grid" class="server-grid"></div>
   <div class="user-lists-container">
-    <div id="dashboard-users" class="online-users">
-      <div class="list-label">Dashboard Users</div>
-      <div class="user-list-content">
-        <span style="color:var(--muted);font-size:0.9rem;">Loading...</span>
-      </div>
-    </div>
     <div id="online-users" class="online-users">
-      <div class="list-label">Now Watching</div>
-      <div class="user-list-content">
+      <div class="list-label" id="online-users-label">Now Watching +</div>
+      <div class="user-list-content hidden">
         <span style="color:var(--muted);font-size:0.9rem;">No users online</span>
       </div>
     </div>
+    <div id="dashboard-users" class="online-users">
+      <div class="list-label" id="dashboard-users-label">Dashboard Users +</div>
+      <div class="user-list-content hidden">
+        <span style="color:var(--muted);font-size:0.9rem;">Loading...</span>
+      </div>
+    </div>
   </div>
-  <div id="server-grid" class="server-grid"></div>
 </div>
+
 
 <!-- Sessions View -->
 <div id="sessions-view" class="view-container">
@@ -871,31 +928,6 @@ form button:hover { background:#45a049; }
   </div>
 </div>
 
-<!-- Bottom Control Bar -->
-<div class="bottom-bar">
-  <div class="bottom-bar-left">
-    <span class="user-info">👤 <?php echo htmlspecialchars($user['username']); ?> (<?php echo htmlspecialchars($user['role']); ?>)</span>
-    <?php if ($isAdmin): ?>
-    <button class="btn" id="toggle-form">Add Server</button>
-    <?php endif; ?>
-  </div>
-  <div class="bottom-bar-center">
-    <button class="btn reload" id="reload-btn">🔄 Reload</button>
-  </div>
-  <div class="bottom-bar-right">
-    <?php if ($isAdmin): ?>
-    <div class="server-actions" id="server-actions">
-      <button class="btn edit" id="edit-server-btn">✏️ Edit</button>
-      <button class="btn delete" id="delete-server-btn">🗑️ Delete</button>
-    </div>
-    <button class="btn reorder" id="reorder-btn" title="Toggle Reorder Mode">Reorder</button>
-    <button class="btn users" id="users-btn" title="Manage Users">👥 Users</button>
-    <?php endif; ?>
-    <button class="btn activeonly" id="activeonly-btn" title="Show Only Active Servers">Active Only</button>
-    <button class="btn showall" id="showall-btn" title="Toggle All Sessions">Show All</button>
-    <button class="btn logout" onclick="window.location.href='logout.php'">Logout</button>
-  </div>
-</div>
 
 <script>
 // Helper to escape HTML and prevent XSS
@@ -1097,20 +1129,81 @@ async function fetchServer(server){
 // Render online users list (Watchers)
 function renderOnlineUsers() {
     const container = document.querySelector("#online-users .user-list-content");
+    const label = document.getElementById("online-users-label");
     if (!container) return;
 
-    const uniqueUsers = new Set();
+    const onlineUsers = [];
+    const processedUsers = new Set();
+    const allSessions = Object.values(ALL_SESSIONS).flat();
 
-        if (uniqueUsers.size === 0) {
-            container.innerHTML = '<span style="color:var(--muted);font-size:0.9rem;">No users online</span>';
-            return;
+    // Sort by User Name only
+    allSessions.sort((a, b) => {
+        return a.user.localeCompare(b.user);
+    });
+
+    allSessions.forEach(session => {
+        if (!processedUsers.has(session.user)) {
+            processedUsers.add(session.user);
+            // Find server type
+            const server = SERVERS.find(s => s.name === session.server);
+            const type = server ? server.type : 'emby';
+            onlineUsers.push({
+                name: session.user,
+                type: type,
+                serverId: server ? server.id : null,
+                serverName: server ? server.name : ''
+            });
         }
+    });
 
-    if (uniqueUsers.size === 0) {
+    if (label) {
+        const isHidden = container.classList.contains('hidden');
+        label.textContent = `${onlineUsers.length} NOW WATCHING ${isHidden ? '+' : '-'}`;
+    }
+
+    if (onlineUsers.length === 0) {
         container.innerHTML = '<span style="color:var(--muted);font-size:0.9rem;">No users online</span>';
         return;
     }
+
+    container.innerHTML = '';
+    onlineUsers.forEach(u => {
+        const badge = document.createElement('div');
+        badge.className = `online-user-badge server-${esc(u.type)}`;
+        badge.style.cursor = 'pointer';
+        badge.innerHTML = `👤 ${esc(u.name)}`;
+
+        if (u.serverId) {
+            badge.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent toggling the list if clicking a badge
+                showSessionsView(u.serverId, u.serverName, u.name);
+            });
+        }
+
+        container.appendChild(badge);
+    });
 }
+
+// Toggle visibility helper
+function toggleSection(labelId, contentSelector) {
+    const label = document.getElementById(labelId);
+    const container = document.querySelector(contentSelector);
+
+    if (label && container) {
+        label.addEventListener('click', () => {
+            container.classList.toggle('hidden');
+            const isHidden = container.classList.contains('hidden');
+            const text = label.textContent;
+            // Replace the last character (+ or -)
+            label.textContent = text.slice(0, -1) + (isHidden ? '+' : '-');
+        });
+    }
+}
+
+// Initialize toggles
+toggleSection('online-users-label', '#online-users .user-list-content');
+toggleSection('dashboard-users-label', '#dashboard-users .user-list-content');
+toggleSection('menu-label', '#menu-content');
 
 // Fetch and render dashboard users
 async function fetchDashboardUsers() {
@@ -1171,9 +1264,16 @@ function renderServerGrid() {
         
         // Add section divider when type changes
         if (server.type !== currentType) {
+            // Calculate total watchers for this type
+            const typeServers = SERVERS.filter(s => s.type === server.type);
+            const totalWatchers = typeServers.reduce((acc, s) => {
+                const sSessions = ALL_SESSIONS[s.name] || [];
+                return acc + sSessions.length;
+            }, 0);
+
             const divider = document.createElement('div');
             divider.className = `section-divider ${server.type}`;
-            divider.textContent = `${server.type.toUpperCase()} SERVERS`;
+            divider.textContent = `${server.type.toUpperCase()} SERVERS [${totalWatchers}]`;
             container.appendChild(divider);
             currentType = server.type;
         }
@@ -1336,7 +1436,7 @@ function showServerView() {
 }
 
 // Show sessions view for a specific server
-function showSessionsView(serverId, serverName) {
+function showSessionsView(serverId, serverName, highlightUser = null) {
     currentView = 'sessions';
     selectedServerId = serverId;
     document.getElementById('server-view').classList.remove('visible');
@@ -1367,6 +1467,24 @@ function showSessionsView(serverId, serverName) {
     // Render sessions
     if (server) {
         renderSessions(server.name);
+
+        // Highlight specific user session if requested
+        if (highlightUser) {
+            const sessionsContainer = document.getElementById("sessions");
+            const sessionCards = sessionsContainer.querySelectorAll('.session');
+
+            for (const card of sessionCards) {
+                const userLabel = card.querySelector('.user-label');
+                // The user label might contain badges, so we need to be careful with text content
+                // Getting the first text node usually works if structure is "User Name <div...>"
+                // Or just check if innerText starts with the name
+                if (userLabel && userLabel.textContent.trim().startsWith(highlightUser)) {
+                    card.classList.add('highlight-session');
+                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    break;
+                }
+            }
+        }
     }
 }
 
