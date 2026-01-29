@@ -443,7 +443,6 @@ function renderServerGrid() {
         card.innerHTML = `
             ${dragHandle}
             <div class="server-name">${esc(server.name)}</div>
-            <div class="server-type">${esc(server.type)}</div>
             <div class="server-status">
                 <div class="status-dot ${isActive ? 'active server-' + esc(server.type) : ''}"></div>
                 ${isActive ? `${sessions.length} playing` : 'Idle'}
