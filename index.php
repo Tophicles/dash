@@ -62,24 +62,6 @@ body {
 .menu-content.hidden {
   display: none !important;
 }
-.top-bar-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  background: var(--card);
-  cursor: default;
-}
-.app-title {
-  font-weight: 700;
-  color: var(--accent);
-  font-size: 1.1rem;
-}
-.current-time {
-  color: var(--muted);
-  font-family: monospace;
-  font-size: 0.9rem;
-}
 .top-bar-left,
 .top-bar-center,
 .top-bar-right {
@@ -819,11 +801,7 @@ form button:hover { background:#45a049; }
 
 <!-- Top Menu Bar -->
 <div class="top-bar">
-  <div class="top-bar-header">
-    <div class="app-title">Media MultiDash</div>
-    <div class="list-label" id="menu-label" style="cursor: pointer;">MENU +</div>
-    <div class="current-time" id="clock">--:--</div>
-  </div>
+  <div class="list-label" id="menu-label" style="padding: 12px; margin: 0; cursor: pointer;">MENU +</div>
   <div id="menu-content" class="menu-content hidden">
     <div class="top-bar-left">
       <span class="user-info">👤 <?php echo htmlspecialchars($user['username']); ?> (<?php echo htmlspecialchars($user['role']); ?>)</span>
@@ -1212,38 +1190,15 @@ function toggleSection(labelId, contentSelector) {
     const container = document.querySelector(contentSelector);
 
     if (label && container) {
-        label.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+        label.addEventListener('click', () => {
             container.classList.toggle('hidden');
             const isHidden = container.classList.contains('hidden');
-            const text = label.innerText;
+            const text = label.textContent;
             // Replace the last character (+ or -)
-            if (text.endsWith('+') || text.endsWith('-')) {
-                label.innerText = text.slice(0, -1) + (isHidden ? '+' : '-');
-            } else {
-                // Fallback if suffix missing
-                label.innerText = text + (isHidden ? ' +' : ' -');
-            }
+            label.textContent = text.slice(0, -1) + (isHidden ? '+' : '-');
         });
     }
 }
-
-// Initialize toggles
-// Wait for DOM to be ready just in case
-document.addEventListener('DOMContentLoaded', () => {
-    toggleSection('online-users-label', '#online-users .user-list-content');
-    toggleSection('dashboard-users-label', '#dashboard-users .user-list-content');
-    toggleSection('menu-label', '#menu-content');
-});
-
-// Clock
-function updateClock() {
-    const now = new Date();
-    document.getElementById('clock').textContent = now.toLocaleString();
-}
-setInterval(updateClock, 1000);
-updateClock();
 
 // Initialize toggles
 toggleSection('online-users-label', '#online-users .user-list-content');
