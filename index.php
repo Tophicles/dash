@@ -1,5 +1,6 @@
 <?php
 require_once 'auth.php';
+require_once 'logging.php';
 requireLogin();
 $user = getCurrentUser();
 $isAdmin = isAdmin();
@@ -51,6 +52,38 @@ body {
   margin-bottom: 20px;
   overflow: hidden;
 }
+.top-bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+}
+.header-section {
+  display: flex;
+  align-items: center;
+}
+.header-section.center {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  font-weight: 600;
+}
+.header-badge {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+.header-section.left:hover .header-badge {
+   background: rgba(255, 255, 255, 0.2);
+}
 .menu-content {
   padding: 12px 16px;
   display: flex;
@@ -76,25 +109,13 @@ body {
   background: rgba(0,0,0,0.3);
   border-radius: 4px;
 }
-.btn.logout {
-  background: #f44336;
-}
-.btn.logout:hover {
-  background: #d32f2f;
-}
-.btn.users {
-  background: #2196f3;
-}
-.btn.users:hover {
-  background: #1976d2;
-}
 .top-bar-center {
   flex: 1;
   justify-content: center;
 }
 .btn {
-  background: var(--accent);
-  border: none;
+  background: #37474f;
+  border: 1px solid transparent;
   color: white;
   padding: 8px 16px;
   border-radius: 6px;
@@ -108,39 +129,45 @@ body {
   white-space: nowrap;
 }
 .btn:hover {
-  background: #45a049;
+  background: #455a64;
   transform: translateY(-1px);
 }
 .btn:active {
   transform: translateY(0);
 }
-.btn.reload {
-  background: #607d8b;
-}
-.btn.reload:hover {
-  background: #546e7a;
-}
-.btn.showall {
+
+/* Button Variants */
+.btn.primary {
   background: var(--accent);
 }
-.btn.showall.hideall {
-  background: #607d8b;
+.btn.primary:hover {
+  background: #45a049;
 }
-.btn.showall.hideall:hover {
-  background: #546e7a;
-}
-.btn.edit {
-  background: #ff9800;
-}
-.btn.edit:hover {
-  background: #f57c00;
-}
-.btn.delete {
-  background: #f44336;
-}
-.btn.delete:hover {
+
+.btn.danger {
   background: #d32f2f;
 }
+.btn.danger:hover {
+  background: #b71c1c;
+}
+
+/* Toggle States (Active = Primary Color) */
+.btn.active,
+.btn.showall.hideall {
+  background: var(--accent);
+}
+.btn.active:hover,
+.btn.showall.hideall:hover {
+  background: #45a049;
+}
+.btn.showall {
+  /* Default state for showall is standard/secondary */
+  background: #37474f;
+}
+.btn.showall:hover {
+  background: #455a64;
+}
+
 .server-actions {
   display: none;
   gap: 8px;
@@ -266,24 +293,6 @@ body {
 }
 .server-card.reorder-mode:hover {
   transform: translateY(-2px);
-}
-.btn.reorder {
-  background: #607d8b;
-}
-.btn.reorder:hover {
-  background: #546e7a;
-}
-.btn.reorder.active {
-  background: #4caf50;
-}
-.btn.activeonly {
-  background: #607d8b;
-}
-.btn.activeonly:hover {
-  background: #546e7a;
-}
-.btn.activeonly.active {
-  background: #4caf50;
 }
 .server-card:hover {
   transform: translateY(-2px);
@@ -433,7 +442,7 @@ body {
   flex-shrink: 0;
 }
 .modal-poster img {
-  width: 200px;
+  width: 160px;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.5);
 }
@@ -679,12 +688,6 @@ body {
   padding: 6px 12px;
   font-size: 0.85rem;
 }
-.btn.reload.tolist {
-  background: var(--accent);
-}
-.btn.reload.tolist:hover {
-  background: #45a049;
-}
 .session-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px; }
 .session {
   background: var(--card);
@@ -801,29 +804,37 @@ form button:hover { background:#45a049; }
 
 <!-- Top Menu Bar -->
 <div class="top-bar">
-  <div class="list-label" id="menu-label" style="padding: 12px; margin: 0; cursor: pointer;">MENU +</div>
+  <div class="top-bar-header" id="menu-header">
+    <div class="header-section left" id="header-reload-btn" title="Reload Dashboard">
+      <span class="header-badge">MultiDash</span>
+    </div>
+    <div class="header-section center" id="menu-toggle-label">
+      MENU +
+    </div>
+    <div class="header-section right" id="header-clock-btn">
+      <span class="header-badge" id="header-clock">--:--</span>
+    </div>
+  </div>
   <div id="menu-content" class="menu-content hidden">
     <div class="top-bar-left">
       <span class="user-info">👤 <?php echo htmlspecialchars($user['username']); ?> (<?php echo htmlspecialchars($user['role']); ?>)</span>
       <?php if ($isAdmin): ?>
-      <button class="btn" id="toggle-form">Add Server</button>
+      <button class="btn primary" id="toggle-form">Add Server</button>
       <?php endif; ?>
-    </div>
-    <div class="top-bar-center">
-      <button class="btn reload" id="reload-btn">🔄 Reload</button>
     </div>
     <div class="top-bar-right">
       <?php if ($isAdmin): ?>
       <div class="server-actions" id="server-actions">
-        <button class="btn edit" id="edit-server-btn">✏️ Edit</button>
-        <button class="btn delete" id="delete-server-btn">🗑️ Delete</button>
+        <button class="btn" id="edit-server-btn">✏️ Edit</button>
+        <button class="btn danger" id="delete-server-btn">🗑️ Delete</button>
       </div>
-      <button class="btn reorder" id="reorder-btn" title="Toggle Reorder Mode">Reorder</button>
-      <button class="btn users" id="users-btn" title="Manage Users">👥 Users</button>
+      <button class="btn" id="reorder-btn" title="Toggle Reorder Mode">Reorder</button>
+      <button class="btn" id="users-btn" title="Manage Users">👥 Users</button>
+      <button class="btn" id="logs-btn" title="View System Logs" onclick="window.open('view_logs.php', '_blank')">📜 Logs</button>
       <?php endif; ?>
-      <button class="btn activeonly" id="activeonly-btn" title="Show Only Active Servers">Active Only</button>
-      <button class="btn showall" id="showall-btn" title="Toggle All Sessions">Show All</button>
-      <button class="btn logout" onclick="window.location.href='logout.php'">Logout</button>
+      <button class="btn" id="activeonly-btn" title="Show Only Active Servers">Active Only</button>
+      <button class="btn" id="showall-btn" title="Toggle All Sessions">Show All</button>
+      <button class="btn danger" onclick="window.location.href='logout.php'">Logout</button>
     </div>
   </div>
 </div>
@@ -874,7 +885,7 @@ form button:hover { background:#45a049; }
   <input type="text" name="url" placeholder="Proxy URL" required>
   <input type="text" name="apiKey" placeholder="API Key (Emby)">
   <input type="text" name="token" placeholder="Token (Plex)">
-  <button type="submit">Add Server</button>
+  <button type="submit" class="btn primary">Add Server</button>
 </form>
 
 <!-- Modal for Item Details -->
@@ -940,7 +951,6 @@ function esc(str) {
 
 let SERVERS = [];
 let ALL_SESSIONS = {};
-const SERVER_COLORS = {};
 let refreshTimer = null;
 let currentView = 'servers'; // 'servers', 'sessions', or 'all'
 let selectedServerId = null;
@@ -963,18 +973,6 @@ if (IS_ADMIN) {
         }
     });
 }
-
-// Reload button
-document.getElementById('reload-btn').addEventListener('click', function() {
-    if (currentView === 'servers') {
-        // In server view, reload the page
-        location.reload();
-    } else {
-        // In sessions view, go back to server list
-        showServerView();
-        window.scrollTo(0, 0);
-    }
-});
 
 // Show All button (toggleable)
 document.getElementById('showall-btn').addEventListener('click', function() {
@@ -1031,7 +1029,6 @@ async function loadConfig() {
         // Then sort by order
         return (a.order||0) - (b.order||0);
     });
-    SERVERS.forEach(s=>{ if(s.color) SERVER_COLORS[s.name] = s.color; });
     return config.refreshSeconds || 5;
 }
 
@@ -1203,7 +1200,38 @@ function toggleSection(labelId, contentSelector) {
 // Initialize toggles
 toggleSection('online-users-label', '#online-users .user-list-content');
 toggleSection('dashboard-users-label', '#dashboard-users .user-list-content');
-toggleSection('menu-label', '#menu-content');
+
+// Top Bar Header Logic
+function updateClock() {
+    const now = new Date();
+    const options = { weekday: 'short', month: 'short', day: 'numeric' };
+    const dateStr = now.toLocaleDateString('en-US', options);
+    const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    const clockEl = document.getElementById('header-clock');
+    if (clockEl) {
+        clockEl.textContent = `${dateStr} • ${timeStr}`;
+    }
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+document.getElementById('header-reload-btn').addEventListener('click', function(e) {
+    e.stopPropagation();
+    if (currentView === 'servers') {
+        location.reload();
+    } else {
+        showServerView();
+        window.scrollTo(0, 0);
+    }
+});
+
+document.getElementById('menu-header').addEventListener('click', function() {
+    const content = document.getElementById('menu-content');
+    const label = document.getElementById('menu-toggle-label');
+    content.classList.toggle('hidden');
+    const isHidden = content.classList.contains('hidden');
+    label.textContent = 'MENU ' + (isHidden ? '+' : '-');
+});
 
 // Fetch and render dashboard users
 async function fetchDashboardUsers() {
@@ -1331,11 +1359,16 @@ function renderSessions(serverName = null) {
     
     if (serverName) {
         // Single server
-        sessions = ALL_SESSIONS[serverName] || [];
+        sessions = (ALL_SESSIONS[serverName] || []).slice();
+        sessions.sort((a, b) => a.user.localeCompare(b.user));
     } else {
         // All servers
         sessions = Object.values(ALL_SESSIONS).flat();
-        sessions.sort((a,b)=>a.server.localeCompare(b.server));
+        sessions.sort((a,b) => {
+            const serverDiff = a.server.localeCompare(b.server);
+            if (serverDiff !== 0) return serverDiff;
+            return a.user.localeCompare(b.user);
+        });
     }
     
     container.innerHTML = "";
@@ -1428,8 +1461,6 @@ function showServerView() {
     document.getElementById('showall-btn').classList.remove('hideall');
     document.getElementById('showall-btn').style.display = showActiveOnly ? 'none' : '';
     
-    document.getElementById('reload-btn').textContent = '🔄 Reload';
-    document.getElementById('reload-btn').classList.remove('tolist');
     document.getElementById('server-actions').classList.remove('visible');
     selectedServerId = null;
     window.scrollTo(0, 0);
@@ -1459,8 +1490,6 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
     document.getElementById('activeonly-btn').style.display = 'none';
     document.getElementById('showall-btn').style.display = 'none';
     
-    document.getElementById('reload-btn').textContent = 'Server List';
-    document.getElementById('reload-btn').classList.add('tolist');
     document.getElementById('server-actions').classList.add('visible');
     window.scrollTo(0, 0);
     
@@ -1507,8 +1536,6 @@ function showAllSessions() {
     }
     document.getElementById('activeonly-btn').style.display = 'none';
     
-    document.getElementById('reload-btn').textContent = 'Server List';
-    document.getElementById('reload-btn').classList.add('tolist');
     document.getElementById('server-actions').classList.remove('visible');
     window.scrollTo(0, 0);
     renderSessions(null); // null = show all
@@ -2050,7 +2077,7 @@ async function loadUsersList() {
                     <div class="user-item-actions">
                         <button class="btn" onclick="changeUserPassword('${esc(user.username)}')">🔑 Change Password</button>
                         <button class="btn" onclick="toggleUserRole('${esc(user.username)}', '${esc(user.role)}')">${user.role === 'admin' ? '👤 Make Viewer' : '👑 Make Admin'}</button>
-                        <button class="btn delete" onclick="deleteUser('${esc(user.username)}')">🗑️ Delete</button>
+                        <button class="btn danger" onclick="deleteUser('${esc(user.username)}')">🗑️ Delete</button>
                     </div>
                 </div>
             `).join('');
