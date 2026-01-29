@@ -68,7 +68,7 @@ body {
   font-weight: 600;
   transition: background 0.2s;
 }
-.header-section.left:hover .header-badge {
+#header-reload-btn:hover .header-badge {
    background: rgba(255, 255, 255, 0.2);
 }
 .menu-content {
@@ -92,7 +92,7 @@ body {
 .user-info {
   font-size: 0.85rem;
   color: #aaa;
-  padding: 8px 12px;
+  padding: 4px 10px;
   background: rgba(0,0,0,0.3);
   border-radius: 4px;
   text-transform: capitalize;
