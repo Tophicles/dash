@@ -20,6 +20,7 @@ function updateServerFormFields() {
     const typeSelect = document.getElementById('server-type-select');
     const apiKeyGroup = document.getElementById('group-apikey');
     const tokenGroup = document.getElementById('group-token');
+    const urlInput = document.getElementById('server-url-input');
 
     if (!typeSelect || !apiKeyGroup || !tokenGroup) return;
 
@@ -28,11 +29,13 @@ function updateServerFormFields() {
         tokenGroup.style.display = 'flex';
         // Remove required from hidden field to allow submission
         apiKeyGroup.querySelector('input').removeAttribute('required');
+        if (urlInput) urlInput.placeholder = "192.168.1.10:32400";
     } else {
         apiKeyGroup.style.display = 'flex';
         tokenGroup.style.display = 'none';
         // Remove required from hidden field
         tokenGroup.querySelector('input').removeAttribute('required');
+        if (urlInput) urlInput.placeholder = "192.168.1.10:8096";
     }
 }
 
@@ -40,6 +43,19 @@ function updateServerFormFields() {
 const serverTypeSelect = document.getElementById('server-type-select');
 if (serverTypeSelect) {
     serverTypeSelect.addEventListener('change', updateServerFormFields);
+}
+
+// Input listener for stripping protocol
+const urlInput = document.getElementById('server-url-input');
+if (urlInput) {
+    urlInput.addEventListener('input', function(e) {
+        let val = e.target.value;
+        if (val.match(/^https?:\/\//)) {
+            e.target.value = val.replace(/^https?:\/\//, '');
+        }
+        // Clear custom validity on input
+        e.target.setCustomValidity('');
+    });
 }
 
 function openServerModal(isEdit = false) {
@@ -1106,11 +1122,24 @@ document.getElementById('add-server-form').addEventListener('submit', async e=>{
         return;
     }
 
-    const f=e.target;
+    const f = e.target;
+    const urlInput = f.url_path;
+    const urlVal = urlInput.value.trim();
+
+    // Validation: host:port
+    // Simple regex: non-colon characters + colon + digits
+    const urlRegex = /^[^:\/\s]+:\d+$/;
+
+    if (!urlRegex.test(urlVal)) {
+        urlInput.setCustomValidity("Please enter a valid Host:Port (e.g., 192.168.1.10:8096)");
+        urlInput.reportValidity();
+        return;
+    }
+
     const serverId = f.dataset.originalName; // This now stores the ID, not name
     const isEdit = !!serverId;
 
-    const fullUrl = f.protocol.value + f.url_path.value;
+    const fullUrl = f.protocol.value + urlVal;
 
     console.log('Form submitted:', {
         isEdit: isEdit,
