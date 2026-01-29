@@ -109,31 +109,13 @@ body {
   background: rgba(0,0,0,0.3);
   border-radius: 4px;
 }
-.btn.logout {
-  background: #f44336;
-}
-.btn.logout:hover {
-  background: #d32f2f;
-}
-.btn.users {
-  background: #2196f3;
-}
-.btn.users:hover {
-  background: #1976d2;
-}
-.btn.logs {
-  background: #607d8b;
-}
-.btn.logs:hover {
-  background: #546e7a;
-}
 .top-bar-center {
   flex: 1;
   justify-content: center;
 }
 .btn {
-  background: var(--accent);
-  border: none;
+  background: #37474f;
+  border: 1px solid transparent;
   color: white;
   padding: 8px 16px;
   border-radius: 6px;
@@ -147,39 +129,45 @@ body {
   white-space: nowrap;
 }
 .btn:hover {
-  background: #45a049;
+  background: #455a64;
   transform: translateY(-1px);
 }
 .btn:active {
   transform: translateY(0);
 }
-.btn.reload {
-  background: #607d8b;
-}
-.btn.reload:hover {
-  background: #546e7a;
-}
-.btn.showall {
+
+/* Button Variants */
+.btn.primary {
   background: var(--accent);
 }
-.btn.showall.hideall {
-  background: #607d8b;
+.btn.primary:hover {
+  background: #45a049;
 }
-.btn.showall.hideall:hover {
-  background: #546e7a;
-}
-.btn.edit {
-  background: #ff9800;
-}
-.btn.edit:hover {
-  background: #f57c00;
-}
-.btn.delete {
-  background: #f44336;
-}
-.btn.delete:hover {
+
+.btn.danger {
   background: #d32f2f;
 }
+.btn.danger:hover {
+  background: #b71c1c;
+}
+
+/* Toggle States (Active = Primary Color) */
+.btn.active,
+.btn.showall.hideall {
+  background: var(--accent);
+}
+.btn.active:hover,
+.btn.showall.hideall:hover {
+  background: #45a049;
+}
+.btn.showall {
+  /* Default state for showall is standard/secondary */
+  background: #37474f;
+}
+.btn.showall:hover {
+  background: #455a64;
+}
+
 .server-actions {
   display: none;
   gap: 8px;
@@ -305,24 +293,6 @@ body {
 }
 .server-card.reorder-mode:hover {
   transform: translateY(-2px);
-}
-.btn.reorder {
-  background: #607d8b;
-}
-.btn.reorder:hover {
-  background: #546e7a;
-}
-.btn.reorder.active {
-  background: #4caf50;
-}
-.btn.activeonly {
-  background: #607d8b;
-}
-.btn.activeonly:hover {
-  background: #546e7a;
-}
-.btn.activeonly.active {
-  background: #4caf50;
 }
 .server-card:hover {
   transform: translateY(-2px);
@@ -718,12 +688,6 @@ body {
   padding: 6px 12px;
   font-size: 0.85rem;
 }
-.btn.reload.tolist {
-  background: var(--accent);
-}
-.btn.reload.tolist:hover {
-  background: #45a049;
-}
 .session-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px; }
 .session {
   background: var(--card);
@@ -855,22 +819,22 @@ form button:hover { background:#45a049; }
     <div class="top-bar-left">
       <span class="user-info">👤 <?php echo htmlspecialchars($user['username']); ?> (<?php echo htmlspecialchars($user['role']); ?>)</span>
       <?php if ($isAdmin): ?>
-      <button class="btn" id="toggle-form">Add Server</button>
+      <button class="btn primary" id="toggle-form">Add Server</button>
       <?php endif; ?>
     </div>
     <div class="top-bar-right">
       <?php if ($isAdmin): ?>
       <div class="server-actions" id="server-actions">
-        <button class="btn edit" id="edit-server-btn">✏️ Edit</button>
-        <button class="btn delete" id="delete-server-btn">🗑️ Delete</button>
+        <button class="btn" id="edit-server-btn">✏️ Edit</button>
+        <button class="btn danger" id="delete-server-btn">🗑️ Delete</button>
       </div>
-      <button class="btn reorder" id="reorder-btn" title="Toggle Reorder Mode">Reorder</button>
-      <button class="btn users" id="users-btn" title="Manage Users">👥 Users</button>
-      <button class="btn logs" id="logs-btn" title="View System Logs" onclick="window.open('view_logs.php', '_blank')">📜 Logs</button>
+      <button class="btn" id="reorder-btn" title="Toggle Reorder Mode">Reorder</button>
+      <button class="btn" id="users-btn" title="Manage Users">👥 Users</button>
+      <button class="btn" id="logs-btn" title="View System Logs" onclick="window.open('view_logs.php', '_blank')">📜 Logs</button>
       <?php endif; ?>
-      <button class="btn activeonly" id="activeonly-btn" title="Show Only Active Servers">Active Only</button>
-      <button class="btn showall" id="showall-btn" title="Toggle All Sessions">Show All</button>
-      <button class="btn logout" onclick="window.location.href='logout.php'">Logout</button>
+      <button class="btn" id="activeonly-btn" title="Show Only Active Servers">Active Only</button>
+      <button class="btn" id="showall-btn" title="Toggle All Sessions">Show All</button>
+      <button class="btn danger" onclick="window.location.href='logout.php'">Logout</button>
     </div>
   </div>
 </div>
@@ -921,7 +885,7 @@ form button:hover { background:#45a049; }
   <input type="text" name="url" placeholder="Proxy URL" required>
   <input type="text" name="apiKey" placeholder="API Key (Emby)">
   <input type="text" name="token" placeholder="Token (Plex)">
-  <button type="submit">Add Server</button>
+  <button type="submit" class="btn primary">Add Server</button>
 </form>
 
 <!-- Modal for Item Details -->
@@ -2113,7 +2077,7 @@ async function loadUsersList() {
                     <div class="user-item-actions">
                         <button class="btn" onclick="changeUserPassword('${esc(user.username)}')">🔑 Change Password</button>
                         <button class="btn" onclick="toggleUserRole('${esc(user.username)}', '${esc(user.role)}')">${user.role === 'admin' ? '👤 Make Viewer' : '👑 Make Admin'}</button>
-                        <button class="btn delete" onclick="deleteUser('${esc(user.username)}')">🗑️ Delete</button>
+                        <button class="btn danger" onclick="deleteUser('${esc(user.username)}')">🗑️ Delete</button>
                     </div>
                 </div>
             `).join('');
