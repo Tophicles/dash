@@ -792,21 +792,21 @@ form button:hover { background:#45a049; }
 
 <!-- Server Grid View -->
 <div id="server-view" class="view-container visible">
+  <div id="server-grid" class="server-grid"></div>
   <div class="user-lists-container">
-    <div id="dashboard-users" class="online-users">
-      <div class="list-label">Dashboard Users</div>
-      <div class="user-list-content">
-        <span style="color:var(--muted);font-size:0.9rem;">Loading...</span>
-      </div>
-    </div>
     <div id="online-users" class="online-users">
       <div class="list-label" id="online-users-label">Now Watching</div>
       <div class="user-list-content hidden">
         <span style="color:var(--muted);font-size:0.9rem;">No users online</span>
       </div>
     </div>
+    <div id="dashboard-users" class="online-users">
+      <div class="list-label">Dashboard Users</div>
+      <div class="user-list-content">
+        <span style="color:var(--muted);font-size:0.9rem;">Loading...</span>
+      </div>
+    </div>
   </div>
-  <div id="server-grid" class="server-grid"></div>
 </div>
 
 <!-- Sessions View -->
@@ -1111,8 +1111,17 @@ function renderOnlineUsers() {
 
     const onlineUsers = [];
     const processedUsers = new Set();
+    const allSessions = Object.values(ALL_SESSIONS).flat();
 
-    Object.values(ALL_SESSIONS).flat().forEach(session => {
+    // Sort by Server Name then User Name
+    allSessions.sort((a, b) => {
+        if (a.server !== b.server) {
+            return a.server.localeCompare(b.server);
+        }
+        return a.user.localeCompare(b.user);
+    });
+
+    allSessions.forEach(session => {
         if (!processedUsers.has(session.user)) {
             processedUsers.add(session.user);
             // Find server type
@@ -1207,9 +1216,16 @@ function renderServerGrid() {
         
         // Add section divider when type changes
         if (server.type !== currentType) {
+            // Calculate total watchers for this type
+            const typeServers = SERVERS.filter(s => s.type === server.type);
+            const totalWatchers = typeServers.reduce((acc, s) => {
+                const sSessions = ALL_SESSIONS[s.name] || [];
+                return acc + sSessions.length;
+            }, 0);
+
             const divider = document.createElement('div');
             divider.className = `section-divider ${server.type}`;
-            divider.textContent = `${server.type.toUpperCase()} SERVERS`;
+            divider.textContent = `${server.type.toUpperCase()} SERVERS [${totalWatchers}]`;
             container.appendChild(divider);
             currentType = server.type;
         }
