@@ -140,8 +140,8 @@ if ($type === 'plex') {
 // --- EMBY LOGIC ---
 if ($type === 'emby') {
     if ($action === 'list') {
-        // Use /Items to list top-level views (libraries)
-        $url = rtrim($baseUrl, '/') . '/Items?Recursive=false&IncludeItemTypes=CollectionFolder,UserView';
+        // Use /Library/VirtualFolders/Query to get real libraries
+        $url = rtrim($baseUrl, '/') . '/Library/VirtualFolders/Query';
 
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
@@ -168,9 +168,9 @@ if ($type === 'emby') {
         $items = $data['Items'] ?? [];
         foreach ($items as $item) {
             $libraries[] = [
-                'id' => $item['Id'],
+                'id' => $item['ItemId'],
                 'name' => $item['Name'],
-                'type' => $item['CollectionType'] ?? $item['Type']
+                'type' => $item['CollectionType'] ?? 'library'
             ];
         }
 
