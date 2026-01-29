@@ -1,6 +1,7 @@
 <?php
 require_once 'auth.php';
 require_once 'encryption_helper.php';
+require_once 'logging.php';
 requireLogin();
 
 header('Content-Type: application/json');
@@ -35,17 +36,24 @@ if ($server['type'] === 'plex') {
     ]);
     curl_setopt($ch, CURLOPT_TIMEOUT, 10);
 
+    $startTime = microtime(true);
     $res = curl_exec($ch);
+    $duration = microtime(true) - $startTime;
+
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $error = curl_error($ch);
     curl_close($ch);
 
-    // Debug logging (optional - remove in production)
+    // Log slow requests (> 2 seconds)
+    if ($duration > 2.0) {
+        writeLog("Slow Plex response from {$server['name']}: " . round($duration, 2) . "s", "WARN");
+    }
+
     if ($error) {
-        error_log("Plex API Error for {$server['name']}: $error");
+        writeLog("Plex API Error for {$server['name']}: $error", "ERROR");
     }
     if ($httpCode !== 200) {
-        error_log("Plex API HTTP $httpCode for {$server['name']}");
+        writeLog("Plex API HTTP $httpCode for {$server['name']}", "ERROR");
     }
 
     echo $res ?: json_encode(['MediaContainer'=>['Metadata'=>[]]]);
@@ -64,8 +72,25 @@ if ($server['type'] === 'emby') {
     curl_setopt($ch, CURLOPT_HTTPHEADER, ["X-Emby-Token: $apiKey"]);
     curl_setopt($ch, CURLOPT_TIMEOUT, 10);
 
+    $startTime = microtime(true);
     $res = curl_exec($ch);
+    $duration = microtime(true) - $startTime;
+
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $error = curl_error($ch);
     curl_close($ch);
+
+    if ($duration > 2.0) {
+        writeLog("Slow Emby response from {$server['name']}: " . round($duration, 2) . "s", "WARN");
+    }
+
+    if ($error) {
+        writeLog("Emby API Error for {$server['name']}: $error", "ERROR");
+    }
+    if ($httpCode !== 200) {
+        writeLog("Emby API HTTP $httpCode for {$server['name']}", "ERROR");
+    }
+
     echo $res ?: json_encode([]);
     exit;
 }
