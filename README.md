@@ -1,13 +1,14 @@
 # MultiDash - Media Server Dashboard
 
-A lightweight, self-hosted dashboard for monitoring multiple Plex and Emby media servers in a unified interface.
+A lightweight, self-hosted dashboard for monitoring multiple Plex, Emby, and Jellyfin media servers in a unified interface.
 
 ![Dashboard](screenshots/dashboard.png)
 
 ## Features
 
-*   **Unified Monitoring:** View active sessions from multiple Plex and Emby servers in a single grid.
+*   **Unified Monitoring:** View active sessions from multiple Plex, Emby, and Jellyfin servers in a single grid.
 *   **Real-time Updates:** Auto-refreshing status for "Now Watching" and dashboard users.
+*   **Library Management:** List and trigger scans for media libraries on connected Plex, Emby, and Jellyfin servers.
 *   **User Management:** Built-in authentication with Admin and Viewer roles.
 *   **Logging System:** Comprehensive system logging with a built-in "tailable" log viewer (filterable by level and search).
 *   **Mobile Friendly:** Responsive dark-mode UI that works great on mobile devices.
@@ -57,8 +58,8 @@ Monitor system events, user actions, and media playback activity in real-time.
     Navigate to `http://your-server/dash/` in your browser. You will be redirected to the setup wizard to create your admin account.
 
 4.  **Add Servers:**
-    Log in and use the "Add Server" button in the menu to connect your Plex or Emby instances.
-    *   **Emby:** Requires your server URL and an API Key.
+    Log in and use the "Add Server" button in the menu to connect your Plex, Emby, or Jellyfin instances.
+    *   **Emby/Jellyfin:** Requires your server URL and an API Key.
     *   **Plex:** Requires your server URL and an X-Plex-Token.
 
 ## Configuration
