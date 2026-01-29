@@ -790,6 +790,16 @@ body {
   font-weight: 600;
   color: var(--text);
 }
+.url-input-group {
+  display: flex;
+  gap: 8px;
+}
+.url-input-group select {
+  width: auto;
+}
+.url-input-group input {
+  flex: 1;
+}
 form input, form select, form button { padding:8px 12px; font-size:0.9rem; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:4px; }
 form button { background:var(--accent); border:none; cursor:pointer; font-weight:600; }
 form button:hover { background:#45a049; }

@@ -1040,7 +1040,23 @@ if (IS_ADMIN) {
         const form = document.getElementById('add-server-form');
         form.querySelector('[name="name"]').value = server.name;
         form.querySelector('[name="type"]').value = server.type;
-        form.querySelector('[name="url"]').value = server.url;
+
+        // Parse URL into protocol and path
+        let fullUrl = server.url;
+        let protocol = 'http://';
+        let urlPath = fullUrl;
+
+        if (fullUrl.startsWith('https://')) {
+            protocol = 'https://';
+            urlPath = fullUrl.substring(8);
+        } else if (fullUrl.startsWith('http://')) {
+            protocol = 'http://';
+            urlPath = fullUrl.substring(7);
+        }
+
+        form.querySelector('[name="protocol"]').value = protocol;
+        form.querySelector('[name="url_path"]').value = urlPath;
+
         form.querySelector('[name="apiKey"]').value = server.apiKey || '';
         form.querySelector('[name="token"]').value = server.token || '';
 
@@ -1094,13 +1110,15 @@ document.getElementById('add-server-form').addEventListener('submit', async e=>{
     const serverId = f.dataset.originalName; // This now stores the ID, not name
     const isEdit = !!serverId;
 
+    const fullUrl = f.protocol.value + f.url_path.value;
+
     console.log('Form submitted:', {
         isEdit: isEdit,
         serverId: serverId,
         formData: {
             name: f.name.value,
             type: f.type.value,
-            url: f.url.value,
+            url: fullUrl,
             apiKey: f.apiKey.value,
             token: f.token.value
         }
@@ -1109,7 +1127,7 @@ document.getElementById('add-server-form').addEventListener('submit', async e=>{
     const data={
         name:f.name.value,
         type:f.type.value,
-        url:f.url.value,
+        url:fullUrl,
         apiKey:f.apiKey.value,
         token:f.token.value
     };

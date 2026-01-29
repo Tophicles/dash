@@ -113,7 +113,13 @@ $isAdmin = isAdmin();
         </div>
         <div class="server-form-group">
           <label>Proxy URL</label>
-          <input type="text" name="url" required>
+          <div class="url-input-group">
+            <select name="protocol" id="server-protocol-select">
+              <option value="http://">http://</option>
+              <option value="https://">https://</option>
+            </select>
+            <input type="text" name="url_path" id="server-url-input" required>
+          </div>
         </div>
         <div class="server-form-group" id="group-apikey">
           <label>API Key (Emby/Jellyfin)</label>
