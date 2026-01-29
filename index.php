@@ -171,6 +171,15 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  transition: max-height 0.3s ease-out;
+  overflow: hidden;
+}
+.user-list-content.hidden {
+  display: none;
+}
+.list-label {
+  cursor: pointer;
+  user-select: none;
 }
 .online-user-badge {
   background: var(--accent);
@@ -783,21 +792,48 @@ form button:hover { background:#45a049; }
 
 <!-- Server Grid View -->
 <div id="server-view" class="view-container visible">
+  <div id="server-grid" class="server-grid"></div>
+
+<!-- Bottom Control Bar -->
+<div class="bottom-bar">
+  <div class="bottom-bar-left">
+    <span class="user-info">👤 <?php echo htmlspecialchars($user['username']); ?> (<?php echo htmlspecialchars($user['role']); ?>)</span>
+    <?php if ($isAdmin): ?>
+    <button class="btn" id="toggle-form">Add Server</button>
+    <?php endif; ?>
+  </div>
+  <div class="bottom-bar-center">
+    <button class="btn reload" id="reload-btn">🔄 Reload</button>
+  </div>
+  <div class="bottom-bar-right">
+    <?php if ($isAdmin): ?>
+    <div class="server-actions" id="server-actions">
+      <button class="btn edit" id="edit-server-btn">✏️ Edit</button>
+      <button class="btn delete" id="delete-server-btn">🗑️ Delete</button>
+    </div>
+    <button class="btn reorder" id="reorder-btn" title="Toggle Reorder Mode">Reorder</button>
+    <button class="btn users" id="users-btn" title="Manage Users">👥 Users</button>
+    <?php endif; ?>
+    <button class="btn activeonly" id="activeonly-btn" title="Show Only Active Servers">Active Only</button>
+    <button class="btn showall" id="showall-btn" title="Toggle All Sessions">Show All</button>
+    <button class="btn logout" onclick="window.location.href='logout.php'">Logout</button>
+  </div>
+</div>
+
   <div class="user-lists-container">
+    <div id="online-users" class="online-users">
+      <div class="list-label" id="online-users-label">Now Watching</div>
+      <div class="user-list-content hidden">
+        <span style="color:var(--muted);font-size:0.9rem;">No users online</span>
+      </div>
+    </div>
     <div id="dashboard-users" class="online-users">
       <div class="list-label">Dashboard Users</div>
       <div class="user-list-content">
         <span style="color:var(--muted);font-size:0.9rem;">Loading...</span>
       </div>
     </div>
-    <div id="online-users" class="online-users">
-      <div class="list-label">Now Watching</div>
-      <div class="user-list-content">
-        <span style="color:var(--muted);font-size:0.9rem;">No users online</span>
-      </div>
-    </div>
   </div>
-  <div id="server-grid" class="server-grid"></div>
 </div>
 
 <!-- Sessions View -->
@@ -871,31 +907,6 @@ form button:hover { background:#45a049; }
   </div>
 </div>
 
-<!-- Bottom Control Bar -->
-<div class="bottom-bar">
-  <div class="bottom-bar-left">
-    <span class="user-info">👤 <?php echo htmlspecialchars($user['username']); ?> (<?php echo htmlspecialchars($user['role']); ?>)</span>
-    <?php if ($isAdmin): ?>
-    <button class="btn" id="toggle-form">Add Server</button>
-    <?php endif; ?>
-  </div>
-  <div class="bottom-bar-center">
-    <button class="btn reload" id="reload-btn">🔄 Reload</button>
-  </div>
-  <div class="bottom-bar-right">
-    <?php if ($isAdmin): ?>
-    <div class="server-actions" id="server-actions">
-      <button class="btn edit" id="edit-server-btn">✏️ Edit</button>
-      <button class="btn delete" id="delete-server-btn">🗑️ Delete</button>
-    </div>
-    <button class="btn reorder" id="reorder-btn" title="Toggle Reorder Mode">Reorder</button>
-    <button class="btn users" id="users-btn" title="Manage Users">👥 Users</button>
-    <?php endif; ?>
-    <button class="btn activeonly" id="activeonly-btn" title="Show Only Active Servers">Active Only</button>
-    <button class="btn showall" id="showall-btn" title="Toggle All Sessions">Show All</button>
-    <button class="btn logout" onclick="window.location.href='logout.php'">Logout</button>
-  </div>
-</div>
 
 <script>
 // Helper to escape HTML and prevent XSS
@@ -1097,20 +1108,70 @@ async function fetchServer(server){
 // Render online users list (Watchers)
 function renderOnlineUsers() {
     const container = document.querySelector("#online-users .user-list-content");
+    const label = document.getElementById("online-users-label");
     if (!container) return;
 
-    const uniqueUsers = new Set();
+    const onlineUsers = [];
+    const processedUsers = new Set();
+    const allSessions = Object.values(ALL_SESSIONS).flat();
 
-        if (uniqueUsers.size === 0) {
-            container.innerHTML = '<span style="color:var(--muted);font-size:0.9rem;">No users online</span>';
-            return;
+    // Sort by Server Name then User Name
+    allSessions.sort((a, b) => {
+        if (a.server !== b.server) {
+            return a.server.localeCompare(b.server);
         }
+        return a.user.localeCompare(b.user);
+    });
 
-    if (uniqueUsers.size === 0) {
+    allSessions.forEach(session => {
+        if (!processedUsers.has(session.user)) {
+            processedUsers.add(session.user);
+            // Find server type
+            const server = SERVERS.find(s => s.name === session.server);
+            const type = server ? server.type : 'emby';
+            onlineUsers.push({
+                name: session.user,
+                type: type,
+                serverId: server ? server.id : null,
+                serverName: server ? server.name : ''
+            });
+        }
+    });
+
+    if (label) {
+        label.textContent = `${onlineUsers.length} NOW WATCHING`;
+    }
+
+    if (onlineUsers.length === 0) {
         container.innerHTML = '<span style="color:var(--muted);font-size:0.9rem;">No users online</span>';
         return;
     }
+
+    container.innerHTML = '';
+    onlineUsers.forEach(u => {
+        const badge = document.createElement('div');
+        badge.className = `online-user-badge server-${esc(u.type)}`;
+        badge.style.cursor = 'pointer';
+        badge.innerHTML = `👤 ${esc(u.name)}`;
+
+        if (u.serverId) {
+            badge.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent toggling the list if clicking a badge
+                showSessionsView(u.serverId, u.serverName);
+            });
+        }
+
+        container.appendChild(badge);
+    });
 }
+
+// Toggle online users visibility
+document.getElementById('online-users-label')?.addEventListener('click', function() {
+    const container = document.querySelector("#online-users .user-list-content");
+    if (container) {
+        container.classList.toggle('hidden');
+    }
+});
 
 // Fetch and render dashboard users
 async function fetchDashboardUsers() {
@@ -1171,9 +1232,16 @@ function renderServerGrid() {
         
         // Add section divider when type changes
         if (server.type !== currentType) {
+            // Calculate total watchers for this type
+            const typeServers = SERVERS.filter(s => s.type === server.type);
+            const totalWatchers = typeServers.reduce((acc, s) => {
+                const sSessions = ALL_SESSIONS[s.name] || [];
+                return acc + sSessions.length;
+            }, 0);
+
             const divider = document.createElement('div');
             divider.className = `section-divider ${server.type}`;
-            divider.textContent = `${server.type.toUpperCase()} SERVERS`;
+            divider.textContent = `${server.type.toUpperCase()} SERVERS [${totalWatchers}]`;
             container.appendChild(divider);
             currentType = server.type;
         }
