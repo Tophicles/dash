@@ -4,6 +4,9 @@ require_once 'encryption_helper.php';
 require_once 'logging.php';
 requireLogin();
 
+// Close session to prevent locking while waiting for external APIs
+session_write_close();
+
 header('Content-Type: application/json');
 
 $serverName = $_GET['server'] ?? '';
