@@ -423,13 +423,28 @@ function renderServerGrid() {
         }
 
         // Apply Search Filter: Match user, title, or server name
+        let matchPreview = null;
         if (query) {
             const serverNameMatch = server.name.toLowerCase().includes(query);
-            const sessionMatch = sessions.some(s =>
+            let sessionMatch = false;
+
+            // Find specific match to display
+            const matchingSession = sessions.find(s =>
                 (s.user && s.user.toLowerCase().includes(query)) ||
                 (s.title && s.title.toLowerCase().includes(query)) ||
                 (s.series && s.series.toLowerCase().includes(query))
             );
+
+            if (matchingSession) {
+                sessionMatch = true;
+                 if (matchingSession.user.toLowerCase().includes(query)) {
+                    matchPreview = `User: ${matchingSession.user}`;
+                } else if (matchingSession.title && matchingSession.title.toLowerCase().includes(query)) {
+                    matchPreview = `Title: ${matchingSession.title}`;
+                } else if (matchingSession.series && matchingSession.series.toLowerCase().includes(query)) {
+                    matchPreview = `Series: ${matchingSession.series}`;
+                }
+            }
 
             if (!serverNameMatch && !sessionMatch) {
                 return;
@@ -453,6 +468,9 @@ function renderServerGrid() {
             container.appendChild(divider);
             currentType = server.type;
         }
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'server-card-wrapper';
 
         const card = document.createElement('div');
         card.className = `server-card server-${server.type} ${isActive ? 'active' : 'idle'}`;
@@ -487,7 +505,16 @@ function renderServerGrid() {
         card.addEventListener('dragover', handleDragOver);
         card.addEventListener('drop', handleDrop);
 
-        container.appendChild(card);
+        wrapper.appendChild(card);
+
+        if (matchPreview) {
+            const preview = document.createElement('div');
+            preview.className = 'server-match-preview';
+            preview.textContent = matchPreview;
+            wrapper.appendChild(preview);
+        }
+
+        container.appendChild(wrapper);
     });
 
     // Show message if no active servers in active-only mode
