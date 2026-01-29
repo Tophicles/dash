@@ -830,7 +830,8 @@ form button:hover { background:#45a049; }
       </div>
       <button class="btn" id="reorder-btn" title="Toggle Reorder Mode">Reorder</button>
       <button class="btn" id="users-btn" title="Manage Users">👥 Users</button>
-      <button class="btn" id="logs-btn" title="View System Logs" onclick="window.open('view_logs.php', '_blank')">📜 Logs</button>
+      <button class="btn" id="libraries-btn" title="Manage Libraries">📚 Libraries</button>
+      <button class="btn" id="logs-btn" title="View System Logs" onclick="window.open('view_logs.php', 'SystemLogs')">📜 Logs</button>
       <?php endif; ?>
       <button class="btn" id="activeonly-btn" title="Show Only Active Servers">Active Only</button>
       <button class="btn" id="showall-btn" title="Toggle All Sessions">Show All</button>
@@ -924,6 +925,7 @@ form button:hover { background:#45a049; }
               </select>
             </div>
             <div class="form-group">
+              <label>&nbsp;</label>
               <button type="submit" class="btn primary">Add User</button>
             </div>
           </div>
@@ -934,6 +936,29 @@ form button:hover { background:#45a049; }
       <div class="users-list-container">
         <h3>Existing Users</h3>
         <div id="users-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Libraries Management Modal -->
+<div id="libraries-modal" class="modal">
+  <div class="modal-content">
+    <span class="modal-close" onclick="closeLibrariesModal()">&times;</span>
+    <div id="libraries-modal-body">
+      <h2 style="margin-bottom: 20px;">Manage Libraries</h2>
+
+      <div class="info-box" style="margin-bottom:20px; padding:15px; background:rgba(255,255,255,0.05); border-radius:6px;">
+        <label style="display:block; margin-bottom:10px;">Select Server:</label>
+        <select id="library-server-select" style="width:100%; max-width:300px; padding:10px; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:4px;">
+           <option value="">-- Select a Server --</option>
+        </select>
+      </div>
+
+      <div id="libraries-list-container" style="min-height:200px;">
+         <div class="empty" id="libraries-loading" style="display:none;">Loading libraries...</div>
+         <div class="empty" id="libraries-empty">Select a server to view libraries.</div>
+         <div id="libraries-list" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:12px;"></div>
       </div>
     </div>
   </div>
@@ -2216,6 +2241,146 @@ document.getElementById('users-modal').addEventListener('click', function(e) {
         closeUsersModal();
     }
 });
+
+// Libraries Management
+if (IS_ADMIN) {
+    const libBtn = document.getElementById('libraries-btn');
+    if (libBtn) {
+        libBtn.addEventListener('click', function() {
+            openLibrariesModal();
+        });
+    }
+}
+
+function openLibrariesModal() {
+    const modal = document.getElementById('libraries-modal');
+    modal.classList.add('visible');
+
+    // Populate Server Select
+    const select = document.getElementById('library-server-select');
+    select.innerHTML = '<option value="">-- Select a Server --</option>';
+
+    SERVERS.forEach(server => {
+        const option = document.createElement('option');
+        option.value = server.name;
+        option.textContent = `${server.name} (${server.type})`;
+        select.appendChild(option);
+    });
+
+    // Reset View
+    document.getElementById('libraries-list').innerHTML = '';
+    document.getElementById('libraries-empty').style.display = 'block';
+
+    // Event Listener for Select
+    select.onchange = function() {
+        if (this.value) {
+            fetchLibraries(this.value);
+        } else {
+            document.getElementById('libraries-list').innerHTML = '';
+            document.getElementById('libraries-empty').style.display = 'block';
+        }
+    };
+}
+
+function closeLibrariesModal() {
+    document.getElementById('libraries-modal').classList.remove('visible');
+}
+
+// Close libraries modal when clicking outside
+document.getElementById('libraries-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeLibrariesModal();
+    }
+});
+
+async function fetchLibraries(serverName) {
+    const list = document.getElementById('libraries-list');
+    const empty = document.getElementById('libraries-empty');
+    const loading = document.getElementById('libraries-loading');
+
+    list.innerHTML = '';
+    empty.style.display = 'none';
+    loading.style.display = 'block';
+
+    try {
+        const response = await fetch(`library_actions.php?action=list&server=${encodeURIComponent(serverName)}`);
+        const data = await response.json();
+
+        loading.style.display = 'none';
+
+        if (data.success) {
+            if (data.libraries.length === 0) {
+                empty.textContent = 'No libraries found.';
+                empty.style.display = 'block';
+                return;
+            }
+
+            // Render libraries
+            data.libraries.forEach(lib => {
+                const item = document.createElement('div');
+                item.className = 'user-item'; // Reuse existing style
+                item.style.background = 'rgba(0,0,0,0.3)';
+
+                item.innerHTML = `
+                    <div class="user-item-info">
+                        <div class="user-item-username">${esc(lib.name)}</div>
+                        <div class="user-item-meta">
+                            Type: ${esc(lib.type)}
+                        </div>
+                    </div>
+                    <div class="user-item-actions">
+                        <button class="btn primary" onclick="scanLibrary('${esc(serverName)}', '${esc(lib.id)}', '${esc(lib.name)}', this)">🔄 Scan</button>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+
+        } else {
+            empty.textContent = 'Error: ' + (data.error || 'Unknown error');
+            empty.style.display = 'block';
+        }
+    } catch (error) {
+        console.error('Error fetching libraries:', error);
+        loading.style.display = 'none';
+        empty.textContent = 'Failed to fetch libraries';
+        empty.style.display = 'block';
+    }
+}
+
+async function scanLibrary(serverName, libraryId, libraryName, btn) {
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = '⏳ Starting...';
+    }
+
+    try {
+        const response = await fetch(`library_actions.php?action=scan&server=${encodeURIComponent(serverName)}&library_id=${encodeURIComponent(libraryId)}&library_name=${encodeURIComponent(libraryName)}`);
+        const data = await response.json();
+
+        if (data.success) {
+            if (btn) btn.textContent = '✅ Started';
+            setTimeout(() => {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = '🔄 Scan';
+                }
+            }, 3000);
+        } else {
+            alert('Error: ' + data.error);
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = '❌ Failed';
+            }
+        }
+    } catch (error) {
+        console.error('Error scanning library:', error);
+        alert('Failed to start scan');
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = '❌ Error';
+        }
+    }
+}
 </script>
 </body>
 </html>
