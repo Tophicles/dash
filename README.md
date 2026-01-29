@@ -7,11 +7,13 @@ A lightweight, self-hosted dashboard for monitoring multiple Plex, Emby, and Jel
 ## Features
 
 *   **Unified Monitoring:** View active sessions from multiple Plex, Emby, and Jellyfin servers in a single grid.
+*   **Search & Filter:** Instantly filter servers and users. Matching user sessions are displayed directly on the server card with visual icons.
 *   **Real-time Updates:** Auto-refreshing status for "Now Watching" and dashboard users.
+*   **Dynamic Server Management:** Easily add and edit servers using a modal interface with protocol selection and validation.
 *   **Library Management:** List and trigger scans for media libraries on connected Plex, Emby, and Jellyfin servers.
 *   **User Management:** Built-in authentication with Admin and Viewer roles.
-*   **Logging System:** Comprehensive system logging with a built-in "tailable" log viewer (filterable by level and search).
-*   **Mobile Friendly:** Responsive dark-mode UI that works great on mobile devices.
+*   **Logging System:** Comprehensive system logging with a built-in "tailable" log viewer.
+*   **Mobile Friendly:** Responsive dark-mode UI ("MultiDash") that adapts to any screen size.
 *   **Secure:** Encrypted storage for API keys and tokens.
 
 ## Screenshots
@@ -20,17 +22,17 @@ A lightweight, self-hosted dashboard for monitoring multiple Plex, Emby, and Jel
 Secure login system with role-based access control.
 ![Login](screenshots/login.png)
 
+### Search & Filtering
+Filter servers by name or currently active user. Matches are highlighted directly on the grid.
+![Search Preview](screenshots/search_preview.png)
+
 ### Server Management
-Easily add, edit, and reorder your media servers.
+Easily add, edit, and reorder your media servers via a user-friendly modal.
 ![Add Server](screenshots/add_server.png)
 
 ### User Administration
 Manage dashboard users directly from the interface.
 ![User Management](screenshots/users.png)
-
-### System Logs
-Monitor system events, user actions, and media playback activity in real-time.
-![Logs](screenshots/logs.png)
 
 ## Installation
 
