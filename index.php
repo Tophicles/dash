@@ -906,7 +906,7 @@ form button:hover { background:#45a049; }
     <option value="plex">Plex</option>
   </select>
   <input type="text" name="url" placeholder="Proxy URL" required>
-  <input type="text" name="apiKey" placeholder="API Key (Emby)">
+  <input type="text" name="apiKey" placeholder="API Key (Emby/Jellyfin)">
   <input type="text" name="token" placeholder="Token (Plex)">
   <button type="submit" class="btn primary">Add Server</button>
 </form>
