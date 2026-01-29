@@ -15,19 +15,41 @@ let reorderMode = false;
 let showActiveOnly = false;
 // const IS_ADMIN = ... (This is defined in index.php)
 
-// Toggle form visibility (admin only)
+// Server Modal Logic (admin only)
+function openServerModal(isEdit = false) {
+    const modal = document.getElementById('server-modal');
+    const title = document.getElementById('server-modal-title');
+    const btn = document.getElementById('server-submit-btn');
+    const form = document.getElementById('add-server-form');
+
+    if (isEdit) {
+        title.textContent = 'Edit Server';
+        btn.textContent = 'Save Changes';
+    } else {
+        title.textContent = 'Add Server';
+        btn.textContent = 'Add Server';
+        form.reset();
+        delete form.dataset.originalName;
+    }
+
+    modal.classList.add('visible');
+}
+
+function closeServerModal() {
+    document.getElementById('server-modal').classList.remove('visible');
+    document.getElementById('add-server-form').reset();
+}
+
+// Close server modal when clicking outside
+document.getElementById('server-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeServerModal();
+    }
+});
+
 if (IS_ADMIN) {
     document.getElementById('toggle-form').addEventListener('click', function() {
-        const form = document.getElementById('add-server-form');
-        form.classList.toggle('visible');
-        if (form.classList.contains('visible')) {
-            this.textContent = 'Cancel';
-        } else {
-            this.textContent = 'Add Server';
-            // Reset submit button text and clear original name
-            form.querySelector('button[type="submit"]').textContent = 'Add Server';
-            delete form.dataset.originalName;
-        }
+        openServerModal(false);
     });
 }
 
@@ -983,6 +1005,9 @@ if (IS_ADMIN) {
         const server = SERVERS.find(s => s.id === selectedServerId);
         if (!server) return;
 
+        // Open modal in edit mode
+        openServerModal(true);
+
         // Populate form with existing data
         const form = document.getElementById('add-server-form');
         form.querySelector('[name="name"]').value = server.name;
@@ -991,15 +1016,8 @@ if (IS_ADMIN) {
         form.querySelector('[name="apiKey"]').value = server.apiKey || '';
         form.querySelector('[name="token"]').value = server.token || '';
 
-        // Store server ID for update (using originalName as the storage key for compatibility)
+        // Store server ID for update
         form.dataset.originalName = server.id;
-
-        // Update submit button text
-        form.querySelector('button[type="submit"]').textContent = 'Save Changes';
-
-        // Show form
-        form.classList.add('visible');
-        document.getElementById('toggle-form').textContent = 'Cancel';
     });
 
     // Delete server button (admin only)
@@ -1080,12 +1098,7 @@ document.getElementById('add-server-form').addEventListener('submit', async e=>{
         if(result.success){
             const action = isEdit ? 'Updated' : 'Added';
             alert(`${action} server: ${result.server.name}`);
-            f.reset();
-            delete f.dataset.originalName;
-            // Reset submit button text
-            f.querySelector('button[type="submit"]').textContent = 'Add Server';
-            document.getElementById('add-server-form').classList.remove('visible');
-            document.getElementById('toggle-form').textContent = 'Add Server';
+            closeServerModal();
             // Reload server data to refresh the SERVERS array
             await start();
             if (isEdit) {

@@ -776,28 +776,19 @@ body {
 
 /* Form styling */
 #add-server-form {
-  margin-bottom: 20px;
-  padding: 16px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  display: none;
-  flex-wrap: wrap;
-  gap: 8px;
-  animation: slideDown 0.3s ease-out;
-}
-#add-server-form.visible {
   display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.server-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.server-form-group label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
 }
 form input, form select, form button { padding:8px 12px; font-size:0.9rem; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:4px; }
 form button { background:var(--accent); border:none; cursor:pointer; font-weight:600; }

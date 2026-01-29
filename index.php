@@ -92,19 +92,44 @@ $isAdmin = isAdmin();
   <div id="sessions" class="session-grid"></div>
 </div>
 
-<!-- Add Server Form (Hidden by default) -->
-<form id="add-server-form">
-  <input type="text" name="name" placeholder="Server Name" required>
-  <select name="type">
-    <option value="emby">Emby</option>
-    <option value="jellyfin">Jellyfin</option>
-    <option value="plex">Plex</option>
-  </select>
-  <input type="text" name="url" placeholder="Proxy URL" required>
-  <input type="text" name="apiKey" placeholder="API Key (Emby/Jellyfin)">
-  <input type="text" name="token" placeholder="Token (Plex)">
-  <button type="submit" class="btn primary">Add Server</button>
-</form>
+<!-- Modal for Add/Edit Server -->
+<div id="server-modal" class="modal">
+  <div class="modal-content">
+    <span class="modal-close" onclick="closeServerModal()">&times;</span>
+    <div id="server-modal-body">
+      <h2 style="margin-bottom: 20px;" id="server-modal-title">Add Server</h2>
+      <form id="add-server-form">
+        <div class="server-form-group">
+          <label>Server Name</label>
+          <input type="text" name="name" required>
+        </div>
+        <div class="server-form-group">
+          <label>Server Type</label>
+          <select name="type">
+            <option value="emby">Emby</option>
+            <option value="jellyfin">Jellyfin</option>
+            <option value="plex">Plex</option>
+          </select>
+        </div>
+        <div class="server-form-group">
+          <label>Proxy URL</label>
+          <input type="text" name="url" required>
+        </div>
+        <div class="server-form-group">
+          <label>API Key (Emby/Jellyfin)</label>
+          <input type="text" name="apiKey">
+        </div>
+        <div class="server-form-group">
+          <label>Token (Plex)</label>
+          <input type="text" name="token">
+        </div>
+        <div class="server-form-group" style="margin-top: 10px;">
+          <button type="submit" class="btn primary" id="server-submit-btn">Add Server</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
 <!-- Modal for Item Details -->
 <div id="item-modal" class="modal">
