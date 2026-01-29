@@ -1,6 +1,7 @@
 <?php
 require_once 'auth.php';
 require_once 'encryption_helper.php';
+require_once 'logging.php';
 requireLogin();
 requireAdmin();
 
@@ -70,14 +71,15 @@ error_log("Total servers count before save: " . count($config['servers']));
 // Save to file
 $writeResult = file_put_contents($serversFile, json_encode($config, JSON_PRETTY_PRINT));
 if ($writeResult === false) {
+    writeLog("Failed to add server '{$newServer['name']}': Write permission denied", "ERROR");
     error_log("Failed to write servers.json. File permissions: " . substr(sprintf('%o', fileperms($serversFile)), -4));
     echo json_encode(['success' => false, 'error' => 'Failed to write servers.json - check file permissions']);
     exit;
 }
-error_log("Successfully wrote servers.json. Bytes written: " . $writeResult);
 
+$user = getCurrentUser()['username'];
+writeLog("User '$user' added server '{$newServer['name']}' (Type: {$newServer['type']})", "AUTH");
 echo json_encode(['success' => true, 'server' => $newServer]);
-error_log("Successfully added server: " . $newServer['name']);
 
 function randomMutedColor() {
     $hue = rand(0, 360);
