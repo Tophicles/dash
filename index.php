@@ -25,7 +25,7 @@ $isAdmin = isAdmin();
         <span class="header-badge">Home</span>
       </div>
       <span class="user-info" style="margin-left: 10px;">
-        <span class="user-desktop">👤 <?php echo htmlspecialchars(ucwords($user['username'])); ?> (<?php echo htmlspecialchars($user['role']); ?>)</span>
+        <span class="user-desktop"><i class="fa-solid fa-user"></i> <?php echo htmlspecialchars(ucwords($user['username'])); ?> (<?php echo htmlspecialchars($user['role']); ?>)</span>
         <span class="user-mobile">MENU</span>
       </span>
     </div>
@@ -63,7 +63,7 @@ $isAdmin = isAdmin();
 <!-- Loading Indicator -->
 <div id="loading-indicator" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(26, 26, 26, 0.95); display: flex; align-items: center; justify-content: center; z-index: 9999;">
   <div style="text-align: center;">
-    <div style="font-size: 3rem; margin-bottom: 20px;">⏳</div>
+    <div style="font-size: 3rem; margin-bottom: 20px;"><i class="fa-solid fa-spinner fa-spin"></i></div>
     <div style="font-size: 1.2rem; color: #e0e0e0; margin-bottom: 10px;">Loading dashboard...</div>
     <div id="loading-progress" style="font-size: 0.9rem; color: #888;"></div>
   </div>

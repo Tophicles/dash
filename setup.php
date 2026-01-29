@@ -94,13 +94,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Setup - MultiDash</title>
 <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="stylesheet" href="assets/css/auth.css">
 </head>
 <body>
 <div class="setup-container">
   <?php if ($success): ?>
     <div class="success">
-      <div class="success-icon" style="color: #4caf50;">&#10004;</div>
+      <div class="success-icon" style="color: #4caf50;"><i class="fa-solid fa-check-circle"></i></div>
       <strong>Setup Complete!</strong>
       <p style="margin-top: 10px;">Redirecting to dashboard...</p>
     </div>

@@ -174,8 +174,8 @@ function getQualityBadge(width, height) {
 function getPlayMethodIcon(playMethod) {
     if (!playMethod) return '';
     const method = playMethod.toLowerCase();
-    if (method.includes('direct')) return '⚡'; // Direct play
-    if (method.includes('transcode')) return '🔄'; // Transcoding
+    if (method.includes('direct')) return '<i class="fa-solid fa-bolt"></i>'; // Direct play
+    if (method.includes('transcode')) return '<i class="fa-solid fa-arrows-rotate"></i>'; // Transcoding
     return '';
 }
 
@@ -291,7 +291,7 @@ function renderOnlineUsers() {
         const badge = document.createElement('div');
         badge.className = `online-user-badge server-${esc(u.type)}`;
         badge.style.cursor = 'pointer';
-        badge.innerHTML = `👤 ${esc(u.name)}`;
+        badge.innerHTML = `<i class="fa-solid fa-user"></i> ${esc(u.name)}`;
 
         if (u.serverId) {
             badge.addEventListener('click', (e) => {
@@ -389,7 +389,7 @@ function renderDashboardUsers(users) {
         const badge = document.createElement('div');
         badge.className = 'online-user-badge';
         badge.style.background = '#2196f3'; // Different color for dashboard users
-        badge.innerHTML = `👤 ${esc(user)}`;
+        badge.innerHTML = `<i class="fa-solid fa-user"></i> ${esc(user)}`;
         container.appendChild(badge);
     });
 }
@@ -481,7 +481,7 @@ function renderServerGrid() {
             card.classList.add('reorder-mode');
         }
 
-        const dragHandle = IS_ADMIN ? '<div class="drag-handle">☰</div>' : '';
+        const dragHandle = IS_ADMIN ? '<div class="drag-handle"><i class="fa-solid fa-bars"></i></div>' : '';
 
         card.innerHTML = `
             ${dragHandle}
@@ -619,7 +619,7 @@ function renderSessions(serverName = null) {
             <div class="title">${esc(s.title)}</div>
             ${s.series ? `<div class="subtitle">${esc(s.series)}${esc(episodeInfo)}</div>` : ``}
             <div class="muted">
-                ${isLive ? "🔴 Live" :
+                ${isLive ? "<i class='fa-solid fa-circle' style='color:#ff5252;'></i> Live" :
                 `${msToTime(s.position)} / ${msToTime(s.duration)} • ${s.paused ? "Paused" : "Playing"}`}
             </div>
             ${isLive ? "" :
@@ -674,7 +674,7 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
     const titleElement = document.getElementById('server-title');
     titleElement.innerHTML = `
         ${esc(serverName)}
-        ${server ? `<a href="${esc(server.url)}" target="_blank" class="server-link-btn" title="Go to Server">🔗</a>` : ''}
+        ${server ? `<a href="${esc(server.url)}" target="_blank" class="server-link-btn" title="Go to Server"><i class="fa-solid fa-external-link-alt"></i></a>` : ''}
     `;
     titleElement.className = `section-divider ${serverType}`;
 
@@ -987,7 +987,7 @@ async function showItemDetails(serverName, itemId, serverType) {
             }
 
             // Build single line with all info
-            let infoLine = `👤 <strong>${esc(sessionData.user)}</strong>`;
+            let infoLine = `<i class="fa-solid fa-user"></i> <strong>${esc(sessionData.user)}</strong>`;
 
             if (sessionData.device) {
                 infoLine += ` • ${esc(sessionData.device)}`;
@@ -1327,9 +1327,9 @@ async function loadUsersList() {
                         </div>
                     </div>
                     <div class="user-item-actions">
-                        <button class="btn" onclick="changeUserPassword('${esc(user.username)}')">🔑 Change Password</button>
-                        <button class="btn" onclick="toggleUserRole('${esc(user.username)}', '${esc(user.role)}')">${user.role === 'admin' ? '👤 Make Viewer' : '👑 Make Admin'}</button>
-                        <button class="btn danger" onclick="deleteUser('${esc(user.username)}')">🗑️ Delete</button>
+                        <button class="btn" onclick="changeUserPassword('${esc(user.username)}')"><i class="fa-solid fa-key"></i> Change Password</button>
+                        <button class="btn" onclick="toggleUserRole('${esc(user.username)}', '${esc(user.role)}')">${user.role === 'admin' ? '<i class="fa-solid fa-user"></i> Make Viewer' : '<i class="fa-solid fa-crown"></i> Make Admin'}</button>
+                        <button class="btn danger" onclick="deleteUser('${esc(user.username)}')"><i class="fa-solid fa-trash"></i> Delete</button>
                     </div>
                 </div>
             `).join('');
@@ -1556,7 +1556,7 @@ async function fetchLibraries(serverName) {
                         </div>
                     </div>
                     <div class="user-item-actions">
-                        <button class="btn primary" onclick="scanLibrary('${esc(serverName)}', '${esc(lib.id)}', '${esc(lib.name)}', this)">🔄 Scan</button>
+                        <button class="btn primary" onclick="scanLibrary('${esc(serverName)}', '${esc(lib.id)}', '${esc(lib.name)}', this)"><i class="fa-solid fa-arrows-rotate"></i> Scan</button>
                     </div>
                 `;
                 list.appendChild(item);
@@ -1577,7 +1577,7 @@ async function fetchLibraries(serverName) {
 async function scanLibrary(serverName, libraryId, libraryName, btn) {
     if (btn) {
         btn.disabled = true;
-        btn.textContent = '⏳ Starting...';
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Starting...';
     }
 
     try {
@@ -1585,18 +1585,18 @@ async function scanLibrary(serverName, libraryId, libraryName, btn) {
         const data = await response.json();
 
         if (data.success) {
-            if (btn) btn.textContent = '✅ Started';
+            if (btn) btn.innerHTML = '<i class="fa-solid fa-check"></i> Started';
             setTimeout(() => {
                 if (btn) {
                     btn.disabled = false;
-                    btn.textContent = '🔄 Scan';
+                    btn.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> Scan';
                 }
             }, 3000);
         } else {
             alert('Error: ' + data.error);
             if (btn) {
                 btn.disabled = false;
-                btn.textContent = '❌ Failed';
+                btn.innerHTML = '<i class="fa-solid fa-times"></i> Failed';
             }
         }
     } catch (error) {
@@ -1604,7 +1604,7 @@ async function scanLibrary(serverName, libraryId, libraryName, btn) {
         alert('Failed to start scan');
         if (btn) {
             btn.disabled = false;
-            btn.textContent = '❌ Error';
+            btn.innerHTML = '<i class="fa-solid fa-times"></i> Error';
         }
     }
 }
