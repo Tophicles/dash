@@ -777,6 +777,16 @@ form button:hover { background:#45a049; }
 
 .view-container { display: none; }
 .view-container.visible { display: block; }
+.session.highlight-session {
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 15px rgba(76, 175, 80, 0.4);
+  animation: pulse-highlight 2s infinite;
+}
+@keyframes pulse-highlight {
+  0% { box-shadow: 0 0 5px rgba(76, 175, 80, 0.4); }
+  50% { box-shadow: 0 0 20px rgba(76, 175, 80, 0.6); }
+  100% { box-shadow: 0 0 5px rgba(76, 175, 80, 0.4); }
+}
 </style>
 </head>
 <body>
@@ -793,6 +803,21 @@ form button:hover { background:#45a049; }
 <!-- Server Grid View -->
 <div id="server-view" class="view-container visible">
   <div id="server-grid" class="server-grid"></div>
+  <div class="user-lists-container">
+    <div id="online-users" class="online-users">
+      <div class="list-label" id="online-users-label">Now Watching</div>
+      <div class="user-list-content hidden">
+        <span style="color:var(--muted);font-size:0.9rem;">No users online</span>
+      </div>
+    </div>
+    <div id="dashboard-users" class="online-users">
+      <div class="list-label">Dashboard Users</div>
+      <div class="user-list-content">
+        <span style="color:var(--muted);font-size:0.9rem;">Loading...</span>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Bottom Control Bar -->
 <div class="bottom-bar">
@@ -817,22 +842,6 @@ form button:hover { background:#45a049; }
     <button class="btn activeonly" id="activeonly-btn" title="Show Only Active Servers">Active Only</button>
     <button class="btn showall" id="showall-btn" title="Toggle All Sessions">Show All</button>
     <button class="btn logout" onclick="window.location.href='logout.php'">Logout</button>
-  </div>
-</div>
-
-  <div class="user-lists-container">
-    <div id="online-users" class="online-users">
-      <div class="list-label" id="online-users-label">Now Watching</div>
-      <div class="user-list-content hidden">
-        <span style="color:var(--muted);font-size:0.9rem;">No users online</span>
-      </div>
-    </div>
-    <div id="dashboard-users" class="online-users">
-      <div class="list-label">Dashboard Users</div>
-      <div class="user-list-content">
-        <span style="color:var(--muted);font-size:0.9rem;">Loading...</span>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -1115,11 +1124,8 @@ function renderOnlineUsers() {
     const processedUsers = new Set();
     const allSessions = Object.values(ALL_SESSIONS).flat();
 
-    // Sort by Server Name then User Name
+    // Sort by User Name only
     allSessions.sort((a, b) => {
-        if (a.server !== b.server) {
-            return a.server.localeCompare(b.server);
-        }
         return a.user.localeCompare(b.user);
     });
 
@@ -1157,7 +1163,7 @@ function renderOnlineUsers() {
         if (u.serverId) {
             badge.addEventListener('click', (e) => {
                 e.stopPropagation(); // Prevent toggling the list if clicking a badge
-                showSessionsView(u.serverId, u.serverName);
+                showSessionsView(u.serverId, u.serverName, u.name);
             });
         }
 
@@ -1404,7 +1410,7 @@ function showServerView() {
 }
 
 // Show sessions view for a specific server
-function showSessionsView(serverId, serverName) {
+function showSessionsView(serverId, serverName, highlightUser = null) {
     currentView = 'sessions';
     selectedServerId = serverId;
     document.getElementById('server-view').classList.remove('visible');
@@ -1435,6 +1441,24 @@ function showSessionsView(serverId, serverName) {
     // Render sessions
     if (server) {
         renderSessions(server.name);
+
+        // Highlight specific user session if requested
+        if (highlightUser) {
+            const sessionsContainer = document.getElementById("sessions");
+            const sessionCards = sessionsContainer.querySelectorAll('.session');
+
+            for (const card of sessionCards) {
+                const userLabel = card.querySelector('.user-label');
+                // The user label might contain badges, so we need to be careful with text content
+                // Getting the first text node usually works if structure is "User Name <div...>"
+                // Or just check if innerText starts with the name
+                if (userLabel && userLabel.textContent.trim().startsWith(highlightUser)) {
+                    card.classList.add('highlight-session');
+                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    break;
+                }
+            }
+        }
     }
 }
 
