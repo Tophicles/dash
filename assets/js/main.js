@@ -452,7 +452,7 @@ function renderServerGrid() {
                 sessionMatch = true;
 
                 // Helper for truncation
-                const trunc = (s, l=20) => s.length > l ? s.substring(0, l) + '...' : s;
+                const trunc = (s, l=17) => s.length > l ? s.substring(0, l) + '...' : s;
 
                  if (matchingSession.user.toLowerCase().includes(query)) {
                     matchPreview = `<i class="fa-solid fa-user"></i> ${trunc(matchingSession.user)}`;
