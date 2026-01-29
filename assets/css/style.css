@@ -418,7 +418,7 @@ body {
   margin-bottom: 16px;
   position: relative;
 }
-#session-search {
+.search-container input {
   width: 100%;
   padding: 10px 14px;
   background: var(--card);
@@ -428,7 +428,7 @@ body {
   font-size: 0.95rem;
   transition: border-color 0.2s;
 }
-#session-search:focus {
+.search-container input:focus {
   outline: none;
   border-color: var(--accent);
 }
