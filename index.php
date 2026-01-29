@@ -851,9 +851,6 @@ form button:hover { background:#45a049; }
       <button class="btn" id="toggle-form">Add Server</button>
       <?php endif; ?>
     </div>
-    <div class="top-bar-center">
-      <button class="btn reload" id="reload-btn">🔄 Reload</button>
-    </div>
     <div class="top-bar-right">
       <?php if ($isAdmin): ?>
       <div class="server-actions" id="server-actions">
@@ -1005,18 +1002,6 @@ if (IS_ADMIN) {
         }
     });
 }
-
-// Reload button
-document.getElementById('reload-btn').addEventListener('click', function() {
-    if (currentView === 'servers') {
-        // In server view, reload the page
-        location.reload();
-    } else {
-        // In sessions view, go back to server list
-        showServerView();
-        window.scrollTo(0, 0);
-    }
-});
 
 // Show All button (toggleable)
 document.getElementById('showall-btn').addEventListener('click', function() {
@@ -1501,8 +1486,6 @@ function showServerView() {
     document.getElementById('showall-btn').classList.remove('hideall');
     document.getElementById('showall-btn').style.display = showActiveOnly ? 'none' : '';
     
-    document.getElementById('reload-btn').textContent = '🔄 Reload';
-    document.getElementById('reload-btn').classList.remove('tolist');
     document.getElementById('server-actions').classList.remove('visible');
     selectedServerId = null;
     window.scrollTo(0, 0);
@@ -1532,8 +1515,6 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
     document.getElementById('activeonly-btn').style.display = 'none';
     document.getElementById('showall-btn').style.display = 'none';
     
-    document.getElementById('reload-btn').textContent = 'Server List';
-    document.getElementById('reload-btn').classList.add('tolist');
     document.getElementById('server-actions').classList.add('visible');
     window.scrollTo(0, 0);
     
@@ -1580,8 +1561,6 @@ function showAllSessions() {
     }
     document.getElementById('activeonly-btn').style.display = 'none';
     
-    document.getElementById('reload-btn').textContent = 'Server List';
-    document.getElementById('reload-btn').classList.add('tolist');
     document.getElementById('server-actions').classList.remove('visible');
     window.scrollTo(0, 0);
     renderSessions(null); // null = show all
