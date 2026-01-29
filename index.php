@@ -987,7 +987,6 @@ function esc(str) {
 
 let SERVERS = [];
 let ALL_SESSIONS = {};
-const SERVER_COLORS = {};
 let refreshTimer = null;
 let currentView = 'servers'; // 'servers', 'sessions', or 'all'
 let selectedServerId = null;
@@ -1066,7 +1065,6 @@ async function loadConfig() {
         // Then sort by order
         return (a.order||0) - (b.order||0);
     });
-    SERVERS.forEach(s=>{ if(s.color) SERVER_COLORS[s.name] = s.color; });
     return config.refreshSeconds || 5;
 }
 
