@@ -51,6 +51,38 @@ body {
   margin-bottom: 20px;
   overflow: hidden;
 }
+.top-bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  cursor: pointer;
+  user-select: none;
+}
+.header-section {
+  display: flex;
+  align-items: center;
+}
+.header-section.center {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  font-weight: 600;
+}
+.header-badge {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+.header-section.left:hover .header-badge {
+   background: rgba(255, 255, 255, 0.2);
+}
 .menu-content {
   padding: 12px 16px;
   display: flex;
@@ -801,7 +833,17 @@ form button:hover { background:#45a049; }
 
 <!-- Top Menu Bar -->
 <div class="top-bar">
-  <div class="list-label" id="menu-label" style="padding: 12px; margin: 0; cursor: pointer;">MENU +</div>
+  <div class="top-bar-header" id="menu-header">
+    <div class="header-section left" id="header-reload-btn" title="Reload Dashboard">
+      <span class="header-badge">MultiDash</span>
+    </div>
+    <div class="header-section center" id="menu-toggle-label">
+      MENU +
+    </div>
+    <div class="header-section right" id="header-clock-btn">
+      <span class="header-badge" id="header-clock">--:--</span>
+    </div>
+  </div>
   <div id="menu-content" class="menu-content hidden">
     <div class="top-bar-left">
       <span class="user-info">👤 <?php echo htmlspecialchars($user['username']); ?> (<?php echo htmlspecialchars($user['role']); ?>)</span>
@@ -1203,7 +1245,38 @@ function toggleSection(labelId, contentSelector) {
 // Initialize toggles
 toggleSection('online-users-label', '#online-users .user-list-content');
 toggleSection('dashboard-users-label', '#dashboard-users .user-list-content');
-toggleSection('menu-label', '#menu-content');
+
+// Top Bar Header Logic
+function updateClock() {
+    const now = new Date();
+    const options = { weekday: 'short', month: 'short', day: 'numeric' };
+    const dateStr = now.toLocaleDateString('en-US', options);
+    const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    const clockEl = document.getElementById('header-clock');
+    if (clockEl) {
+        clockEl.textContent = `${dateStr} • ${timeStr}`;
+    }
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+document.getElementById('header-reload-btn').addEventListener('click', function(e) {
+    e.stopPropagation();
+    if (currentView === 'servers') {
+        location.reload();
+    } else {
+        showServerView();
+        window.scrollTo(0, 0);
+    }
+});
+
+document.getElementById('menu-header').addEventListener('click', function() {
+    const content = document.getElementById('menu-content');
+    const label = document.getElementById('menu-toggle-label');
+    content.classList.toggle('hidden');
+    const isHidden = content.classList.contains('hidden');
+    label.textContent = 'MENU ' + (isHidden ? '+' : '-');
+});
 
 // Fetch and render dashboard users
 async function fetchDashboardUsers() {
