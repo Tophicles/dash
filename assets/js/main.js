@@ -450,12 +450,16 @@ function renderServerGrid() {
 
             if (matchingSession) {
                 sessionMatch = true;
+
+                // Helper for truncation
+                const trunc = (s, l=20) => s.length > l ? s.substring(0, l) + '...' : s;
+
                  if (matchingSession.user.toLowerCase().includes(query)) {
-                    matchPreview = `<i class="fa-solid fa-user"></i> ${matchingSession.user}`;
+                    matchPreview = `<i class="fa-solid fa-user"></i> ${trunc(matchingSession.user)}`;
                 } else if (matchingSession.title && matchingSession.title.toLowerCase().includes(query)) {
-                    matchPreview = `<i class="fa-solid fa-film"></i> ${matchingSession.title}`;
+                    matchPreview = `<i class="fa-solid fa-film"></i> ${trunc(matchingSession.title)}`;
                 } else if (matchingSession.series && matchingSession.series.toLowerCase().includes(query)) {
-                    matchPreview = `<i class="fa-solid fa-tv"></i> ${matchingSession.series}`;
+                    matchPreview = `<i class="fa-solid fa-tv"></i> ${trunc(matchingSession.series)}`;
                 }
             }
 
