@@ -739,7 +739,10 @@ document.getElementById('item-modal').addEventListener('click', function(e) {
     }
 });
 
-document.querySelector('.modal-close').addEventListener('click', hideModal);
+const itemModalClose = document.querySelector('#item-modal .modal-close');
+if (itemModalClose) {
+    itemModalClose.addEventListener('click', hideModal);
+}
 
 // Show item details in modal
 async function showItemDetails(serverName, itemId, serverType) {
