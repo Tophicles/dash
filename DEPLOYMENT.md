@@ -24,6 +24,7 @@ This guide outlines the files required and the steps needed to deploy the MultiD
 *   `update_server.php` - API to update existing servers.
 *   `delete_server.php` - API to remove servers.
 *   `update_order.php` - API to save server sort order.
+*   `library_actions.php` - API for listing and scanning libraries.
 
 ### Media & Logs
 *   `get_item_details.php` - Fetches metadata for media items.
@@ -80,7 +81,7 @@ location /dash {
     # Deny access to sensitive files
     location ~ \.(json|log|php)$ {
         # Allow specific PHP entry points
-        location ~ ^/dash/(index|login|setup|logout|proxy|get_|add_|update_|delete_|manage_|view_logs)\.php$ {
+        location ~ ^/dash/(index|login|setup|logout|proxy|get_|add_|update_|delete_|manage_|view_logs|library_actions)\.php$ {
             include snippets/fastcgi-php.conf;
             fastcgi_pass unix:/var/run/php/php-fpm.sock;
         }
