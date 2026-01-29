@@ -105,7 +105,7 @@ $isAdmin = isAdmin();
         </div>
         <div class="server-form-group">
           <label>Server Type</label>
-          <select name="type">
+          <select name="type" id="server-type-select">
             <option value="emby">Emby</option>
             <option value="jellyfin">Jellyfin</option>
             <option value="plex">Plex</option>
@@ -115,11 +115,11 @@ $isAdmin = isAdmin();
           <label>Proxy URL</label>
           <input type="text" name="url" required>
         </div>
-        <div class="server-form-group">
+        <div class="server-form-group" id="group-apikey">
           <label>API Key (Emby/Jellyfin)</label>
           <input type="text" name="apiKey">
         </div>
-        <div class="server-form-group">
+        <div class="server-form-group" id="group-token">
           <label>Token (Plex)</label>
           <input type="text" name="token">
         </div>

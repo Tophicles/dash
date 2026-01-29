@@ -16,6 +16,32 @@ let showActiveOnly = false;
 // const IS_ADMIN = ... (This is defined in index.php)
 
 // Server Modal Logic (admin only)
+function updateServerFormFields() {
+    const typeSelect = document.getElementById('server-type-select');
+    const apiKeyGroup = document.getElementById('group-apikey');
+    const tokenGroup = document.getElementById('group-token');
+
+    if (!typeSelect || !apiKeyGroup || !tokenGroup) return;
+
+    if (typeSelect.value === 'plex') {
+        apiKeyGroup.style.display = 'none';
+        tokenGroup.style.display = 'flex';
+        // Remove required from hidden field to allow submission
+        apiKeyGroup.querySelector('input').removeAttribute('required');
+    } else {
+        apiKeyGroup.style.display = 'flex';
+        tokenGroup.style.display = 'none';
+        // Remove required from hidden field
+        tokenGroup.querySelector('input').removeAttribute('required');
+    }
+}
+
+// Add event listener for server type change
+const serverTypeSelect = document.getElementById('server-type-select');
+if (serverTypeSelect) {
+    serverTypeSelect.addEventListener('change', updateServerFormFields);
+}
+
 function openServerModal(isEdit = false) {
     const modal = document.getElementById('server-modal');
     const title = document.getElementById('server-modal-title');
@@ -30,6 +56,8 @@ function openServerModal(isEdit = false) {
         btn.textContent = 'Add Server';
         form.reset();
         delete form.dataset.originalName;
+        // Reset visibility for new form
+        updateServerFormFields();
     }
 
     modal.classList.add('visible');
@@ -1018,6 +1046,9 @@ if (IS_ADMIN) {
 
         // Store server ID for update
         form.dataset.originalName = server.id;
+
+        // Update field visibility based on loaded type
+        updateServerFormFields();
     });
 
     // Delete server button (admin only)
