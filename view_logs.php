@@ -59,6 +59,15 @@ if (isset($_GET['fetch'])) {
     }
     .btn:hover { background: #444; }
     .btn.active { background: #4caf50; border-color: #4caf50; color: white; }
+    input[type="text"], select {
+        background: #333;
+        color: #eee;
+        border: 1px solid #555;
+        padding: 5px 8px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+    }
+    input[type="text"]:focus, select:focus { outline: none; border-color: #4caf50; }
     #log-container {
         padding: 20px;
         height: calc(100vh - 50px);
@@ -85,6 +94,14 @@ if (isset($_GET['fetch'])) {
 <div class="header">
     <div class="title">System Logs</div>
     <div class="controls">
+        <input type="text" id="search" placeholder="Search..." oninput="renderLogs()">
+        <select id="level-filter" onchange="renderLogs()">
+            <option value="">All Levels</option>
+            <option value="INFO">INFO</option>
+            <option value="WARN">WARN</option>
+            <option value="ERROR">ERROR</option>
+            <option value="AUTH">AUTH</option>
+        </select>
         <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 6px; cursor: pointer;">
             <input type="checkbox" id="autoscroll" checked> Auto-scroll
         </label>
@@ -98,6 +115,9 @@ if (isset($_GET['fetch'])) {
 <script>
     const container = document.getElementById('log-container');
     const autoscrollCb = document.getElementById('autoscroll');
+    const searchInput = document.getElementById('search');
+    const levelSelect = document.getElementById('level-filter');
+    let allLogLines = [];
     let lastContent = '';
 
     function formatLine(line) {
@@ -106,7 +126,7 @@ if (isset($_GET['fetch'])) {
         const match = line.match(/^\[(.*?)\] \[(.*?)\] (.*)$/);
         if (match) {
             const [_, ts, level, msg] = match;
-            return `<div class="log-line"><span class="timestamp">${ts}</span><span class="level-${level}">[${level}]</span> ${esc(msg)}</div>`;
+            return `<div class="log-line" data-level="${level}"><span class="timestamp">${ts}</span><span class="level-${level}">[${level}]</span> ${esc(msg)}</div>`;
         }
         return `<div class="log-line">${esc(line)}</div>`;
     }
@@ -121,25 +141,46 @@ if (isset($_GET['fetch'])) {
             const text = await res.text();
 
             if (text !== lastContent) {
-                const isScrolledToBottom = container.scrollHeight - container.clientHeight <= container.scrollTop + 50;
-
-                const lines = text.split('\n');
-                container.innerHTML = lines.map(formatLine).join('');
-
                 lastContent = text;
-
-                if (autoscrollCb.checked && (isScrolledToBottom || container.scrollTop === 0)) {
-                    container.scrollTop = container.scrollHeight;
-                }
+                allLogLines = text.split('\n').filter(line => line.trim() !== '');
+                renderLogs();
             }
         } catch (e) {
             console.error('Failed to fetch logs', e);
         }
     }
 
+    function renderLogs() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const levelFilter = levelSelect.value;
+        const isScrolledToBottom = container.scrollHeight - container.clientHeight <= container.scrollTop + 50;
+
+        const filteredLines = allLogLines.filter(line => {
+            // Level Filter
+            if (levelFilter) {
+                const match = line.match(/^\[.*?\] \[(.*?)\]/);
+                if (!match || match[1] !== levelFilter) return false;
+            }
+
+            // Search Filter
+            if (searchTerm && !line.toLowerCase().includes(searchTerm)) {
+                return false;
+            }
+
+            return true;
+        });
+
+        container.innerHTML = filteredLines.map(formatLine).join('');
+
+        if (autoscrollCb.checked && (isScrolledToBottom || container.scrollTop === 0)) {
+            container.scrollTop = container.scrollHeight;
+        }
+    }
+
     function clearLogs() {
         container.innerHTML = '';
         lastContent = '';
+        allLogLines = [];
     }
 
     // Initial fetch
