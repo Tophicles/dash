@@ -805,14 +805,14 @@ form button:hover { background:#45a049; }
   <div id="server-grid" class="server-grid"></div>
   <div class="user-lists-container">
     <div id="online-users" class="online-users">
-      <div class="list-label" id="online-users-label">Now Watching</div>
+      <div class="list-label" id="online-users-label">Now Watching +</div>
       <div class="user-list-content hidden">
         <span style="color:var(--muted);font-size:0.9rem;">No users online</span>
       </div>
     </div>
     <div id="dashboard-users" class="online-users">
-      <div class="list-label">Dashboard Users</div>
-      <div class="user-list-content">
+      <div class="list-label" id="dashboard-users-label">Dashboard Users +</div>
+      <div class="user-list-content hidden">
         <span style="color:var(--muted);font-size:0.9rem;">Loading...</span>
       </div>
     </div>
@@ -1145,7 +1145,8 @@ function renderOnlineUsers() {
     });
 
     if (label) {
-        label.textContent = `${onlineUsers.length} NOW WATCHING`;
+        const isHidden = container.classList.contains('hidden');
+        label.textContent = `${onlineUsers.length} NOW WATCHING ${isHidden ? '+' : '-'}`;
     }
 
     if (onlineUsers.length === 0) {
@@ -1171,13 +1172,25 @@ function renderOnlineUsers() {
     });
 }
 
-// Toggle online users visibility
-document.getElementById('online-users-label')?.addEventListener('click', function() {
-    const container = document.querySelector("#online-users .user-list-content");
-    if (container) {
-        container.classList.toggle('hidden');
+// Toggle visibility helper
+function toggleSection(labelId, contentSelector) {
+    const label = document.getElementById(labelId);
+    const container = document.querySelector(contentSelector);
+
+    if (label && container) {
+        label.addEventListener('click', () => {
+            container.classList.toggle('hidden');
+            const isHidden = container.classList.contains('hidden');
+            const text = label.textContent;
+            // Replace the last character (+ or -)
+            label.textContent = text.slice(0, -1) + (isHidden ? '+' : '-');
+        });
     }
-});
+}
+
+// Initialize toggles
+toggleSection('online-users-label', '#online-users .user-list-content');
+toggleSection('dashboard-users-label', '#dashboard-users .user-list-content');
 
 // Fetch and render dashboard users
 async function fetchDashboardUsers() {
