@@ -95,6 +95,7 @@ body {
   padding: 8px 12px;
   background: rgba(0,0,0,0.3);
   border-radius: 4px;
+  text-transform: capitalize;
 }
 .top-bar-center {
   flex: 1;
@@ -213,6 +214,7 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
+  text-transform: capitalize;
 }
 .online-user-badge.server-plex {
   background: #e5a00d !important;
@@ -528,6 +530,9 @@ body {
   line-height: 1.6;
   padding-right: 240px;
 }
+.modal-playback-info strong {
+  text-transform: capitalize;
+}
 .status-badge-fixed {
   position: absolute;
   top: 0;
@@ -669,6 +674,7 @@ body {
   font-size: 1rem;
   color: #fff;
   margin-bottom: 4px;
+  text-transform: capitalize;
 }
 .user-item-meta {
   font-size: 0.85rem;
@@ -735,6 +741,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  text-transform: capitalize;
 }
 .stream-badges {
   display: flex;

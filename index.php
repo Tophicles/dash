@@ -20,7 +20,7 @@ $isAdmin = isAdmin();
 <div class="top-bar">
   <div class="top-bar-header" id="menu-header">
     <div class="header-section left" id="header-reload-btn" title="Reload Dashboard">
-      <span class="header-badge">MultiDash</span>
+      <span class="header-badge">Home</span>
     </div>
     <div class="header-section center" id="menu-toggle-label">
       MENU +
@@ -31,7 +31,7 @@ $isAdmin = isAdmin();
   </div>
   <div id="menu-content" class="menu-content hidden">
     <div class="top-bar-left">
-      <span class="user-info">👤 <?php echo htmlspecialchars($user['username']); ?> (<?php echo htmlspecialchars($user['role']); ?>)</span>
+      <span class="user-info">👤 <?php echo htmlspecialchars(ucwords($user['username'])); ?> (<?php echo htmlspecialchars($user['role']); ?>)</span>
       <?php if ($isAdmin): ?>
       <button class="btn primary" id="toggle-form">Add Server</button>
       <?php endif; ?>
@@ -39,13 +39,13 @@ $isAdmin = isAdmin();
     <div class="top-bar-right">
       <?php if ($isAdmin): ?>
       <div class="server-actions" id="server-actions">
-        <button class="btn" id="edit-server-btn">✏️ Edit</button>
-        <button class="btn danger" id="delete-server-btn">🗑️ Delete</button>
+        <button class="btn" id="edit-server-btn">Edit</button>
+        <button class="btn danger" id="delete-server-btn">Delete</button>
       </div>
       <button class="btn" id="reorder-btn" title="Toggle Reorder Mode">Reorder</button>
-      <button class="btn" id="users-btn" title="Manage Users">👥 Users</button>
-      <button class="btn" id="libraries-btn" title="Manage Libraries">📚 Libraries</button>
-      <button class="btn" id="logs-btn" title="View System Logs" onclick="window.open('view_logs.php', 'SystemLogs')">📜 Logs</button>
+      <button class="btn" id="users-btn" title="Manage Users">Users</button>
+      <button class="btn" id="libraries-btn" title="Manage Libraries">Libraries</button>
+      <button class="btn" id="logs-btn" title="View System Logs" onclick="window.open('view_logs.php', 'SystemLogs')">Logs</button>
       <?php endif; ?>
       <button class="btn" id="activeonly-btn" title="Show Only Active Servers">Active Only</button>
       <button class="btn" id="showall-btn" title="Toggle All Sessions">Show All</button>
