@@ -17,6 +17,7 @@ $isAdmin = isAdmin();
   --text:#eee; --muted:#aaa; --accent:#4caf50;
   --emby-color: #1f2f1f;
   --plex-color: #2f2f1f;
+  --jellyfin-color: #2f1f2f;
 }
 body { 
   margin:0; 
@@ -235,6 +236,10 @@ body {
   background: #4caf50 !important;
   color: white !important;
 }
+.online-user-badge.server-jellyfin {
+  background: #aa00aa !important;
+  color: white !important;
+}
 .server-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; }
 .server-card {
   background: var(--card);
@@ -252,6 +257,10 @@ body {
 .server-card.server-emby {
   background: var(--emby-color);
   border-color: rgba(76, 175, 80, 0.3);
+}
+.server-card.server-jellyfin {
+  background: var(--jellyfin-color);
+  border-color: rgba(170, 0, 170, 0.3);
 }
 .server-card.server-plex {
   background: var(--plex-color);
@@ -301,6 +310,9 @@ body {
 .server-card.server-emby:hover {
   border-color: rgba(76, 175, 80, 0.6);
 }
+.server-card.server-jellyfin:hover {
+  border-color: rgba(170, 0, 170, 0.6);
+}
 .server-card.server-plex:hover {
   border-color: rgba(255, 193, 7, 0.6);
 }
@@ -343,6 +355,10 @@ body {
   background: rgba(76, 175, 80, 0.8);
   box-shadow: 0 0 6px rgba(76, 175, 80, 0.6);
 }
+.status-dot.active.server-jellyfin {
+  background: rgba(170, 0, 170, 0.8);
+  box-shadow: 0 0 6px rgba(170, 0, 170, 0.6);
+}
 .status-dot.active.server-plex {
   background: rgba(255, 193, 7, 0.8);
   box-shadow: 0 0 6px rgba(255, 193, 7, 0.6);
@@ -364,6 +380,11 @@ body {
   background: var(--emby-color);
   color: #4caf50;
   border-color: #4caf50;
+}
+.section-divider.jellyfin {
+  background: var(--jellyfin-color);
+  color: #aa00aa;
+  border-color: #aa00aa;
 }
 .section-divider.plex {
   background: var(--plex-color);
@@ -881,6 +902,7 @@ form button:hover { background:#45a049; }
   <input type="text" name="name" placeholder="Server Name" required>
   <select name="type">
     <option value="emby">Emby</option>
+    <option value="jellyfin">Jellyfin</option>
     <option value="plex">Plex</option>
   </select>
   <input type="text" name="url" placeholder="Proxy URL" required>
@@ -1095,7 +1117,7 @@ async function fetchServer(server){
         
         if(!res.ok) return [];
         const data = await res.json();
-        if(server.type==="emby"){
+        if(server.type==="emby" || server.type==="jellyfin"){
             return data.filter(s=>s.NowPlayingItem).map(s=>({
                 server: server.name,
                 user: s.UserName,
@@ -1421,7 +1443,9 @@ function renderSessions(serverName = null) {
         // Get server type for theming
         const server = SERVERS.find(srv => srv.name === s.server);
         const serverType = server ? server.type : 'emby';
-        const bgColor = serverType === 'emby' ? 'var(--emby-color)' : 'var(--plex-color)';
+        let bgColor = 'var(--emby-color)'; // Default
+        if (serverType === 'plex') bgColor = 'var(--plex-color)';
+        if (serverType === 'jellyfin') bgColor = 'var(--jellyfin-color)';
         
         const isLive = !s.duration || s.duration <= 0 || !isFinite(s.duration);
         const percent = isLive ? null : Math.min(100, Math.floor((s.position / s.duration) * 100));

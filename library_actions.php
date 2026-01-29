@@ -64,7 +64,7 @@ $type = $server['type'];
 $token = '';
 if ($type === 'plex' && isset($server['token'])) {
     $token = decrypt($server['token']);
-} elseif ($type === 'emby' && isset($server['apiKey'])) {
+} elseif (($type === 'emby' || $type === 'jellyfin') && isset($server['apiKey'])) {
     $token = decrypt($server['apiKey']);
 }
 
@@ -141,8 +141,14 @@ if ($type === 'plex') {
     }
 }
 
-// --- EMBY LOGIC ---
-if ($type === 'emby') {
+// --- EMBY/JELLYFIN LOGIC ---
+if ($type === 'emby' || $type === 'jellyfin') {
+    $headers = [
+        "X-Emby-Token: $token",
+        "X-MediaBrowser-Token: $token",
+        "Accept: application/json"
+    ];
+
     if ($action === 'list') {
         // Use /Library/VirtualFolders/Query to get real libraries
         $url = rtrim($baseUrl, '/') . '/Library/VirtualFolders/Query';
@@ -152,10 +158,7 @@ if ($type === 'emby') {
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
         curl_setopt($ch, CURLOPT_TIMEOUT, 15);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            "X-Emby-Token: $token",
-            "Accept: application/json"
-        ]);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 
         $res = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -198,9 +201,7 @@ if ($type === 'emby') {
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
         curl_setopt($ch, CURLOPT_TIMEOUT, 15);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            "X-Emby-Token: $token"
-        ]);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 
         $res = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);

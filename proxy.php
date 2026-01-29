@@ -67,16 +67,21 @@ if ($server['type'] === 'plex') {
     exit;
 }
 
-// Emby proxy logic
-if ($server['type'] === 'emby') {
+// Emby/Jellyfin proxy logic
+if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
     $baseUrl = ensureProtocol($server['url']);
     $url = rtrim($baseUrl, '/') . '/Sessions';
     $apiKey = isset($server['apiKey']) ? decrypt($server['apiKey']) : '';
 
+    $headers = [
+        "X-Emby-Token: $apiKey",
+        "X-MediaBrowser-Token: $apiKey" // Jellyfin compatibility
+    ];
+
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ["X-Emby-Token: $apiKey"]);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
     curl_setopt($ch, CURLOPT_TIMEOUT, 10);
 
     $startTime = microtime(true);
