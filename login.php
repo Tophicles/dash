@@ -32,12 +32,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Login - Media Server Dashboard</title>
+<title>Login - MultiDash</title>
+<link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
 <link rel="stylesheet" href="assets/css/auth.css">
 </head>
 <body>
 <div class="login-container">
-  <h1>Media Dashboard</h1>
+  <h1>MultiDash</h1>
   
   <?php if ($error): ?>
     <div class="error"><?php echo htmlspecialchars($error); ?></div>

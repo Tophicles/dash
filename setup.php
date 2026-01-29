@@ -92,7 +92,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Setup - Media Server Dashboard</title>
+<title>Setup - MultiDash</title>
+<link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
 <link rel="stylesheet" href="assets/css/auth.css">
 </head>
 <body>
@@ -105,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
   <?php else: ?>
     <h1>Welcome!</h1>
-    <p class="subtitle">Let's set up your Media Server Dashboard</p>
+    <p class="subtitle">Let's set up your MultiDash</p>
     
     <div class="info-box">
       <h3>First Time Setup</h3>

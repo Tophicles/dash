@@ -10,7 +10,8 @@ $isAdmin = isAdmin();
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Now Playing – Media Servers</title>
+<title>Now Playing – MultiDash</title>
+<link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
 <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
