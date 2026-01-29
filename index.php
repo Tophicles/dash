@@ -1,5 +1,6 @@
 <?php
 require_once 'auth.php';
+require_once 'logging.php';
 requireLogin();
 $user = getCurrentUser();
 $isAdmin = isAdmin();
@@ -119,6 +120,12 @@ body {
 }
 .btn.users:hover {
   background: #1976d2;
+}
+.btn.logs {
+  background: #607d8b;
+}
+.btn.logs:hover {
+  background: #546e7a;
 }
 .top-bar-center {
   flex: 1;
@@ -859,6 +866,7 @@ form button:hover { background:#45a049; }
       </div>
       <button class="btn reorder" id="reorder-btn" title="Toggle Reorder Mode">Reorder</button>
       <button class="btn users" id="users-btn" title="Manage Users">👥 Users</button>
+      <button class="btn logs" id="logs-btn" title="View System Logs" onclick="window.open('view_logs.php', '_blank')">📜 Logs</button>
       <?php endif; ?>
       <button class="btn activeonly" id="activeonly-btn" title="Show Only Active Servers">Active Only</button>
       <button class="btn showall" id="showall-btn" title="Toggle All Sessions">Show All</button>

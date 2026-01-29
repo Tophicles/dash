@@ -1,4 +1,5 @@
 <?php
+require_once 'logging.php';
 session_start();
 
 // Load users from JSON file
@@ -49,14 +50,18 @@ function login($username, $password) {
                 'username' => $username,
                 'role' => $users[$username]['role']
             ];
+            writeLog("User logged in: $username", "AUTH");
             return true;
         }
     }
+    writeLog("Failed login attempt for user: $username", "WARN");
     return false;
 }
 
 // Logout function
 function logout() {
+    $user = getCurrentUser()['username'] ?? 'Unknown';
+    writeLog("User logged out: $user", "AUTH");
     session_destroy();
     unset($_SESSION['user']);
 }
