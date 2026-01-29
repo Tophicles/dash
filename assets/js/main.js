@@ -438,11 +438,11 @@ function renderServerGrid() {
             if (matchingSession) {
                 sessionMatch = true;
                  if (matchingSession.user.toLowerCase().includes(query)) {
-                    matchPreview = `User: ${matchingSession.user}`;
+                    matchPreview = `<i class="fa-solid fa-user"></i> ${matchingSession.user}`;
                 } else if (matchingSession.title && matchingSession.title.toLowerCase().includes(query)) {
-                    matchPreview = `Title: ${matchingSession.title}`;
+                    matchPreview = `<i class="fa-solid fa-film"></i> ${matchingSession.title}`;
                 } else if (matchingSession.series && matchingSession.series.toLowerCase().includes(query)) {
-                    matchPreview = `Series: ${matchingSession.series}`;
+                    matchPreview = `<i class="fa-solid fa-tv"></i> ${matchingSession.series}`;
                 }
             }
 
@@ -510,7 +510,7 @@ function renderServerGrid() {
         if (matchPreview) {
             const preview = document.createElement('div');
             preview.className = 'server-match-preview';
-            preview.textContent = matchPreview;
+            preview.innerHTML = matchPreview;
             wrapper.appendChild(preview);
         }
 
