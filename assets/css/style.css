@@ -238,8 +238,8 @@ body {
   transition: all 0.2s;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  min-height: 60px;
+  gap: 2px;
+  min-height: auto;
   position: relative;
 }
 .server-card.server-emby {
@@ -325,9 +325,17 @@ body {
 .server-type {
   display: none;
 }
+.server-address {
+  font-size: 0.75rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
 
 .server-status {
-  margin-top: auto;
+  margin-top: 2px;
   font-size: 0.75rem;
   display: flex;
   align-items: center;

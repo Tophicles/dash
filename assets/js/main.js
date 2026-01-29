@@ -440,9 +440,14 @@ function renderServerGrid() {
 
         const dragHandle = IS_ADMIN ? '<div class="drag-handle">☰</div>' : '';
 
+        // Strip protocol for cleaner display
+        let displayUrl = server.url || '';
+        displayUrl = displayUrl.replace(/^https?:\/\//, '');
+
         card.innerHTML = `
             ${dragHandle}
             <div class="server-name">${esc(server.name)}</div>
+            <div class="server-address">${esc(displayUrl)}</div>
             <div class="server-status">
                 <div class="status-dot ${isActive ? 'active server-' + esc(server.type) : ''}"></div>
                 ${isActive ? `${sessions.length} playing` : 'Idle'}
