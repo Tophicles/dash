@@ -150,8 +150,12 @@ if ($type === 'emby' || $type === 'jellyfin') {
     ];
 
     if ($action === 'list') {
-        // Use /Library/VirtualFolders/Query to get real libraries
-        $url = rtrim($baseUrl, '/') . '/Library/VirtualFolders/Query';
+        // Use /Library/MediaFolders for Jellyfin, /Library/VirtualFolders/Query for Emby
+        if ($type === 'jellyfin') {
+            $url = rtrim($baseUrl, '/') . '/Library/MediaFolders';
+        } else {
+            $url = rtrim($baseUrl, '/') . '/Library/VirtualFolders/Query';
+        }
 
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
@@ -165,7 +169,7 @@ if ($type === 'emby' || $type === 'jellyfin') {
         curl_close($ch);
 
         if ($httpCode !== 200) {
-            echo json_encode(['error' => "Emby API Error: HTTP $httpCode"]);
+            echo json_encode(['error' => "$type API Error: HTTP $httpCode"]);
             exit;
         }
 
@@ -174,11 +178,15 @@ if ($type === 'emby' || $type === 'jellyfin') {
 
         $items = $data['Items'] ?? [];
         foreach ($items as $item) {
-            $libraries[] = [
-                'id' => $item['ItemId'],
-                'name' => $item['Name'],
-                'type' => $item['CollectionType'] ?? 'library'
-            ];
+            // Emby uses ItemId, Jellyfin uses Id
+            $id = $item['ItemId'] ?? $item['Id'] ?? '';
+            if ($id) {
+                $libraries[] = [
+                    'id' => $id,
+                    'name' => $item['Name'],
+                    'type' => $item['CollectionType'] ?? 'library'
+                ];
+            }
         }
 
         echo json_encode(['success' => true, 'libraries' => $libraries]);
