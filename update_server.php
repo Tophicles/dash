@@ -1,6 +1,7 @@
 <?php
 require_once 'auth.php';
 require_once 'encryption_helper.php';
+require_once 'logging.php';
 requireLogin();
 requireAdmin();
 
@@ -46,8 +47,11 @@ $servers['servers'][$serverIndex] = [
 ];
 
 if(file_put_contents($serversFile, json_encode($servers, JSON_PRETTY_PRINT))){
+    $user = getCurrentUser()['username'];
+    writeLog("User '$user' updated server '$newName' (ID: $serverId)", "AUTH");
     echo json_encode(['success'=>true,'server'=>$servers['servers'][$serverIndex]]);
 } else {
+    writeLog("Failed to update server '$newName': Write permission denied", "ERROR");
     echo json_encode(['success'=>false,'error'=>'Failed to write servers.json']);
 }
 
