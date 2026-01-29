@@ -793,6 +793,33 @@ form button:hover { background:#45a049; }
 <!-- Server Grid View -->
 <div id="server-view" class="view-container visible">
   <div id="server-grid" class="server-grid"></div>
+
+<!-- Bottom Control Bar -->
+<div class="bottom-bar">
+  <div class="bottom-bar-left">
+    <span class="user-info">👤 <?php echo htmlspecialchars($user['username']); ?> (<?php echo htmlspecialchars($user['role']); ?>)</span>
+    <?php if ($isAdmin): ?>
+    <button class="btn" id="toggle-form">Add Server</button>
+    <?php endif; ?>
+  </div>
+  <div class="bottom-bar-center">
+    <button class="btn reload" id="reload-btn">🔄 Reload</button>
+  </div>
+  <div class="bottom-bar-right">
+    <?php if ($isAdmin): ?>
+    <div class="server-actions" id="server-actions">
+      <button class="btn edit" id="edit-server-btn">✏️ Edit</button>
+      <button class="btn delete" id="delete-server-btn">🗑️ Delete</button>
+    </div>
+    <button class="btn reorder" id="reorder-btn" title="Toggle Reorder Mode">Reorder</button>
+    <button class="btn users" id="users-btn" title="Manage Users">👥 Users</button>
+    <?php endif; ?>
+    <button class="btn activeonly" id="activeonly-btn" title="Show Only Active Servers">Active Only</button>
+    <button class="btn showall" id="showall-btn" title="Toggle All Sessions">Show All</button>
+    <button class="btn logout" onclick="window.location.href='logout.php'">Logout</button>
+  </div>
+</div>
+
   <div class="user-lists-container">
     <div id="online-users" class="online-users">
       <div class="list-label" id="online-users-label">Now Watching</div>
@@ -880,31 +907,6 @@ form button:hover { background:#45a049; }
   </div>
 </div>
 
-<!-- Bottom Control Bar -->
-<div class="bottom-bar">
-  <div class="bottom-bar-left">
-    <span class="user-info">👤 <?php echo htmlspecialchars($user['username']); ?> (<?php echo htmlspecialchars($user['role']); ?>)</span>
-    <?php if ($isAdmin): ?>
-    <button class="btn" id="toggle-form">Add Server</button>
-    <?php endif; ?>
-  </div>
-  <div class="bottom-bar-center">
-    <button class="btn reload" id="reload-btn">🔄 Reload</button>
-  </div>
-  <div class="bottom-bar-right">
-    <?php if ($isAdmin): ?>
-    <div class="server-actions" id="server-actions">
-      <button class="btn edit" id="edit-server-btn">✏️ Edit</button>
-      <button class="btn delete" id="delete-server-btn">🗑️ Delete</button>
-    </div>
-    <button class="btn reorder" id="reorder-btn" title="Toggle Reorder Mode">Reorder</button>
-    <button class="btn users" id="users-btn" title="Manage Users">👥 Users</button>
-    <?php endif; ?>
-    <button class="btn activeonly" id="activeonly-btn" title="Show Only Active Servers">Active Only</button>
-    <button class="btn showall" id="showall-btn" title="Toggle All Sessions">Show All</button>
-    <button class="btn logout" onclick="window.location.href='logout.php'">Logout</button>
-  </div>
-</div>
 
 <script>
 // Helper to escape HTML and prevent XSS
@@ -1127,7 +1129,12 @@ function renderOnlineUsers() {
             // Find server type
             const server = SERVERS.find(s => s.name === session.server);
             const type = server ? server.type : 'emby';
-            onlineUsers.push({ name: session.user, type: type });
+            onlineUsers.push({
+                name: session.user,
+                type: type,
+                serverId: server ? server.id : null,
+                serverName: server ? server.name : ''
+            });
         }
     });
 
@@ -1144,7 +1151,16 @@ function renderOnlineUsers() {
     onlineUsers.forEach(u => {
         const badge = document.createElement('div');
         badge.className = `online-user-badge server-${esc(u.type)}`;
+        badge.style.cursor = 'pointer';
         badge.innerHTML = `👤 ${esc(u.name)}`;
+
+        if (u.serverId) {
+            badge.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent toggling the list if clicking a badge
+                showSessionsView(u.serverId, u.serverName);
+            });
+        }
+
         container.appendChild(badge);
     });
 }
