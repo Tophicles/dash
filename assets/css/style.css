@@ -858,12 +858,13 @@ body {
   }
   .menu-content {
     flex-direction: column;
-    align-items: stretch;
+    align-items: center;
     gap: 12px;
   }
   .top-bar-left, .top-bar-right {
     flex-direction: column;
     width: 100%;
+    align-items: center;
   }
   .top-bar-left .btn, .top-bar-right .btn {
     width: 100%;
