@@ -319,14 +319,11 @@ body {
 .server-name {
   font-size: 0.9rem;
   font-weight: 600;
-  margin-bottom: 1px;
-  line-height: 1.1;
+  margin-bottom: 0;
+  line-height: 1;
 }
 .server-type {
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--muted);
+  display: none;
 }
 
 .server-status {
