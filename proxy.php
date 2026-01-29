@@ -1,6 +1,7 @@
 <?php
 require_once 'auth.php';
 require_once 'encryption_helper.php';
+require_once 'logging.php';
 requireLogin();
 
 header('Content-Type: application/json');
@@ -35,17 +36,28 @@ if ($server['type'] === 'plex') {
     ]);
     curl_setopt($ch, CURLOPT_TIMEOUT, 10);
 
+    $startTime = microtime(true);
     $res = curl_exec($ch);
+    $duration = microtime(true) - $startTime;
+
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $error = curl_error($ch);
     curl_close($ch);
 
-    // Debug logging (optional - remove in production)
+    // Log slow requests (> 2 seconds)
+    if ($duration > 2.0) {
+        writeLog("Slow Plex response from {$server['name']}: " . round($duration, 2) . "s", "WARN");
+    }
+
     if ($error) {
-        error_log("Plex API Error for {$server['name']}: $error");
+        writeLog("Plex API Error for {$server['name']}: $error", "ERROR");
     }
     if ($httpCode !== 200) {
-        error_log("Plex API HTTP $httpCode for {$server['name']}");
+        writeLog("Plex API HTTP $httpCode for {$server['name']}", "ERROR");
+    }
+
+    if ($res && $httpCode === 200) {
+        logWatchers($server['name'], 'plex', $res);
     }
 
     echo $res ?: json_encode(['MediaContainer'=>['Metadata'=>[]]]);
@@ -64,9 +76,97 @@ if ($server['type'] === 'emby') {
     curl_setopt($ch, CURLOPT_HTTPHEADER, ["X-Emby-Token: $apiKey"]);
     curl_setopt($ch, CURLOPT_TIMEOUT, 10);
 
+    $startTime = microtime(true);
     $res = curl_exec($ch);
+    $duration = microtime(true) - $startTime;
+
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $error = curl_error($ch);
     curl_close($ch);
+
+    if ($duration > 2.0) {
+        writeLog("Slow Emby response from {$server['name']}: " . round($duration, 2) . "s", "WARN");
+    }
+
+    if ($error) {
+        writeLog("Emby API Error for {$server['name']}: $error", "ERROR");
+    }
+    if ($httpCode !== 200) {
+        writeLog("Emby API HTTP $httpCode for {$server['name']}", "ERROR");
+    }
+
+    if ($res && $httpCode === 200) {
+        logWatchers($server['name'], 'emby', $res);
+    }
+
     echo $res ?: json_encode([]);
     exit;
+}
+
+// Watcher Logging Helper
+function logWatchers($serverName, $type, $jsonResponse) {
+    $data = json_decode($jsonResponse, true);
+    if (!$data) return;
+
+    $watchers = [];
+
+    // Parse response based on type
+    if ($type === 'plex') {
+        $sessions = $data['MediaContainer']['Metadata'] ?? [];
+        foreach ($sessions as $s) {
+            $user = $s['User']['title'] ?? 'Unknown';
+            $title = $s['title'] ?? 'Unknown Title';
+            if (isset($s['grandparentTitle'])) {
+                $title = $s['grandparentTitle'] . " - " . $title;
+            }
+            $watchers[$user] = $title;
+        }
+    } elseif ($type === 'emby') {
+        foreach ($data as $s) {
+            if (!isset($s['NowPlayingItem'])) continue;
+            $user = $s['UserName'] ?? 'Unknown';
+            $title = $s['NowPlayingItem']['Name'] ?? 'Unknown Title';
+            if (isset($s['NowPlayingItem']['SeriesName'])) {
+                $title = $s['NowPlayingItem']['SeriesName'] . " - " . $title;
+            }
+            $watchers[$user] = $title;
+        }
+    }
+
+    // Load state
+    $stateFile = 'watcher_state.json';
+    $state = [];
+    if (file_exists($stateFile)) {
+        $state = json_decode(file_get_contents($stateFile), true) ?: [];
+    }
+
+    // Check for changes
+    $serverState = $state[$serverName] ?? [];
+    $hasChanges = false;
+
+    // Detect new watchers or media changes
+    foreach ($watchers as $user => $title) {
+        $oldTitle = $serverState[$user] ?? null;
+        if ($oldTitle !== $title) {
+            writeLog("[WATCH] User '$user' started watching '$title' on '$serverName'", "INFO");
+            $hasChanges = true;
+        }
+    }
+
+    // Update state only if changed or users left
+    // We also need to remove users who stopped watching
+    $diff = array_diff_key($serverState, $watchers);
+    if (!empty($diff)) {
+        foreach (array_keys($diff) as $user) {
+             writeLog("[WATCH] User '$user' stopped watching on '$serverName'", "INFO");
+        }
+        $hasChanges = true;
+    }
+
+    if ($hasChanges) {
+        $state[$serverName] = $watchers;
+        file_put_contents($stateFile, json_encode($state));
+        @chmod($stateFile, 0666);
+    }
 }
 ?>
