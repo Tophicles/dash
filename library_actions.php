@@ -19,6 +19,7 @@ session_write_close();
 $action = $_GET['action'] ?? '';
 $serverName = $_GET['server'] ?? '';
 $libraryId = $_GET['library_id'] ?? '';
+$libraryName = $_GET['library_name'] ?? 'Unknown Library';
 
 if (!$serverName || !$action) {
     echo json_encode(['error' => 'Missing parameters']);
@@ -130,10 +131,10 @@ if ($type === 'plex') {
 
         if ($httpCode === 200) {
             $user = getCurrentUser()['username'] ?? 'Unknown';
-            writeLog("Library Scan Initiated: Plex server '$serverName', Library ID '$libraryId' by user '$user'", "INFO");
+            writeLog("Library Scan Initiated: Plex server '$serverName', Library '$libraryName' (ID: $libraryId) by user '$user'", "INFO");
             echo json_encode(['success' => true, 'message' => 'Scan started']);
         } else {
-            writeLog("Library Scan Failed: Plex server '$serverName', HTTP $httpCode", "ERROR");
+            writeLog("Library Scan Failed: Plex server '$serverName', Library '$libraryName', HTTP $httpCode", "ERROR");
             echo json_encode(['error' => "Plex API Error: HTTP $httpCode"]);
         }
         exit;
@@ -208,10 +209,10 @@ if ($type === 'emby') {
         // Emby usually returns 204 for success
         if ($httpCode === 200 || $httpCode === 204) {
             $user = getCurrentUser()['username'] ?? 'Unknown';
-            writeLog("Library Scan Initiated: Emby server '$serverName', Library ID '$libraryId' by user '$user'", "INFO");
+            writeLog("Library Scan Initiated: Emby server '$serverName', Library '$libraryName' (ID: $libraryId) by user '$user'", "INFO");
             echo json_encode(['success' => true, 'message' => 'Scan started']);
         } else {
-            writeLog("Library Scan Failed: Emby server '$serverName', HTTP $httpCode", "ERROR");
+            writeLog("Library Scan Failed: Emby server '$serverName', Library '$libraryName', HTTP $httpCode", "ERROR");
             echo json_encode(['error' => "Emby API Error: HTTP $httpCode"]);
         }
         exit;

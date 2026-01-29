@@ -2329,7 +2329,7 @@ async function fetchLibraries(serverName) {
                         </div>
                     </div>
                     <div class="user-item-actions">
-                        <button class="btn primary" onclick="scanLibrary('${esc(serverName)}', '${esc(lib.id)}', this)">🔄 Scan</button>
+                        <button class="btn primary" onclick="scanLibrary('${esc(serverName)}', '${esc(lib.id)}', '${esc(lib.name)}', this)">🔄 Scan</button>
                     </div>
                 `;
                 list.appendChild(item);
@@ -2347,14 +2347,14 @@ async function fetchLibraries(serverName) {
     }
 }
 
-async function scanLibrary(serverName, libraryId, btn) {
+async function scanLibrary(serverName, libraryId, libraryName, btn) {
     if (btn) {
         btn.disabled = true;
         btn.textContent = '⏳ Starting...';
     }
 
     try {
-        const response = await fetch(`library_actions.php?action=scan&server=${encodeURIComponent(serverName)}&library_id=${encodeURIComponent(libraryId)}`);
+        const response = await fetch(`library_actions.php?action=scan&server=${encodeURIComponent(serverName)}&library_id=${encodeURIComponent(libraryId)}&library_name=${encodeURIComponent(libraryName)}`);
         const data = await response.json();
 
         if (data.success) {
