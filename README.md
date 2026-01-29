@@ -8,6 +8,7 @@ A lightweight, self-hosted dashboard for monitoring multiple Plex and Emby media
 
 *   **Unified Monitoring:** View active sessions from multiple Plex and Emby servers in a single grid.
 *   **Real-time Updates:** Auto-refreshing status for "Now Watching" and dashboard users.
+*   **Library Management:** List and trigger scans for media libraries on connected Plex and Emby servers.
 *   **User Management:** Built-in authentication with Admin and Viewer roles.
 *   **Logging System:** Comprehensive system logging with a built-in "tailable" log viewer (filterable by level and search).
 *   **Mobile Friendly:** Responsive dark-mode UI that works great on mobile devices.
