@@ -33,6 +33,10 @@ This guide outlines the files required and the steps needed to deploy the MultiD
 
 ### Configuration & Assets
 *   `.htaccess` - Apache configuration for security.
+*   `assets/` - Directory containing CSS, JS, and Images.
+    *   `assets/css/` - Stylesheets.
+    *   `assets/js/` - JavaScript logic.
+    *   `assets/img/` - Logos and favicons.
 *   `screenshots/` - Directory containing UI images (optional, for README).
 *   `README.md` - Documentation.
 
@@ -50,7 +54,7 @@ These files are created automatically by the application but require write permi
 ## Deployment Steps
 
 ### 1. Upload Files
-Upload all files listed in the **File Manifest** to your web server directory (e.g., `/var/www/html/dash`).
+Upload all files listed in the **File Manifest** to your web server directory (e.g., `/var/www/html/dash`). Ensure the `assets/` directory and its subdirectories are preserved.
 
 ### 2. Configure Permissions
 The web server user (usually `www-data` or `apache`) needs **write access** to the installation directory to create and update the JSON databases and log files.
