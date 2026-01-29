@@ -322,6 +322,9 @@ body {
 .server-card.server-plex.active {
   border-color: #ffc107;
 }
+.server-card.server-jellyfin.active {
+  border-color: #d04fd0;
+}
 .server-card.idle {
   opacity: 0.6;
 }
@@ -1707,7 +1710,13 @@ async function showItemDetails(serverName, itemId, serverType) {
         if (item.poster) {
             html += `
                 <div class="modal-poster">
-                    <img src="${esc(item.poster)}" alt="${esc(item.title)}" onerror="this.style.display='none'">
+                    <img src="${esc(item.poster)}" alt="${esc(item.title)}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNjAiIGhlaWdodD0iMjQwIiB2aWV3Qm94PSIwIDAgMTYwIDI0MCI+PHJlY3Qgd2lkdGg9IjE2MCIgaGVpZ2h0PSIyNDAiIGZpbGw9IiMzMzMiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY2NiIgZm9udC1zaXplPSIyMCI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+'">
+                </div>
+            `;
+        } else {
+            html += `
+                <div class="modal-poster">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNjAiIGhlaWdodD0iMjQwIiB2aWV3Qm94PSIwIDAgMTYwIDI0MCI+PHJlY3Qgd2lkdGg9IjE2MCIgaGVpZ2h0PSIyNDAiIGZpbGw9IiMzMzMiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY2NiIgZm9udC1zaXplPSIyMCI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+" alt="No Image">
                 </div>
             `;
         }
