@@ -70,6 +70,9 @@ $isAdmin = isAdmin();
 
 <!-- Server Grid View -->
 <div id="server-view" class="view-container visible">
+  <div class="search-container">
+    <input type="text" id="server-search" placeholder="Filter servers...">
+  </div>
   <div id="server-grid" class="server-grid"></div>
   <div class="user-lists-container">
     <div id="online-users" class="online-users">

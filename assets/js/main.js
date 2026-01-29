@@ -406,6 +406,10 @@ function renderServerGrid() {
     const container = document.getElementById("server-grid");
     container.innerHTML = "";
 
+    // Get search filter
+    const searchInput = document.getElementById('server-search');
+    const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
     let currentType = null;
     let hasActiveServers = false;
 
@@ -416,6 +420,20 @@ function renderServerGrid() {
         // Filter: if showActiveOnly is true, only show active servers
         if (showActiveOnly && !isActive) {
             return;
+        }
+
+        // Apply Search Filter: Match user, title, or server name
+        if (query) {
+            const serverNameMatch = server.name.toLowerCase().includes(query);
+            const sessionMatch = sessions.some(s =>
+                (s.user && s.user.toLowerCase().includes(query)) ||
+                (s.title && s.title.toLowerCase().includes(query)) ||
+                (s.series && s.series.toLowerCase().includes(query))
+            );
+
+            if (!serverNameMatch && !sessionMatch) {
+                return;
+            }
         }
 
         hasActiveServers = hasActiveServers || isActive;
@@ -458,7 +476,7 @@ function renderServerGrid() {
 
         // Click to view sessions (only if not clicking drag handle)
         card.addEventListener('click', (e) => {
-            if (!e.target.classList.contains('drag-handle') && !reorderMode) {
+            if (!e.target.classList.contains('drag-handle') && !e.target.closest('a') && !reorderMode) {
                 showSessionsView(server.id, server.name);
             }
         });
@@ -703,6 +721,14 @@ if (sessionSearch) {
         } else if (currentView === 'all') {
             renderSessions(null);
         }
+    });
+}
+
+// Server Filter
+const serverSearch = document.getElementById('server-search');
+if (serverSearch) {
+    serverSearch.addEventListener('input', () => {
+        renderServerGrid();
     });
 }
 
