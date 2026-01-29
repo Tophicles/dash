@@ -23,7 +23,10 @@ $isAdmin = isAdmin();
       <div id="header-reload-btn" title="Reload Dashboard" style="cursor: pointer;">
         <span class="header-badge">Home</span>
       </div>
-      <span class="user-info" style="margin-left: 10px;">👤 <?php echo htmlspecialchars(ucwords($user['username'])); ?> (<?php echo htmlspecialchars($user['role']); ?>)</span>
+      <span class="user-info" style="margin-left: 10px;">
+        <span class="user-desktop">👤 <?php echo htmlspecialchars(ucwords($user['username'])); ?> (<?php echo htmlspecialchars($user['role']); ?>)</span>
+        <span class="user-mobile">MENU</span>
+      </span>
     </div>
     <div class="header-section center" id="menu-toggle-label">
       MENU +

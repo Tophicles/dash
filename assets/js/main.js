@@ -330,9 +330,16 @@ function updateClock() {
     const options = { weekday: 'short', month: 'short', day: 'numeric' };
     const dateStr = now.toLocaleDateString('en-US', options);
     const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+    // Short time for mobile (HH:MM)
+    const timeShort = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
     const clockEl = document.getElementById('header-clock');
     if (clockEl) {
-        clockEl.textContent = `${dateStr} • ${timeStr}`;
+        clockEl.innerHTML = `
+            <span class="clock-full">${dateStr} • ${timeStr}</span>
+            <span class="clock-short">${timeShort}</span>
+        `;
     }
 }
 setInterval(updateClock, 1000);
@@ -440,14 +447,9 @@ function renderServerGrid() {
 
         const dragHandle = IS_ADMIN ? '<div class="drag-handle">☰</div>' : '';
 
-        // Strip protocol for cleaner display
-        let displayUrl = server.url || '';
-        displayUrl = displayUrl.replace(/^https?:\/\//, '');
-
         card.innerHTML = `
             ${dragHandle}
             <div class="server-name">${esc(server.name)}</div>
-            <div class="server-address"><a href="${esc(server.url)}" target="_blank" onclick="event.stopPropagation()">${esc(displayUrl)}</a></div>
             <div class="server-status">
                 <div class="status-dot ${isActive ? 'active server-' + esc(server.type) : ''}"></div>
                 ${isActive ? `${sessions.length} playing` : 'Idle'}
@@ -625,7 +627,10 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
 
     // Update the server title with themed header
     const titleElement = document.getElementById('server-title');
-    titleElement.textContent = serverName;
+    titleElement.innerHTML = `
+        ${esc(serverName)}
+        ${server ? `<a href="${esc(server.url)}" target="_blank" class="server-link-btn" title="Go to Server">🔗</a>` : ''}
+    `;
     titleElement.className = `section-divider ${serverType}`;
 
     // Hide Reorder, Active Only, Show All, and Users buttons when viewing single server
