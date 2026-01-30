@@ -51,11 +51,23 @@ $isAdmin = isAdmin();
       <button class="btn" id="reorder-btn" title="Toggle Reorder Mode">Reorder</button>
       <button class="btn" id="users-btn" title="Manage Users">Users</button>
       <button class="btn" id="libraries-btn" title="Manage Libraries">Libraries</button>
+      <button class="btn" id="server-admin-btn" title="Server Administration"><i class="fa-solid fa-server"></i> Admin</button>
       <button class="btn" id="logs-btn" title="View System Logs" onclick="window.open('view_logs.php', 'SystemLogs')">Logs</button>
       <?php endif; ?>
       <button class="btn" id="activeonly-btn" title="Show Only Active Servers">Active Only</button>
       <button class="btn" id="showall-btn" title="Toggle All Sessions">Show All</button>
       <button class="btn danger" onclick="window.location.href='logout.php'">Logout</button>
+    </div>
+  </div>
+</div>
+
+<!-- Server Admin Modal -->
+<div id="server-admin-modal" class="modal">
+  <div class="modal-content" style="max-width: 900px;">
+    <span class="modal-close" onclick="closeServerAdminModal()">&times;</span>
+    <div id="server-admin-body">
+      <h2 style="margin-bottom: 20px;">Server Administration</h2>
+      <div id="admin-server-list" class="admin-server-list"></div>
     </div>
   </div>
 </div>
