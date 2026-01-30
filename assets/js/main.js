@@ -167,6 +167,7 @@ function getQualityBadge(width, height) {
     if (height >= 1080 || width >= 1920) return '1080p';
     if (height >= 720 || width >= 1280) return '720p';
     if (height >= 480) return '480p';
+    if (height > 0) return height + 'p';
     return '';
 }
 
@@ -945,10 +946,26 @@ async function showItemDetails(serverName, itemId, serverType) {
         html += '</div>';
 
         // Tech Badges
-        const resolution = item.resolution ? item.resolution.split('x') : [];
-        const height = resolution.length > 1 ? parseInt(resolution[1]) : 0;
-        const width = resolution.length > 0 ? parseInt(resolution[0]) : 0;
-        const qualityBadge = getQualityBadge(width, height);
+        let qualityBadge = '';
+        if (item.resolution) {
+            if (item.resolution.toLowerCase() === 'sd') {
+                qualityBadge = 'SD';
+            } else {
+                const resolutionParts = item.resolution.split('x');
+                // If "WxH", use both. If single number "H", assume height.
+                if (resolutionParts.length > 1) {
+                    const w = parseInt(resolutionParts[0]);
+                    const h = parseInt(resolutionParts[1]);
+                    qualityBadge = getQualityBadge(w, h);
+                } else if (resolutionParts.length === 1) {
+                    const val = parseInt(resolutionParts[0]);
+                    if (!isNaN(val)) {
+                         // Assume height if single number (e.g. "1080", "480")
+                         qualityBadge = getQualityBadge(0, val);
+                    }
+                }
+            }
+        }
 
         const hasTechInfo = qualityBadge || item.container || item.audioCodec;
 
