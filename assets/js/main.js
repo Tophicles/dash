@@ -722,6 +722,7 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
     const titleElement = document.getElementById('server-title');
     titleElement.innerHTML = `
         ${esc(serverName)}
+        ${server && server.version ? `<span class="server-title-version">[${esc(server.version)}]</span>` : ''}
         ${server ? `<a href="${esc(server.url)}" target="_blank" class="server-link-btn" title="Go to Server"><i class="fa-solid fa-external-link-alt"></i></a>` : ''}
     `;
     titleElement.className = `section-divider ${serverType}`;
