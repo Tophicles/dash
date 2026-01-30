@@ -931,6 +931,9 @@ body {
   .modal-meta {
     justify-content: center;
   }
+  .modal-tech-badges {
+    justify-content: center;
+  }
   .status-badge-fixed, .playmethod-badge-fixed {
     position: static;
     display: inline-block;
