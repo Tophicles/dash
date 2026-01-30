@@ -73,8 +73,25 @@ To enable the "Restart Server" feature via SSH, you must configure your media se
 ### 1. Generate Keys
 Go to **Admin > Server Administration > SSH Keys** in the dashboard and click "Generate New Key Pair". Copy the generated Public Key.
 
-### 2. Configure Remote Media Server (Linux)
-Run the following commands on your Plex/Emby/Jellyfin server to create a restricted user (`mediasvc`) that can only restart media services.
+### 2. Configure Remote Media Server (Automated Method)
+We provide a helper script to automate the secure setup process.
+
+1.  Transfer the script to your media server:
+    ```bash
+    scp os_helpers/linux_setup.sh user@your-media-server:/tmp/
+    ```
+2.  SSH into your media server and run the script:
+    ```bash
+    ssh user@your-media-server
+    chmod +x /tmp/linux_setup.sh
+    sudo /tmp/linux_setup.sh
+    ```
+3.  Choose **Option 1 (Install)** and paste the Public Key when prompted.
+
+To remove the configuration later, simply run the script again and choose **Option 2 (Uninstall)**.
+
+### 3. Configure Remote Media Server (Manual Method)
+If you prefer to configure the server manually, follow these steps:
 
 **Step 1: Create a restricted user**
 ```bash
@@ -115,10 +132,12 @@ Restrict what this user can do over SSH in `/etc/ssh/sshd_config`:
 ```bash
 sudo bash -c 'cat >> /etc/ssh/sshd_config' << 'EOF'
 
+# BEGIN MEDIASVC-MULTIDASH
 Match User mediasvc
     AllowTcpForwarding no
     X11Forwarding no
     PermitTTY no
+# END MEDIASVC-MULTIDASH
 EOF
 
 sudo systemctl reload ssh
@@ -130,7 +149,7 @@ The above instructions adhere to the **Principle of Least Privilege**:
 *   **Limited Sudo:** The `sudoers` file explicitly whitelists *only* the `systemctl start/stop/restart` commands for specific media services. This user cannot modify files, install software, or access other parts of the system as root.
 *   **SSH Lockdown:** The `sshd_config` settings prevent port forwarding (tunneling), X11 forwarding, and TTY allocation. This means even if an attacker gains access to the private key, they cannot get an interactive shell or use your server as a pivot point to attack your network. They can *only* execute the whitelisted commands.
 
-### 3. Configure Dashboard
+### 4. Configure Dashboard
 In the **Add/Edit Server** modal for your server:
 *   Select **Linux** as the Operating System.
 *   If your server uses a standard SSH port (22), no further configuration is needed.
