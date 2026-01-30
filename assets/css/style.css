@@ -881,6 +881,17 @@ body {
   flex: 1;
 }
 
+/* SSH Row - Responsive */
+.ssh-row {
+  display: flex;
+  gap: 10px;
+}
+@media (max-width: 480px) {
+  .ssh-row {
+    flex-direction: column;
+  }
+}
+
 /* Scrollbar styling for overview */
 .modal-overview-inline::-webkit-scrollbar {
   width: 6px;
@@ -1108,4 +1119,54 @@ form button:hover { background:#45a049; }
 .admin-action-btn.success:hover {
   background: #4caf50;
   color: #fff;
+}
+
+/* SSH Manager */
+.ssh-status-box {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 15px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
+.ssh-key-display {
+  width: 100%;
+  height: 100px;
+  background: #111;
+  color: #ccc;
+  border: 1px solid #444;
+  padding: 10px;
+  font-family: monospace;
+  font-size: 0.8rem;
+  resize: none;
+  margin-top: 8px;
+}
+.ssh-warning-box {
+  background: rgba(211, 47, 47, 0.1);
+  border: 1px solid #d32f2f;
+  padding: 15px;
+  border-radius: 6px;
+}
+.warning-title {
+  color: #ef5350;
+  font-weight: bold;
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ssh-agreement {
+  margin: 15px 0;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.ssh-agreement input {
+  margin-top: 4px;
+}
+.ssh-agreement label {
+  font-size: 0.9rem;
+  color: #ddd;
+  line-height: 1.4;
+  cursor: pointer;
 }

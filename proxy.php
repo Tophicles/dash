@@ -2,6 +2,7 @@
 require_once 'auth.php';
 require_once 'encryption_helper.php';
 require_once 'logging.php';
+require_once 'ssh_helper.php';
 requireLogin();
 
 // Close session to prevent locking while waiting for external APIs
@@ -24,6 +25,41 @@ if (!$server) { echo json_encode([]); exit; }
 
 $server = array_values($server)[0];
 $action = $_GET['action'] ?? 'sessions';
+
+// Handle SSH Restart globally (for any server type)
+if ($action === 'ssh_restart') {
+    if (!isAdmin()) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'error' => 'Unauthorized']);
+        exit;
+    }
+
+    // Validate SSH fields
+    if (empty($server['ssh_host']) || empty($server['ssh_user'])) {
+         echo json_encode(['success' => false, 'error' => 'SSH not configured for this server']);
+         exit;
+    }
+
+    $host = $server['ssh_host'];
+    $port = $server['ssh_port'] ?: 22;
+    $user = $server['ssh_user'];
+    $service = $server['ssh_service'] ?? '';
+
+    // Construct command
+    $cmd = $service ? "sudo systemctl restart $service" : "sudo reboot";
+
+    // Execute SSH
+    $result = executeSSHCommand($host, $port, $user, $cmd);
+
+    if ($result['success']) {
+        writeLog("SSH Restart command sent to {$server['name']} ($host)", "INFO");
+    } else {
+        writeLog("SSH Restart failed for {$server['name']}: {$result['error']}", "ERROR");
+    }
+
+    echo json_encode($result);
+    exit;
+}
 
 // Helper function to ensure URL has protocol
 function ensureProtocol($url) {

@@ -304,6 +304,12 @@ if (IS_ADMIN) {
     if (adminBtn) {
         adminBtn.addEventListener('click', openServerAdminModal);
     }
+
+    // SSH Keys Button (inside Admin Modal)
+    const sshBtn = document.getElementById('ssh-keys-btn');
+    if (sshBtn) {
+        sshBtn.addEventListener('click', openSSHModal);
+    }
 }
 
 function openServerAdminModal() {
@@ -323,6 +329,102 @@ document.getElementById('server-admin-modal').addEventListener('click', function
     }
 });
 
+// SSH Manager Logic
+async function openSSHModal() {
+    // Hide Admin Modal temporarily (or stack on top, but hiding is cleaner)
+    closeServerAdminModal();
+
+    const modal = document.getElementById('ssh-modal');
+    modal.classList.add('visible');
+
+    // Load current key
+    const keyDisplay = document.getElementById('ssh-public-key');
+    keyDisplay.value = 'Loading...';
+
+    try {
+        const res = await fetch('ssh_manager.php?action=get_public_key');
+        const data = await res.json();
+        if (data.success && data.key) {
+            keyDisplay.value = data.key;
+        } else {
+            keyDisplay.value = 'No public key found. Generate one below.';
+        }
+    } catch (e) {
+        keyDisplay.value = 'Error loading key.';
+    }
+
+    // Reset form
+    document.getElementById('ssh-agree-chk').checked = false;
+    document.getElementById('ssh-generate-btn').disabled = true;
+}
+
+function closeSSHModal() {
+    document.getElementById('ssh-modal').classList.remove('visible');
+    // Re-open Admin Modal
+    openServerAdminModal();
+}
+
+document.getElementById('ssh-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeSSHModal();
+    }
+});
+
+const sshAgreeChk = document.getElementById('ssh-agree-chk');
+if (sshAgreeChk) {
+    sshAgreeChk.addEventListener('change', function() {
+        document.getElementById('ssh-generate-btn').disabled = !this.checked;
+    });
+}
+
+const sshGenBtn = document.getElementById('ssh-generate-btn');
+if (sshGenBtn) {
+    sshGenBtn.addEventListener('click', async function() {
+        if (!confirm('Are you sure you want to generate a new key pair? This will invalidate existing connections.')) return;
+
+        this.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
+        this.disabled = true;
+
+        try {
+            const res = await fetch('ssh_manager.php?action=generate', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ agreed: true })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                document.getElementById('ssh-public-key').value = data.key;
+                alert('New SSH Key Pair Generated Successfully!');
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error'));
+            }
+        } catch (e) {
+            alert('Failed to generate key: ' + e.message);
+        }
+
+        this.innerHTML = 'Generate New Key Pair';
+        this.disabled = false;
+        // Uncheck agreement to force re-check for next time
+        sshAgreeChk.checked = false;
+        this.disabled = true;
+    });
+}
+
+const sshCopyBtn = document.getElementById('ssh-copy-btn');
+if (sshCopyBtn) {
+    sshCopyBtn.addEventListener('click', function() {
+        const copyText = document.getElementById("ssh-public-key");
+        copyText.select();
+        copyText.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(copyText.value).then(() => {
+            const originalText = this.innerText;
+            this.innerText = 'Copied!';
+            setTimeout(() => this.innerText = originalText, 2000);
+        });
+    });
+}
+
 function renderServerAdminList() {
     const container = document.getElementById('admin-server-list');
     container.innerHTML = '';
@@ -334,6 +436,7 @@ function renderServerAdminList() {
         const sessions = ALL_SESSIONS[server.name] || [];
         const isActive = sessions.length > 0;
         const status = isActive ? `<span style="color:#4caf50;">Online (${sessions.length} active)</span>` : '<span style="color:#aaa;">Idle</span>';
+        const hasSSH = server.ssh_host && server.ssh_user;
 
         item.innerHTML = `
             <div class="admin-server-info">
@@ -349,13 +452,40 @@ function renderServerAdminList() {
                 <button class="admin-action-btn" title="Simulate Update Available" onclick="testServerUpdate('${esc(server.id)}')">
                     <i class="fa-solid fa-flask"></i>
                 </button>
-                <button class="admin-action-btn danger" title="Restart Server" onclick="restartServer('${esc(server.id)}', '${esc(server.name)}')">
+                ${hasSSH ? `
+                <button class="admin-action-btn" title="Restart via SSH" onclick="restartServerSSH('${esc(server.id)}', '${esc(server.name)}')">
+                    <i class="fa-solid fa-terminal"></i>
+                </button>
+                ` : ''}
+                <button class="admin-action-btn danger" title="Restart Server (API)" onclick="restartServer('${esc(server.id)}', '${esc(server.name)}')">
                     <i class="fa-solid fa-power-off"></i>
                 </button>
             </div>
         `;
         container.appendChild(item);
     });
+}
+
+async function restartServerSSH(serverId, serverName) {
+    if (!confirm(`Restart "${serverName}" via SSH command?`)) return;
+
+    // Log
+    logSystemEvent(`SSH Restart command issued for ${serverName}`);
+
+    try {
+        const res = await fetch(`proxy.php?id=${encodeURIComponent(serverId)}&action=ssh_restart`);
+        const data = await res.json();
+
+        if (data.success) {
+            alert(data.message || `SSH Command Sent.\nOutput: ${data.output}`);
+            logSystemEvent(`SSH Restart Output for ${serverName}: ${data.output}`);
+        } else {
+             alert(`SSH Restart Failed: ${data.error}`);
+             logSystemEvent(`SSH Restart Failed for ${serverName}: ${data.error}`, 'ERROR');
+        }
+    } catch (e) {
+        alert('Request failed: ' + e.message);
+    }
 }
 
 async function checkServerUpdate(serverId, btn) {
@@ -1486,6 +1616,11 @@ if (IS_ADMIN) {
         form.querySelector('[name="apiKey"]').value = server.apiKey || '';
         form.querySelector('[name="token"]').value = server.token || '';
 
+        form.querySelector('[name="ssh_host"]').value = server.ssh_host || '';
+        form.querySelector('[name="ssh_port"]').value = server.ssh_port || '22';
+        form.querySelector('[name="ssh_user"]').value = server.ssh_user || '';
+        form.querySelector('[name="ssh_service"]').value = server.ssh_service || '';
+
         // Store server ID for update
         form.dataset.originalName = server.id;
 
@@ -1568,7 +1703,11 @@ document.getElementById('add-server-form').addEventListener('submit', async e=>{
         type:f.type.value,
         url:fullUrl,
         apiKey:f.apiKey.value,
-        token:f.token.value
+        token:f.token.value,
+        ssh_host: f.ssh_host.value,
+        ssh_port: f.ssh_port.value,
+        ssh_user: f.ssh_user.value,
+        ssh_service: f.ssh_service.value
     };
 
     // If editing, include server ID
