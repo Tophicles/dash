@@ -933,45 +933,6 @@ async function showItemDetails(serverName, itemId, serverType) {
             html += `<div class="modal-episode">Season ${esc(item.season)}, Episode ${esc(item.episode)}</div>`;
         }
 
-        // Tech Badges Logic
-        let qualityBadge = '';
-        if (item.resolution) {
-            if (item.resolution.toLowerCase() === 'sd') {
-                qualityBadge = 'SD';
-            } else {
-                const resolutionParts = item.resolution.split('x');
-                // If "WxH", use both. If single number "H", assume height.
-                if (resolutionParts.length > 1) {
-                    const w = parseInt(resolutionParts[0]);
-                    const h = parseInt(resolutionParts[1]);
-                    qualityBadge = getQualityBadge(w, h);
-                } else if (resolutionParts.length === 1) {
-                    const val = parseInt(resolutionParts[0]);
-                    if (!isNaN(val)) {
-                         // Assume height if single number (e.g. "1080", "480")
-                         qualityBadge = getQualityBadge(0, val);
-                    }
-                }
-            }
-        }
-
-        const hasTechInfo = qualityBadge || item.container || item.audioCodec;
-        let badgesHtml = '';
-        if (hasTechInfo) {
-            badgesHtml += '<div class="meta-right-badges">';
-            if (qualityBadge) {
-                badgesHtml += `<div class="tech-badge">${esc(qualityBadge)}</div>`;
-            }
-            if (item.container) {
-                badgesHtml += `<div class="tech-badge">${esc(item.container)}</div>`;
-            }
-            if (item.audioCodec) {
-                const audioCh = formatAudioChannels(item.audioChannels);
-                badgesHtml += `<div class="tech-badge">${esc(item.audioCodec)} ${audioCh ? esc(audioCh) : ''}</div>`;
-            }
-            badgesHtml += '</div>';
-        }
-
         // Meta information
         html += '<div class="modal-meta">';
         if (item.year) {
@@ -983,11 +944,9 @@ async function showItemDetails(serverName, itemId, serverType) {
         if (item.runtime) {
             html += `<div class="modal-meta-item"><span class="modal-meta-label">Runtime:</span> ${esc(item.runtime)}</div>`;
         }
-        // Append badges to the right of meta line
-        html += badgesHtml;
         html += '</div>';
 
-        // Tech Badges
+        // Tech Badges Logic
         let qualityBadge = '';
         if (item.resolution) {
             if (item.resolution.toLowerCase() === 'sd') {
