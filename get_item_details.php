@@ -302,7 +302,14 @@ try {
             $item['videoCodec'] = $media['videoCodec'] ?? '';
             $item['audioCodec'] = $media['audioCodec'] ?? '';
             $item['audioChannels'] = $media['audioChannels'] ?? '';
-            $item['resolution'] = $media['videoResolution'] ?? '';
+
+            // Prefer exact dimensions if available
+            if (isset($media['width']) && isset($media['height'])) {
+                $item['resolution'] = $media['width'] . 'x' . $media['height'];
+            } else {
+                $item['resolution'] = $media['videoResolution'] ?? '';
+            }
+
             $item['container'] = $media['container'] ?? '';
 
             if (isset($media['Part'][0]['file'])) {
