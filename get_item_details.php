@@ -212,7 +212,12 @@ try {
                 } elseif (($stream['Type'] ?? '') === 'Audio') {
                      if (empty($item['audioCodec']) || ($stream['IsDefault'] ?? false)) {
                         $item['audioCodec'] = $stream['Codec'] ?? '';
-                        $item['audioChannels'] = $stream['Channels'] ?? '';
+
+                        $channels = $stream['Channels'] ?? '';
+                        if ($channels == '2') $channels = '2.0';
+                        elseif ($channels == '6') $channels = '5.1';
+                        elseif ($channels == '8') $channels = '7.1';
+                        $item['audioChannels'] = $channels;
                      }
                 }
             }
@@ -301,7 +306,14 @@ try {
             $media = $metadata['Media'][0];
             $item['videoCodec'] = $media['videoCodec'] ?? '';
             $item['audioCodec'] = $media['audioCodec'] ?? '';
-            $item['audioChannels'] = $media['audioChannels'] ?? '';
+
+            // Map common channel counts to friendly names
+            $channels = $media['audioChannels'] ?? '';
+            if ($channels == '2') $channels = '2.0';
+            elseif ($channels == '6') $channels = '5.1';
+            elseif ($channels == '8') $channels = '7.1';
+
+            $item['audioChannels'] = $channels;
             $item['resolution'] = $media['videoResolution'] ?? '';
             $item['container'] = $media['container'] ?? '';
 

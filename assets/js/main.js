@@ -996,7 +996,7 @@ async function showItemDetails(serverName, itemId, serverType) {
                 html += `
                     <div class="modal-detail-item">
                         <div class="modal-detail-label">Audio</div>
-                        <div class="modal-detail-value">${esc(item.audioCodec.toUpperCase())}${item.audioChannels ? ' ' + esc(item.audioChannels) : ''}</div>
+                        <div class="modal-detail-value">${esc(item.audioCodec.toUpperCase())}${item.audioChannels ? ' ' + esc(item.audioChannels) + 'ch' : ''}</div>
                     </div>
                 `;
              }
@@ -1031,7 +1031,7 @@ async function showItemDetails(serverName, itemId, serverType) {
                         ${file ? `
                         <div>
                             <div style="font-size: 0.7rem; text-transform: uppercase; margin-bottom: 2px; color: #666;">Filename</div>
-                            <span style="color: #fff; font-weight: 600;">${esc(file)}</span>
+                            <span>${esc(file)}</span>
                         </div>` : ''}
                     </div>
                 `;
