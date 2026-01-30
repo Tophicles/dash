@@ -258,18 +258,18 @@ async function fetchServer(server){
     }
 }
 
-// Fetch server info (version)
+// Fetch server info (version and updates)
 async function fetchServerInfo(server) {
     try {
         const res = await fetch(`proxy.php?server=${encodeURIComponent(server.name)}&action=info`);
         if (!res.ok) return null;
         const data = await res.json();
 
-        if (server.type === 'plex') {
-            return data.MediaContainer?.version || null;
-        } else {
-            return data.Version || null;
-        }
+        // Return object with version and update status
+        return {
+            version: data.version || 'Unknown',
+            hasUpdate: !!data.updateAvailable
+        };
     } catch (e) {
         console.error('Server info fetch error', e);
         return null;
@@ -533,7 +533,12 @@ function renderServerGrid() {
         card.innerHTML = `
             ${dragHandle}
             <div class="server-name">${esc(server.name)}</div>
-            ${server.version ? `<div class="server-version">v${esc(server.version)}</div>` : ''}
+            ${server.version ? `
+                <div class="server-version">
+                    v${esc(server.version)}
+                    ${server.hasUpdate ? '<i class="fa-solid fa-circle-up update-available" title="Update Available"></i>' : ''}
+                </div>
+            ` : ''}
             <div class="server-status">
                 <div class="status-dot ${isActive ? 'active server-' + esc(server.type) : ''}"></div>
                 ${isActive ? `${sessions.length} playing` : 'Idle'}
@@ -1245,9 +1250,10 @@ async function start(){
 
     // Fetch server versions once
     SERVERS.forEach(async server => {
-        const ver = await fetchServerInfo(server);
-        if (ver) {
-            server.version = ver;
+        const info = await fetchServerInfo(server);
+        if (info) {
+            server.version = info.version;
+            server.hasUpdate = info.hasUpdate;
             // Update UI if we are in server view
             if (currentView === 'servers') renderServerGrid();
         }

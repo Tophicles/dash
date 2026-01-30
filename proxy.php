@@ -31,7 +31,35 @@ if ($server['type'] === 'plex') {
     $token = isset($server['token']) ? decrypt($server['token']) : '';
 
     if ($action === 'info') {
-        $url = rtrim($baseUrl, '/') . '/';
+        // Fetch server info
+        $urlInfo = rtrim($baseUrl, '/') . '/';
+        $urlUpdate = rtrim($baseUrl, '/') . '/updater/status';
+
+        // Helper to fetch JSON
+        $fetch = function($u) use ($token) {
+            $ch = curl_init($u);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ["X-Plex-Token: $token", "Accept: application/json"]);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+            $r = curl_exec($ch);
+            curl_close($ch);
+            return json_decode($r, true);
+        };
+
+        $info = $fetch($urlInfo);
+        $update = $fetch($urlUpdate);
+
+        $response = [
+            'version' => $info['MediaContainer']['version'] ?? 'Unknown',
+            'updateAvailable' => (bool)($update['MediaContainer']['checkForUpdate'] ?? false) // Plex often uses checkForUpdate or updateAvailable
+        ];
+        // Note: Plex API structure for updates varies, sometimes checks 'downloadURL' or 'updateAvailable'
+        if (isset($update['MediaContainer']['downloadURL'])) {
+             $response['updateAvailable'] = true;
+        }
+
+        echo json_encode($response);
+        exit;
     } else {
         $url = rtrim($baseUrl, '/') . '/status/sessions';
     }
@@ -80,6 +108,29 @@ if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
 
     if ($action === 'info') {
         $url = rtrim($baseUrl, '/') . '/System/Info';
+
+        $headers = [
+            "X-Emby-Token: $apiKey",
+            "X-MediaBrowser-Token: $apiKey"
+        ];
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+        $res = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        $data = json_decode($res, true);
+        $response = [
+            'version' => $data['Version'] ?? 'Unknown',
+            'updateAvailable' => (bool)($data['HasUpdateAvailable'] ?? false)
+        ];
+
+        echo json_encode($response);
+        exit;
     } else {
         $url = rtrim($baseUrl, '/') . '/Sessions';
     }
