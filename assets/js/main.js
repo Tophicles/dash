@@ -465,9 +465,19 @@ function renderServerAdminList() {
         `;
 
         if (isLinux) {
-            actionsHtml += `<span id="ssh-controls-${esc(server.id)}"><i class="fa-solid fa-spinner fa-spin"></i></span>`;
-            // Fetch status asynchronously
-            fetchServerStatus(server.id);
+            actionsHtml += `<span id="ssh-controls-${esc(server.id)}">`;
+            if (server.ssh_initialized) {
+                actionsHtml += `<i class="fa-solid fa-spinner fa-spin"></i>`;
+                // Fetch status asynchronously
+                fetchServerStatus(server.id);
+            } else {
+                actionsHtml += `
+                    <button class="admin-action-btn" title="Deploy/Verify SSH Key" onclick="deployServerKey('${esc(server.id)}')">
+                        <i class="fa-solid fa-key"></i> Deploy Key
+                    </button>
+                `;
+            }
+            actionsHtml += `</span>`;
         }
 
         actionsHtml += `
@@ -499,7 +509,9 @@ async function fetchServerStatus(serverId) {
         if (!container) return;
 
         if (data.success) {
-            const isRunning = data.status === 'active';
+            // If data.success is true, SSH exited 0, so service is active/running.
+            // We ignore specific text output to avoid issues with SSH banners or warnings.
+            const isRunning = true;
             const server = SERVERS.find(s => s.id === serverId);
             const serverName = server ? server.name : 'Server';
 
@@ -559,6 +571,51 @@ async function controlServerSSH(serverId, serverName, action) {
     } catch (e) {
         alert('Request failed: ' + e.message);
         fetchServerStatus(serverId);
+    }
+}
+
+async function deployServerKey(serverId) {
+    const container = document.getElementById(`ssh-controls-${serverId}`);
+    if (container) container.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verifying...';
+
+    try {
+        // Try to connect (status check)
+        const res = await fetch(`proxy.php?id=${encodeURIComponent(serverId)}&action=ssh_status`);
+        const data = await res.json();
+
+        if (data.success) {
+            // Connection successful! Update server config.
+            await fetch('update_server.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    id: serverId,
+                    ssh_initialized: true
+                })
+            });
+
+            // Update local state
+            const server = SERVERS.find(s => s.id === serverId);
+            if (server) server.ssh_initialized = true;
+
+            // Refresh
+            fetchServerStatus(serverId);
+            alert('SSH Connection Verified! Controls enabled.');
+        } else {
+            // Failed
+            alert('Connection Failed: ' + data.error + '\n\nPlease ensure you have run the "linux_setup.sh" script on the target server.');
+            // Revert button
+            const server = SERVERS.find(s => s.id === serverId);
+            if (container && server) {
+                 container.innerHTML = `
+                    <button class="admin-action-btn" title="Deploy/Verify SSH Key" onclick="deployServerKey('${esc(server.id)}')">
+                        <i class="fa-solid fa-key"></i> Deploy Key
+                    </button>
+                `;
+            }
+        }
+    } catch (e) {
+        alert('Request failed: ' + e.message);
     }
 }
 
@@ -917,22 +974,9 @@ function renderServerGrid() {
             </div>
         `;
 
-        // Test Update Button (Admin Only)
-        if (IS_ADMIN) {
-            const testBtn = document.createElement('div');
-            testBtn.className = 'server-test-btn';
-            testBtn.title = 'Test Update Notification';
-            testBtn.innerHTML = '<i class="fa-solid fa-flask"></i>';
-            testBtn.onclick = (e) => {
-                e.stopPropagation();
-                testServerUpdate(server.id);
-            };
-            card.appendChild(testBtn);
-        }
-
         // Click to view sessions (only if not clicking drag handle)
         card.addEventListener('click', (e) => {
-            if (!e.target.classList.contains('drag-handle') && !e.target.closest('a') && !e.target.closest('.server-test-btn') && !reorderMode) {
+            if (!e.target.classList.contains('drag-handle') && !e.target.closest('a') && !reorderMode) {
                 showSessionsView(server.id, server.name);
             }
         });

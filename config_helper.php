@@ -18,7 +18,8 @@ function validateAndMigrateConfig(&$config) {
         // Add Defaults
         $defaults = [
             'os_type' => 'linux',
-            'ssh_port' => 22
+            'ssh_port' => 22,
+            'ssh_initialized' => false
         ];
 
         foreach ($defaults as $key => $val) {
