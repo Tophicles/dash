@@ -288,12 +288,118 @@ async function testServerUpdate(serverId) {
                 if (server) {
                     server.hasUpdate = true;
                     renderServerGrid();
+                    openServerAdminModal(); // Refresh modal
                     alert(`Update simulation triggered for ${server.name}`);
                 }
             }
         }
     } catch (e) {
         console.error('Test update failed', e);
+    }
+}
+
+// Server Admin Logic
+if (IS_ADMIN) {
+    const adminBtn = document.getElementById('server-admin-btn');
+    if (adminBtn) {
+        adminBtn.addEventListener('click', openServerAdminModal);
+    }
+}
+
+function openServerAdminModal() {
+    const modal = document.getElementById('server-admin-modal');
+    modal.classList.add('visible');
+    renderServerAdminList();
+}
+
+function closeServerAdminModal() {
+    document.getElementById('server-admin-modal').classList.remove('visible');
+}
+
+// Close on click outside
+document.getElementById('server-admin-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeServerAdminModal();
+    }
+});
+
+function renderServerAdminList() {
+    const container = document.getElementById('admin-server-list');
+    container.innerHTML = '';
+
+    SERVERS.forEach(server => {
+        const item = document.createElement('div');
+        item.className = 'admin-server-item';
+
+        const sessions = ALL_SESSIONS[server.name] || [];
+        const isActive = sessions.length > 0;
+        const status = isActive ? `<span style="color:#4caf50;">Online (${sessions.length} active)</span>` : '<span style="color:#aaa;">Idle</span>';
+
+        item.innerHTML = `
+            <div class="admin-server-info">
+                <div class="admin-server-name">${esc(server.name)}</div>
+                <div class="admin-server-details">
+                    Type: ${esc(server.type.toUpperCase())} • Version: ${esc(server.version || 'Unknown')} • ${status}
+                </div>
+            </div>
+            <div class="admin-server-actions">
+                <button class="admin-action-btn" title="Check for Updates" onclick="checkServerUpdate('${esc(server.id)}', this)">
+                    <i class="fa-solid fa-rotate"></i>
+                </button>
+                <button class="admin-action-btn" title="Simulate Update Available" onclick="testServerUpdate('${esc(server.id)}')">
+                    <i class="fa-solid fa-flask"></i>
+                </button>
+                <button class="admin-action-btn danger" title="Restart Server" onclick="restartServer('${esc(server.id)}', '${esc(server.name)}')">
+                    <i class="fa-solid fa-power-off"></i>
+                </button>
+            </div>
+        `;
+        container.appendChild(item);
+    });
+}
+
+async function checkServerUpdate(serverId, btn) {
+    const server = SERVERS.find(s => s.id === serverId);
+    if (!server) return;
+
+    const icon = btn.querySelector('i');
+    icon.classList.add('fa-spin');
+
+    const info = await fetchServerInfo(server);
+    icon.classList.remove('fa-spin');
+
+    if (info) {
+        server.version = info.version;
+        server.hasUpdate = info.hasUpdate;
+        renderServerGrid();
+        renderServerAdminList(); // Refresh list to show new version/status if changed
+    } else {
+        alert('Failed to fetch server info');
+    }
+}
+
+async function restartServer(serverId, serverName) {
+    const sessions = ALL_SESSIONS[serverName] || [];
+    if (sessions.length > 0) {
+        if (!confirm(`WARNING: There are ${sessions.length} active sessions on "${serverName}".\nRestarting will disconnect these users.\n\nAre you sure you want to proceed?`)) {
+            return;
+        }
+    } else {
+        if (!confirm(`Restart server "${serverName}"?`)) return;
+    }
+
+    try {
+        const res = await fetch(`proxy.php?id=${encodeURIComponent(serverId)}&action=restart`);
+        const data = await res.json();
+
+        if (data.success) {
+            alert(`Restart command sent to ${serverName}`);
+        } else {
+            alert(`Failed to restart: ${data.error || 'Unknown error'}`);
+        }
+    } catch (e) {
+        console.error('Restart failed', e);
+        alert('Failed to communicate with server');
     }
 }
 

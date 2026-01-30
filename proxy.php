@@ -128,6 +128,31 @@ if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
     $baseUrl = ensureProtocol($server['url']);
     $apiKey = isset($server['apiKey']) ? decrypt($server['apiKey']) : '';
 
+    if ($action === 'restart') {
+        $url = rtrim($baseUrl, '/') . '/System/Restart';
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            "X-Emby-Token: $apiKey",
+            "X-MediaBrowser-Token: $apiKey"
+        ]);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+        $res = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode === 204 || $httpCode === 200) {
+            writeLog("Restart command sent to {$server['name']}", "INFO");
+            echo json_encode(['success' => true]);
+        } else {
+            writeLog("Restart failed for {$server['name']}: HTTP $httpCode", "ERROR");
+            echo json_encode(['success' => false, 'error' => "HTTP $httpCode"]);
+        }
+        exit;
+    }
+
     if ($action === 'info') {
         $url = rtrim($baseUrl, '/') . '/System/Info';
 

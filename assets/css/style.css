@@ -1044,3 +1044,68 @@ form button:hover { background:#45a049; }
 .server-test-btn:hover {
   color: var(--accent);
 }
+
+/* Server Admin Modal */
+.admin-server-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.admin-server-item {
+  background: rgba(0,0,0,0.3);
+  padding: 12px 16px;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid var(--border);
+}
+.admin-server-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.admin-server-name {
+  font-weight: 600;
+  font-size: 1rem;
+}
+.admin-server-details {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.admin-server-actions {
+  display: flex;
+  gap: 8px;
+}
+.admin-action-btn {
+  background: #37474f;
+  border: 1px solid var(--border);
+  color: #eee;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+}
+.admin-action-btn:hover {
+  background: #455a64;
+  color: #fff;
+}
+.admin-action-btn.danger {
+  background: rgba(211, 47, 47, 0.2);
+  border-color: #d32f2f;
+  color: #ef5350;
+}
+.admin-action-btn.danger:hover {
+  background: #d32f2f;
+  color: #fff;
+}
+.admin-action-btn.success {
+  background: rgba(76, 175, 80, 0.2);
+  border-color: #4caf50;
+  color: #81c784;
+}
+.admin-action-btn.success:hover {
+  background: #4caf50;
+  color: #fff;
+}
