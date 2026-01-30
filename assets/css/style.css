@@ -587,6 +587,8 @@ body {
   color: rgba(255,255,255,0.85);
   margin-top: 16px;
   flex: 1;
+  max-height: 120px;
+  overflow-y: auto;
 }
 .modal-playback {
   background: rgba(76, 175, 80, 0.1);
@@ -877,6 +879,22 @@ body {
 }
 .url-input-group input {
   flex: 1;
+}
+
+/* Scrollbar styling for overview */
+.modal-overview-inline::-webkit-scrollbar {
+  width: 6px;
+}
+.modal-overview-inline::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.05);
+  border-radius: 3px;
+}
+.modal-overview-inline::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 3px;
+}
+.modal-overview-inline::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.3);
 }
 
 /* Mobile Responsive */
