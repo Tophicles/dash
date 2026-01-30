@@ -93,7 +93,7 @@ if ($server['type'] === 'plex') {
         writeLog("Plex API HTTP $httpCode for {$server['name']}", "ERROR");
     }
 
-    if ($res && $httpCode === 200) {
+    if ($res && $httpCode === 200 && $action !== 'info') {
         logWatchers($server['name'], 'plex', $res);
     }
 
@@ -165,7 +165,7 @@ if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
         writeLog("Emby API HTTP $httpCode for {$server['name']}", "ERROR");
     }
 
-    if ($res && $httpCode === 200) {
+    if ($res && $httpCode === 200 && $action !== 'info') {
         logWatchers($server['name'], 'emby', $res);
     }
 
