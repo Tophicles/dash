@@ -88,8 +88,9 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status'])) {
 
     if ($result['success']) {
         if ($action === 'ssh_status') {
-            // Trim whitespace
-            $status = trim($result['output']);
+            // Get last line of output to avoid SSH banners/warnings
+            $lines = explode("\n", trim($result['output']));
+            $status = end($lines);
             echo json_encode(['success' => true, 'status' => $status]);
         } else {
             writeLog("SSH command '$action' sent to {$server['name']} ($host)", "INFO");
