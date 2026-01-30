@@ -979,6 +979,48 @@ async function showItemDetails(serverName, itemId, serverType) {
             html += '</div>';
         }
 
+        // File Info
+        const hasFileInfo = item.videoCodec || item.audioCodec || item.resolution || item.container || item.path;
+        if (hasFileInfo) {
+             html += '<div class="modal-details" style="margin-top: 12px; background: rgba(0,0,0,0.2);">';
+
+             if (item.videoCodec) {
+                html += `
+                    <div class="modal-detail-item">
+                        <div class="modal-detail-label">Video</div>
+                        <div class="modal-detail-value">${esc(item.videoCodec.toUpperCase())}${item.resolution ? ' ' + esc(item.resolution) : ''}</div>
+                    </div>
+                `;
+             }
+             if (item.audioCodec) {
+                html += `
+                    <div class="modal-detail-item">
+                        <div class="modal-detail-label">Audio</div>
+                        <div class="modal-detail-value">${esc(item.audioCodec.toUpperCase())}</div>
+                    </div>
+                `;
+             }
+             if (item.container) {
+                html += `
+                    <div class="modal-detail-item">
+                        <div class="modal-detail-label">Container</div>
+                        <div class="modal-detail-value">${esc(item.container.toUpperCase())}</div>
+                    </div>
+                `;
+             }
+
+             html += '</div>';
+
+             if (item.path) {
+                html += `
+                    <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; font-family: monospace; font-size: 0.85rem; word-break: break-all; color: #aaa;">
+                        <div style="font-size: 0.7rem; text-transform: uppercase; margin-bottom: 4px; color: #666;">File Path</div>
+                        ${esc(item.path)}
+                    </div>
+                `;
+             }
+        }
+
         // Current playback info at the bottom
         if (sessionData) {
             const isLive = !sessionData.duration || sessionData.duration <= 0 || !isFinite(sessionData.duration);
