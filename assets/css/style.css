@@ -587,7 +587,7 @@ body {
   color: rgba(255,255,255,0.85);
   margin-top: 16px;
   flex: 1;
-  max-height: 120px;
+  max-height: 80px;
   overflow-y: auto;
 }
 .modal-playback {
