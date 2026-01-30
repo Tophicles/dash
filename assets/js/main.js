@@ -258,6 +258,24 @@ async function fetchServer(server){
     }
 }
 
+// Fetch server info (version)
+async function fetchServerInfo(server) {
+    try {
+        const res = await fetch(`proxy.php?server=${encodeURIComponent(server.name)}&action=info`);
+        if (!res.ok) return null;
+        const data = await res.json();
+
+        if (server.type === 'plex') {
+            return data.MediaContainer?.version || null;
+        } else {
+            return data.Version || null;
+        }
+    } catch (e) {
+        console.error('Server info fetch error', e);
+        return null;
+    }
+}
+
 // Render online users list (Watchers)
 function renderOnlineUsers(filterText = '') {
     const container = document.querySelector("#online-users .user-list-content");
@@ -515,6 +533,7 @@ function renderServerGrid() {
         card.innerHTML = `
             ${dragHandle}
             <div class="server-name">${esc(server.name)}</div>
+            ${server.version ? `<div class="server-version">v${esc(server.version)}</div>` : ''}
             <div class="server-status">
                 <div class="status-dot ${isActive ? 'active server-' + esc(server.type) : ''}"></div>
                 ${isActive ? `${sessions.length} playing` : 'Idle'}
@@ -946,7 +965,7 @@ async function showItemDetails(serverName, itemId, serverType) {
         }
         html += '</div>';
 
-        // Tech Badges
+        // Tech Badges Logic
         let qualityBadge = '';
         if (item.resolution) {
             if (item.resolution.toLowerCase() === 'sd') {
@@ -1222,6 +1241,17 @@ async function loadAll(){
 // Auto-refresh
 async function start(){
     const refreshSeconds = await loadConfig();
+
+    // Fetch server versions once
+    SERVERS.forEach(async server => {
+        const ver = await fetchServerInfo(server);
+        if (ver) {
+            server.version = ver;
+            // Update UI if we are in server view
+            if (currentView === 'servers') renderServerGrid();
+        }
+    });
+
     if(refreshTimer) clearInterval(refreshTimer);
     await loadAll();
     refreshTimer = setInterval(loadAll, refreshSeconds * 1000);
