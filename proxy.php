@@ -10,9 +10,16 @@ session_write_close();
 header('Content-Type: application/json');
 
 $serverName = $_GET['server'] ?? '';
+$serverId = $_GET['id'] ?? '';
 $servers = json_decode(file_get_contents('servers.json'), true)['servers'];
 
-$server = array_filter($servers, fn($s) => $s['name'] === $serverName);
+$server = [];
+if ($serverId) {
+    $server = array_filter($servers, fn($s) => (string)($s['id'] ?? '') === (string)$serverId);
+} elseif ($serverName) {
+    $server = array_filter($servers, fn($s) => $s['name'] === $serverName);
+}
+
 if (!$server) { echo json_encode([]); exit; }
 
 $server = array_values($server)[0];
@@ -99,7 +106,7 @@ if ($server['type'] === 'plex') {
         writeLog("Plex API HTTP $httpCode for {$server['name']}", "ERROR");
     }
 
-    if ($res && $httpCode === 200 && $action !== 'info') {
+    if ($res && $httpCode === 200) {
         logWatchers($server['name'], 'plex', $res);
     }
 
@@ -177,7 +184,7 @@ if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
         writeLog("Emby API HTTP $httpCode for {$server['name']}", "ERROR");
     }
 
-    if ($res && $httpCode === 200 && $action !== 'info') {
+    if ($res && $httpCode === 200) {
         logWatchers($server['name'], 'emby', $res);
     }
 

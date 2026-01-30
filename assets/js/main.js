@@ -276,6 +276,27 @@ async function fetchServerInfo(server) {
     }
 }
 
+// Test server update simulation
+async function testServerUpdate(serverId) {
+    try {
+        const res = await fetch(`proxy.php?id=${encodeURIComponent(serverId)}&action=info&test_update=1`);
+        if (res.ok) {
+            const data = await res.json();
+            if (data.updateAvailable) {
+                // Find server and update state
+                const server = SERVERS.find(s => s.id === serverId);
+                if (server) {
+                    server.hasUpdate = true;
+                    renderServerGrid();
+                    alert(`Update simulation triggered for ${server.name}`);
+                }
+            }
+        }
+    } catch (e) {
+        console.error('Test update failed', e);
+    }
+}
+
 // Render online users list (Watchers)
 function renderOnlineUsers(filterText = '') {
     const container = document.querySelector("#online-users .user-list-content");
@@ -545,9 +566,22 @@ function renderServerGrid() {
             </div>
         `;
 
+        // Test Update Button (Admin Only)
+        if (IS_ADMIN) {
+            const testBtn = document.createElement('div');
+            testBtn.className = 'server-test-btn';
+            testBtn.title = 'Test Update Notification';
+            testBtn.innerHTML = '<i class="fa-solid fa-flask"></i>';
+            testBtn.onclick = (e) => {
+                e.stopPropagation();
+                testServerUpdate(server.id);
+            };
+            card.appendChild(testBtn);
+        }
+
         // Click to view sessions (only if not clicking drag handle)
         card.addEventListener('click', (e) => {
-            if (!e.target.classList.contains('drag-handle') && !e.target.closest('a') && !reorderMode) {
+            if (!e.target.classList.contains('drag-handle') && !e.target.closest('a') && !e.target.closest('.server-test-btn') && !reorderMode) {
                 showSessionsView(server.id, server.name);
             }
         });
