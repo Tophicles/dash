@@ -29,7 +29,7 @@ function generateSSHKeyPair() {
     if (file_exists(SSH_PRIVATE_KEY_PATH)) unlink(SSH_PRIVATE_KEY_PATH);
     if (file_exists(SSH_PUBLIC_KEY_PATH)) unlink(SSH_PUBLIC_KEY_PATH);
 
-    $cmd = "ssh-keygen -t rsa -b 4096 -f " . escapeshellarg(SSH_PRIVATE_KEY_PATH) . " -N \"\" -q";
+    $cmd = "ssh-keygen -t rsa -b 4096 -C \"multidash\" -f " . escapeshellarg(SSH_PRIVATE_KEY_PATH) . " -N \"\" -q";
     exec($cmd, $output, $returnVar);
 
     // Set correct permissions for private key (essential for SSH)

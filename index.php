@@ -65,8 +65,8 @@ $isAdmin = isAdmin();
 <div id="server-admin-modal" class="modal">
   <div class="modal-content" style="max-width: 900px;">
     <span class="modal-close" onclick="closeServerAdminModal()">&times;</span>
-    <div id="server-admin-body">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+    <div id="server-admin-body" style="padding: 20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; margin-right: 40px;">
         <h2 style="margin-bottom:0;">Server Administration</h2>
         <button class="btn" id="ssh-keys-btn" title="SSH Key Manager"><i class="fa-solid fa-key"></i> SSH Keys</button>
       </div>
@@ -196,7 +196,7 @@ $isAdmin = isAdmin();
                 </div>
                 <div class="server-form-group" style="flex: 2;">
                     <label>SSH User</label>
-                    <input type="text" name="ssh_user" placeholder="e.g. root">
+                    <input type="text" name="ssh_user" placeholder="e.g. mediasvc">
                 </div>
             </div>
              <div class="server-form-group">
