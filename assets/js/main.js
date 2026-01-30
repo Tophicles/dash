@@ -21,9 +21,12 @@ function updateServerFormFields() {
     const apiKeyGroup = document.getElementById('group-apikey');
     const tokenGroup = document.getElementById('group-token');
     const urlInput = document.getElementById('server-url-input');
+    const osSelect = document.getElementById('server-os-select');
+    const sshPortGroup = document.getElementById('ssh-port-group');
 
     if (!typeSelect || !apiKeyGroup || !tokenGroup) return;
 
+    // Type Logic
     if (typeSelect.value === 'plex') {
         apiKeyGroup.style.display = 'none';
         tokenGroup.style.display = 'flex';
@@ -37,12 +40,26 @@ function updateServerFormFields() {
         tokenGroup.querySelector('input').removeAttribute('required');
         if (urlInput) urlInput.placeholder = "192.168.1.10:8096";
     }
+
+    // OS Logic
+    if (osSelect && sshPortGroup) {
+        if (osSelect.value === 'linux') {
+            sshPortGroup.style.display = 'flex';
+        } else {
+            sshPortGroup.style.display = 'none';
+        }
+    }
 }
 
 // Add event listener for server type change
 const serverTypeSelect = document.getElementById('server-type-select');
 if (serverTypeSelect) {
     serverTypeSelect.addEventListener('change', updateServerFormFields);
+}
+
+const serverOsSelect = document.getElementById('server-os-select');
+if (serverOsSelect) {
+    serverOsSelect.addEventListener('change', updateServerFormFields);
 }
 
 // Input listener for stripping protocol
@@ -429,14 +446,35 @@ function renderServerAdminList() {
     const container = document.getElementById('admin-server-list');
     container.innerHTML = '';
 
-    SERVERS.forEach(server => {
+    SERVERS.forEach(async server => {
         const item = document.createElement('div');
         item.className = 'admin-server-item';
 
         const sessions = ALL_SESSIONS[server.name] || [];
         const isActive = sessions.length > 0;
         const status = isActive ? `<span style="color:#4caf50;">Online (${sessions.length} active)</span>` : '<span style="color:#aaa;">Idle</span>';
-        const hasSSH = server.ssh_host && server.ssh_user;
+        const isLinux = !server.os_type || server.os_type === 'linux';
+
+        let actionsHtml = `
+            <button class="admin-action-btn" title="Check for Updates" onclick="checkServerUpdate('${esc(server.id)}', this)">
+                <i class="fa-solid fa-rotate"></i>
+            </button>
+            <button class="admin-action-btn" title="Simulate Update Available" onclick="testServerUpdate('${esc(server.id)}')">
+                <i class="fa-solid fa-flask"></i>
+            </button>
+        `;
+
+        if (isLinux) {
+            actionsHtml += `<span id="ssh-controls-${esc(server.id)}"><i class="fa-solid fa-spinner fa-spin"></i></span>`;
+            // Fetch status asynchronously
+            fetchServerStatus(server.id);
+        }
+
+        actionsHtml += `
+            <button class="admin-action-btn danger" title="Restart Server (API)" onclick="restartServer('${esc(server.id)}', '${esc(server.name)}')">
+                <i class="fa-solid fa-power-off"></i>
+            </button>
+        `;
 
         item.innerHTML = `
             <div class="admin-server-info">
@@ -446,45 +484,81 @@ function renderServerAdminList() {
                 </div>
             </div>
             <div class="admin-server-actions">
-                <button class="admin-action-btn" title="Check for Updates" onclick="checkServerUpdate('${esc(server.id)}', this)">
-                    <i class="fa-solid fa-rotate"></i>
-                </button>
-                <button class="admin-action-btn" title="Simulate Update Available" onclick="testServerUpdate('${esc(server.id)}')">
-                    <i class="fa-solid fa-flask"></i>
-                </button>
-                ${hasSSH ? `
-                <button class="admin-action-btn" title="Restart via SSH" onclick="restartServerSSH('${esc(server.id)}', '${esc(server.name)}')">
-                    <i class="fa-solid fa-terminal"></i>
-                </button>
-                ` : ''}
-                <button class="admin-action-btn danger" title="Restart Server (API)" onclick="restartServer('${esc(server.id)}', '${esc(server.name)}')">
-                    <i class="fa-solid fa-power-off"></i>
-                </button>
+                ${actionsHtml}
             </div>
         `;
         container.appendChild(item);
     });
 }
 
-async function restartServerSSH(serverId, serverName) {
-    if (!confirm(`Restart "${serverName}" via SSH command?`)) return;
+async function fetchServerStatus(serverId) {
+    try {
+        const res = await fetch(`proxy.php?id=${encodeURIComponent(serverId)}&action=ssh_status`);
+        const data = await res.json();
+        const container = document.getElementById(`ssh-controls-${serverId}`);
+        if (!container) return;
+
+        if (data.success) {
+            const isRunning = data.status === 'active';
+            const server = SERVERS.find(s => s.id === serverId);
+            const serverName = server ? server.name : 'Server';
+
+            if (isRunning) {
+                container.innerHTML = `
+                    <button class="admin-action-btn danger" title="Stop Service" onclick="controlServerSSH('${esc(serverId)}', '${esc(serverName)}', 'ssh_stop')">
+                        <i class="fa-solid fa-stop"></i>
+                    </button>
+                    <button class="admin-action-btn" style="color:orange; border-color:orange; background:rgba(255, 165, 0, 0.1);" title="Restart Service" onclick="controlServerSSH('${esc(serverId)}', '${esc(serverName)}', 'ssh_restart')">
+                        <i class="fa-solid fa-rotate-right"></i>
+                    </button>
+                `;
+            } else {
+                container.innerHTML = `
+                    <button class="admin-action-btn success" title="Start Service" onclick="controlServerSSH('${esc(serverId)}', '${esc(serverName)}', 'ssh_start')">
+                        <i class="fa-solid fa-play"></i>
+                    </button>
+                `;
+            }
+        } else {
+            container.innerHTML = `<span style="font-size:0.8rem; color:red;" title="${esc(data.error)}">Error</span>`;
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+async function controlServerSSH(serverId, serverName, action) {
+    const actionMap = {
+        'ssh_stop': 'Stop',
+        'ssh_start': 'Start',
+        'ssh_restart': 'Restart'
+    };
+    const actionName = actionMap[action] || action;
+
+    if (!confirm(`${actionName} "${serverName}" via SSH?`)) return;
 
     // Log
-    logSystemEvent(`SSH Restart command issued for ${serverName}`);
+    logSystemEvent(`SSH ${actionName} command issued for ${serverName}`);
+
+    // Set loading state
+    const container = document.getElementById(`ssh-controls-${serverId}`);
+    if (container) container.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
 
     try {
-        const res = await fetch(`proxy.php?id=${encodeURIComponent(serverId)}&action=ssh_restart`);
+        const res = await fetch(`proxy.php?id=${encodeURIComponent(serverId)}&action=${action}`);
         const data = await res.json();
 
         if (data.success) {
-            alert(data.message || `SSH Command Sent.\nOutput: ${data.output}`);
-            logSystemEvent(`SSH Restart Output for ${serverName}: ${data.output}`);
+            // Wait 2 seconds then refresh status
+            setTimeout(() => fetchServerStatus(serverId), 2000);
         } else {
-             alert(`SSH Restart Failed: ${data.error}`);
-             logSystemEvent(`SSH Restart Failed for ${serverName}: ${data.error}`, 'ERROR');
+             alert(`SSH Command Failed: ${data.error}`);
+             logSystemEvent(`SSH ${actionName} Failed for ${serverName}: ${data.error}`, 'ERROR');
+             fetchServerStatus(serverId); // Restore buttons
         }
     } catch (e) {
         alert('Request failed: ' + e.message);
+        fetchServerStatus(serverId);
     }
 }
 
@@ -1616,10 +1690,8 @@ if (IS_ADMIN) {
         form.querySelector('[name="apiKey"]').value = server.apiKey || '';
         form.querySelector('[name="token"]').value = server.token || '';
 
-        form.querySelector('[name="ssh_host"]').value = server.ssh_host || '';
+        form.querySelector('[name="os_type"]').value = server.os_type || 'linux';
         form.querySelector('[name="ssh_port"]').value = server.ssh_port || '22';
-        form.querySelector('[name="ssh_user"]').value = server.ssh_user || '';
-        form.querySelector('[name="ssh_service"]').value = server.ssh_service || '';
 
         // Store server ID for update
         form.dataset.originalName = server.id;
@@ -1704,10 +1776,8 @@ document.getElementById('add-server-form').addEventListener('submit', async e=>{
         url:fullUrl,
         apiKey:f.apiKey.value,
         token:f.token.value,
-        ssh_host: f.ssh_host.value,
-        ssh_port: f.ssh_port.value,
-        ssh_user: f.ssh_user.value,
-        ssh_service: f.ssh_service.value
+        os_type: f.os_type.value,
+        ssh_port: f.ssh_port.value
     };
 
     // If editing, include server ID

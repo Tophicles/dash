@@ -182,26 +182,23 @@ $isAdmin = isAdmin();
           <input type="text" name="token">
         </div>
 
-        <!-- SSH Configuration -->
+        <!-- OS Configuration -->
         <div style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 15px;">
-            <h3 style="margin-bottom: 10px; font-size: 1rem; color: var(--accent);">SSH Configuration (Optional)</h3>
+            <h3 style="margin-bottom: 10px; font-size: 1rem; color: var(--accent);">Operating System</h3>
+
             <div class="server-form-group">
-                <label>SSH Host (IP/Hostname)</label>
-                <input type="text" name="ssh_host" placeholder="e.g. 192.168.1.100">
+                <label>OS Type</label>
+                <select name="os_type" id="server-os-select">
+                    <option value="linux">Linux</option>
+                    <option value="windows">Windows</option>
+                    <option value="macos">macOS</option>
+                    <option value="other">Other</option>
+                </select>
             </div>
-            <div class="ssh-row">
-                <div class="server-form-group" style="flex: 1;">
-                    <label>SSH Port</label>
-                    <input type="number" name="ssh_port" value="22" placeholder="22">
-                </div>
-                <div class="server-form-group" style="flex: 2;">
-                    <label>SSH User</label>
-                    <input type="text" name="ssh_user" placeholder="e.g. mediasvc">
-                </div>
-            </div>
-             <div class="server-form-group">
-                <label>Service Name (for systemctl)</label>
-                <input type="text" name="ssh_service" placeholder="e.g. plexmediaserver or emby-server">
+
+            <div class="server-form-group" id="ssh-port-group">
+                <label>SSH Port (Linux Only)</label>
+                <input type="number" name="ssh_port" value="22" placeholder="22">
             </div>
         </div>
 

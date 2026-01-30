@@ -127,15 +127,14 @@ sudo systemctl reload ssh
 #### Security Analysis: Why is this secure?
 The above instructions adhere to the **Principle of Least Privilege**:
 *   **Restricted User:** The `mediasvc` user has no password and cannot be logged into interactively via password.
-*   **Limited Sudo:** The `sudoers` file explicitly whitelists *only* the `systemctl` commands for specific media services. This user cannot modify files, install software, or access other parts of the system as root.
-*   **SSH Lockdown:** The `sshd_config` settings prevent port forwarding (tunneling), X11 forwarding, and TTY allocation. This means even if an attacker gains access to the private key, they cannot get an interactive shell or use your server as a pivot point to attack your network. They can *only* execute the whitelisted restart commands.
+*   **Limited Sudo:** The `sudoers` file explicitly whitelists *only* the `systemctl start/stop/restart` commands for specific media services. This user cannot modify files, install software, or access other parts of the system as root.
+*   **SSH Lockdown:** The `sshd_config` settings prevent port forwarding (tunneling), X11 forwarding, and TTY allocation. This means even if an attacker gains access to the private key, they cannot get an interactive shell or use your server as a pivot point to attack your network. They can *only* execute the whitelisted commands.
 
 ### 3. Configure Dashboard
-In the **Add/Edit Server** modal for your server, enter:
-*   **SSH Host:** IP address of your media server.
-*   **SSH Port:** `22` (or your custom port).
-*   **SSH User:** `mediasvc`
-*   **Service Name:** `plexmediaserver`, `emby-server`, or `jellyfin` (depending on your service).
+In the **Add/Edit Server** modal for your server:
+*   Select **Linux** as the Operating System.
+*   If your server uses a standard SSH port (22), no further configuration is needed.
+*   The dashboard will automatically connect to the server's IP (derived from the Proxy URL) as the `mediasvc` user and execute the correct restart command for your server type.
 
 ## Configuration
 

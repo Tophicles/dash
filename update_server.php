@@ -41,10 +41,8 @@ $servers['servers'][$serverIndex] = [
     "url" => $data['url'] ?? $existingServer['url'],
     "apiKey" => isset($data['apiKey']) && $data['apiKey'] !== '' ? encrypt($data['apiKey']) : ($existingServer['apiKey'] ?? ''),
     "token" => isset($data['token']) && $data['token'] !== '' ? encrypt($data['token']) : ($existingServer['token'] ?? ''),
-    "ssh_host" => $data['ssh_host'] ?? $existingServer['ssh_host'] ?? '',
+    "os_type" => $data['os_type'] ?? $existingServer['os_type'] ?? 'linux',
     "ssh_port" => $data['ssh_port'] ?? $existingServer['ssh_port'] ?? '22',
-    "ssh_user" => $data['ssh_user'] ?? $existingServer['ssh_user'] ?? '',
-    "ssh_service" => $data['ssh_service'] ?? $existingServer['ssh_service'] ?? '',
     "enabled" => true,
     "order" => $existingServer['order'] ?? (count($servers['servers']) + 1)
 ];

@@ -15,12 +15,10 @@ function validateAndMigrateConfig(&$config) {
             $changed = true;
         }
 
-        // Add SSH Defaults
+        // Add Defaults
         $defaults = [
-            'ssh_host' => '',
-            'ssh_port' => 22,
-            'ssh_user' => '',
-            'ssh_service' => ''
+            'os_type' => 'linux',
+            'ssh_port' => 22
         ];
 
         foreach ($defaults as $key => $val) {
@@ -31,7 +29,7 @@ function validateAndMigrateConfig(&$config) {
         }
 
         // Remove deprecated fields
-        $deprecated = ['color'];
+        $deprecated = ['color', 'ssh_host', 'ssh_user', 'ssh_service'];
         foreach ($deprecated as $key) {
             if (isset($server[$key])) {
                 unset($server[$key]);

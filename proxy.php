@@ -26,38 +26,79 @@ if (!$server) { echo json_encode([]); exit; }
 $server = array_values($server)[0];
 $action = $_GET['action'] ?? 'sessions';
 
-// Handle SSH Restart globally (for any server type)
-if ($action === 'ssh_restart') {
+// Handle SSH Actions globally (for any server type)
+if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status'])) {
     if (!isAdmin()) {
         http_response_code(403);
         echo json_encode(['success' => false, 'error' => 'Unauthorized']);
         exit;
     }
 
-    // Validate SSH fields
-    if (empty($server['ssh_host']) || empty($server['ssh_user'])) {
-         echo json_encode(['success' => false, 'error' => 'SSH not configured for this server']);
+    // Verify OS
+    $os = $server['os_type'] ?? 'linux';
+    if ($os !== 'linux') {
+        echo json_encode(['success' => false, 'error' => 'SSH restart only supported on Linux']);
+        exit;
+    }
+
+    // Derive Host from URL
+    $parsed = parse_url($server['url']);
+    $host = $parsed['host'] ?? '';
+    if (!$host) {
+        echo json_encode(['success' => false, 'error' => 'Could not determine host from server URL']);
+        exit;
+    }
+
+    // Settings
+    $port = $server['ssh_port'] ?: 22;
+    $user = 'mediasvc';
+
+    // Determine Command based on Type
+    $service = '';
+    $type = $server['type'] ?? '';
+
+    if ($type === 'plex') $service = 'plexmediaserver';
+    else if ($type === 'emby') $service = 'emby-server';
+    else if ($type === 'jellyfin') $service = 'jellyfin';
+
+    if (!$service) {
+         echo json_encode(['success' => false, 'error' => 'Unknown server type for service restart']);
          exit;
     }
 
-    $host = $server['ssh_host'];
-    $port = $server['ssh_port'] ?: 22;
-    $user = $server['ssh_user'];
-    $service = $server['ssh_service'] ?? '';
+    // Determine Action
+    $cmd = "";
+    if ($action === 'ssh_restart') {
+        $cmd = "sudo systemctl restart $service";
+    } elseif ($action === 'ssh_stop') {
+        $cmd = "sudo systemctl stop $service";
+    } elseif ($action === 'ssh_start') {
+        $cmd = "sudo systemctl start $service";
+    } elseif ($action === 'ssh_status') {
+        $cmd = "systemctl is-active $service";
+    }
 
-    // Construct command
-    $cmd = $service ? "sudo systemctl restart $service" : "sudo reboot";
+    if (!$cmd) {
+        echo json_encode(['success' => false, 'error' => 'Invalid SSH action']);
+        exit;
+    }
 
     // Execute SSH
     $result = executeSSHCommand($host, $port, $user, $cmd);
 
     if ($result['success']) {
-        writeLog("SSH Restart command sent to {$server['name']} ($host)", "INFO");
+        if ($action === 'ssh_status') {
+            // Trim whitespace
+            $status = trim($result['output']);
+            echo json_encode(['success' => true, 'status' => $status]);
+        } else {
+            writeLog("SSH command '$action' sent to {$server['name']} ($host)", "INFO");
+            echo json_encode($result);
+        }
     } else {
-        writeLog("SSH Restart failed for {$server['name']}: {$result['error']}", "ERROR");
+        writeLog("SSH command '$action' failed for {$server['name']}: {$result['error']}", "ERROR");
+        echo json_encode($result);
     }
-
-    echo json_encode($result);
     exit;
 }
 
