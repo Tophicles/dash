@@ -587,7 +587,7 @@ body {
   color: rgba(255,255,255,0.85);
   margin-top: 16px;
   flex: 1;
-  max-height: 105px;
+  max-height: 95px;
   overflow-y: auto;
 }
 .modal-playback {
@@ -949,8 +949,11 @@ body {
   .modal-meta {
     justify-content: center;
   }
-  .modal-tech-badges {
+  .meta-right-badges {
+    margin-left: 0;
+    width: 100%;
     justify-content: center;
+    margin-top: 8px;
   }
   .status-badge-fixed, .playmethod-badge-fixed {
     position: static;
@@ -997,10 +1000,9 @@ form button:hover { background:#45a049; }
   color: #eee;
   text-transform: uppercase;
 }
-.modal-tech-badges {
-  margin-bottom: 16px;
+.meta-right-badges {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: -8px; /* Slightly pull up closer to meta */
+  gap: 6px;
+  align-items: center;
+  margin-left: auto;
 }
