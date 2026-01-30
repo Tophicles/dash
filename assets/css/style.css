@@ -915,6 +915,37 @@ body {
   .user-mobile { display: inline; font-weight: bold; cursor: pointer; }
   .clock-full { display: none; }
   .clock-short { display: inline; }
+
+  /* Modal Responsive */
+  .modal-header-new {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .modal-poster {
+    margin-bottom: 16px;
+  }
+  .modal-poster img {
+    width: 140px; /* Slightly smaller on mobile */
+  }
+  .modal-meta {
+    justify-content: center;
+  }
+  .status-badge-fixed, .playmethod-badge-fixed {
+    position: static;
+    display: inline-block;
+    margin-bottom: 8px;
+  }
+  .modal-playback-info-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    text-align: center;
+  }
+  .modal-playback-info {
+    padding-right: 0;
+  }
 }
 
 form input, form select, form button { padding:8px 12px; font-size:0.9rem; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:4px; }
