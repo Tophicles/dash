@@ -557,7 +557,7 @@ function renderServerGrid() {
             ${server.version ? `
                 <div class="server-version">
                     v${esc(server.version)}
-                    ${server.hasUpdate ? '<i class="fa-solid fa-circle-up update-available" title="Update Available"></i>' : ''}
+                    ${server.hasUpdate ? '<i class="fa-solid fa-circle-up update-available" title="Update Available: New version ready!"></i>' : ''}
                 </div>
             ` : ''}
             <div class="server-status">

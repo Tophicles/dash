@@ -67,8 +67,17 @@ if ($server['type'] === 'plex') {
 
         // Test flag to simulate update availability
         if (isset($_GET['test_update'])) {
+            $currentVer = $response['version'];
+            $simulatedLatest = "9.9.9.9";
+            $simulatedChannel = "Beta";
+
+            writeLog("[TEST] Starting simulated update check for {$server['name']}", "INFO");
+            writeLog("[TEST] Current Version: {$currentVer}", "INFO");
+            writeLog("[TEST] Update Channel: {$simulatedChannel} (Simulated)", "INFO");
+            writeLog("[TEST] Latest Version: {$simulatedLatest} (Simulated)", "INFO");
+            writeLog("[TEST] Update Required: Yes", "INFO");
+
             $response['updateAvailable'] = true;
-            writeLog("[TEST] Simulated update availability for server: {$server['name']}", "INFO");
         }
 
         echo json_encode($response);
@@ -144,8 +153,17 @@ if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
 
         // Test flag to simulate update availability
         if (isset($_GET['test_update'])) {
+            $currentVer = $response['version'];
+            $simulatedLatest = "9.9.9.9";
+            $simulatedChannel = "Stable";
+
+            writeLog("[TEST] Starting simulated update check for {$server['name']}", "INFO");
+            writeLog("[TEST] Current Version: {$currentVer}", "INFO");
+            writeLog("[TEST] Update Channel: {$simulatedChannel} (Simulated)", "INFO");
+            writeLog("[TEST] Latest Version: {$simulatedLatest} (Simulated)", "INFO");
+            writeLog("[TEST] Update Required: Yes", "INFO");
+
             $response['updateAvailable'] = true;
-            writeLog("[TEST] Simulated update availability for server: {$server['name']}", "INFO");
         }
 
         echo json_encode($response);
