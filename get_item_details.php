@@ -143,6 +143,7 @@ try {
             'episode' => $data['IndexNumber'] ?? '',
             'videoCodec' => '',
             'audioCodec' => '',
+            'audioChannels' => '',
             'resolution' => '',
             'container' => '',
             'path' => ''
@@ -211,6 +212,7 @@ try {
                 } elseif (($stream['Type'] ?? '') === 'Audio') {
                      if (empty($item['audioCodec']) || ($stream['IsDefault'] ?? false)) {
                         $item['audioCodec'] = $stream['Codec'] ?? '';
+                        $item['audioChannels'] = $stream['Channels'] ?? '';
                      }
                 }
             }
@@ -262,6 +264,7 @@ try {
             'episode' => $metadata['index'] ?? '',
             'videoCodec' => '',
             'audioCodec' => '',
+            'audioChannels' => '',
             'resolution' => '',
             'container' => '',
             'path' => ''
@@ -298,6 +301,7 @@ try {
             $media = $metadata['Media'][0];
             $item['videoCodec'] = $media['videoCodec'] ?? '';
             $item['audioCodec'] = $media['audioCodec'] ?? '';
+            $item['audioChannels'] = $media['audioChannels'] ?? '';
             $item['resolution'] = $media['videoResolution'] ?? '';
             $item['container'] = $media['container'] ?? '';
 

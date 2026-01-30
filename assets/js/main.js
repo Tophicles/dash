@@ -996,7 +996,7 @@ async function showItemDetails(serverName, itemId, serverType) {
                 html += `
                     <div class="modal-detail-item">
                         <div class="modal-detail-label">Audio</div>
-                        <div class="modal-detail-value">${esc(item.audioCodec.toUpperCase())}</div>
+                        <div class="modal-detail-value">${esc(item.audioCodec.toUpperCase())}${item.audioChannels ? ' ' + esc(item.audioChannels) : ''}</div>
                     </div>
                 `;
              }
@@ -1012,10 +1012,27 @@ async function showItemDetails(serverName, itemId, serverType) {
              html += '</div>';
 
              if (item.path) {
+                const path = item.path;
+                const lastSlash = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+                let dir = path;
+                let file = '';
+
+                if (lastSlash > -1) {
+                    dir = path.substring(0, lastSlash);
+                    file = path.substring(lastSlash + 1);
+                }
+
                 html += `
                     <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; font-family: monospace; font-size: 0.85rem; word-break: break-all; color: #aaa;">
-                        <div style="font-size: 0.7rem; text-transform: uppercase; margin-bottom: 4px; color: #666;">File Path</div>
-                        ${esc(item.path)}
+                        <div style="margin-bottom: 8px;">
+                            <div style="font-size: 0.7rem; text-transform: uppercase; margin-bottom: 2px; color: #666;">Root Path</div>
+                            ${esc(dir)}
+                        </div>
+                        ${file ? `
+                        <div>
+                            <div style="font-size: 0.7rem; text-transform: uppercase; margin-bottom: 2px; color: #666;">Filename</div>
+                            <span style="color: #fff; font-weight: 600;">${esc(file)}</span>
+                        </div>` : ''}
                     </div>
                 `;
              }
