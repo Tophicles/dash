@@ -167,7 +167,19 @@ function getQualityBadge(width, height) {
     if (height >= 1080 || width >= 1920) return '1080p';
     if (height >= 720 || width >= 1280) return '720p';
     if (height >= 480) return '480p';
+    if (height > 0) return height + 'p';
     return '';
+}
+
+// Helper to format audio channels
+function formatAudioChannels(channels) {
+    if (!channels) return '';
+    const ch = parseFloat(channels);
+    if (ch === 6) return '5.1';
+    if (ch === 8) return '7.1';
+    if (ch === 2) return '2.0';
+    if (ch === 1) return '1.0';
+    return channels;
 }
 
 // Get play method icon
@@ -243,6 +255,24 @@ async function fetchServer(server){
     } catch(e){
         console.error('Server fetch error', e);
         return [];
+    }
+}
+
+// Fetch server info (version)
+async function fetchServerInfo(server) {
+    try {
+        const res = await fetch(`proxy.php?server=${encodeURIComponent(server.name)}&action=info`);
+        if (!res.ok) return null;
+        const data = await res.json();
+
+        if (server.type === 'plex') {
+            return data.MediaContainer?.version || null;
+        } else {
+            return data.Version || null;
+        }
+    } catch (e) {
+        console.error('Server info fetch error', e);
+        return null;
     }
 }
 
@@ -503,6 +533,7 @@ function renderServerGrid() {
         card.innerHTML = `
             ${dragHandle}
             <div class="server-name">${esc(server.name)}</div>
+            ${server.version ? `<div class="server-version">v${esc(server.version)}</div>` : ''}
             <div class="server-status">
                 <div class="status-dot ${isActive ? 'active server-' + esc(server.type) : ''}"></div>
                 ${isActive ? `${sessions.length} playing` : 'Idle'}
@@ -691,6 +722,7 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
     const titleElement = document.getElementById('server-title');
     titleElement.innerHTML = `
         ${esc(serverName)}
+        ${server && server.version ? `<span class="server-title-version">[${esc(server.version)}]</span>` : ''}
         ${server ? `<a href="${esc(server.url)}" target="_blank" class="server-link-btn" title="Go to Server"><i class="fa-solid fa-external-link-alt"></i></a>` : ''}
     `;
     titleElement.className = `section-divider ${serverType}`;
@@ -786,6 +818,7 @@ if (IS_ADMIN) {
         // Re-render to update drag handles
         renderServerGrid();
     });
+
 }
 
 // Drag and Drop handlers
@@ -933,6 +966,45 @@ async function showItemDetails(serverName, itemId, serverType) {
         }
         html += '</div>';
 
+        // Tech Badges Logic
+        let qualityBadge = '';
+        if (item.resolution) {
+            if (item.resolution.toLowerCase() === 'sd') {
+                qualityBadge = 'SD';
+            } else {
+                const resolutionParts = item.resolution.split('x');
+                // If "WxH", use both. If single number "H", assume height.
+                if (resolutionParts.length > 1) {
+                    const w = parseInt(resolutionParts[0]);
+                    const h = parseInt(resolutionParts[1]);
+                    qualityBadge = getQualityBadge(w, h);
+                } else if (resolutionParts.length === 1) {
+                    const val = parseInt(resolutionParts[0]);
+                    if (!isNaN(val)) {
+                         // Assume height if single number (e.g. "1080", "480")
+                         qualityBadge = getQualityBadge(0, val);
+                    }
+                }
+            }
+        }
+
+        const hasTechInfo = qualityBadge || item.container || item.audioCodec;
+
+        if (hasTechInfo) {
+            html += '<div class="modal-tech-badges">';
+            if (qualityBadge) {
+                html += `<div class="tech-badge">${esc(qualityBadge)}</div>`;
+            }
+            if (item.container) {
+                html += `<div class="tech-badge">${esc(item.container)}</div>`;
+            }
+            if (item.audioCodec) {
+                const audioCh = formatAudioChannels(item.audioChannels);
+                html += `<div class="tech-badge">${esc(item.audioCodec)} ${audioCh ? esc(audioCh) : ''}</div>`;
+            }
+            html += '</div>';
+        }
+
         // Overview inline with poster
         if (item.overview) {
             html += `<div class="modal-overview-inline">${esc(item.overview)}</div>`;
@@ -979,63 +1051,31 @@ async function showItemDetails(serverName, itemId, serverType) {
             html += '</div>';
         }
 
-        // File Info
-        const hasFileInfo = item.videoCodec || item.audioCodec || item.resolution || item.container || item.path;
-        if (hasFileInfo) {
-             html += '<div class="modal-details" style="margin-top: 12px; background: rgba(0,0,0,0.2);">';
+        // File Info (Path only, tech details moved to badges)
+        if (item.path) {
+            const path = item.path;
+            const lastSlash = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+            let dir = path;
+            let file = '';
 
-             if (item.videoCodec) {
-                html += `
-                    <div class="modal-detail-item">
-                        <div class="modal-detail-label">Video</div>
-                        <div class="modal-detail-value">${esc(item.videoCodec.toUpperCase())}${item.resolution ? ' ' + esc(item.resolution) : ''}</div>
+            if (lastSlash > -1) {
+                dir = path.substring(0, lastSlash);
+                file = path.substring(lastSlash + 1);
+            }
+
+            html += `
+                <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; font-family: monospace; font-size: 0.85rem; word-break: break-all; color: #aaa;">
+                    <div style="margin-bottom: 8px;">
+                        <div style="font-size: 0.7rem; text-transform: uppercase; margin-bottom: 2px; color: #666;">Root Path</div>
+                        ${esc(dir)}
                     </div>
-                `;
-             }
-             if (item.audioCodec) {
-                html += `
-                    <div class="modal-detail-item">
-                        <div class="modal-detail-label">Audio</div>
-                        <div class="modal-detail-value">${esc(item.audioCodec.toUpperCase())}${item.audioChannels ? ' ' + esc(item.audioChannels) : ''}</div>
-                    </div>
-                `;
-             }
-             if (item.container) {
-                html += `
-                    <div class="modal-detail-item">
-                        <div class="modal-detail-label">Container</div>
-                        <div class="modal-detail-value">${esc(item.container.toUpperCase())}</div>
-                    </div>
-                `;
-             }
-
-             html += '</div>';
-
-             if (item.path) {
-                const path = item.path;
-                const lastSlash = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
-                let dir = path;
-                let file = '';
-
-                if (lastSlash > -1) {
-                    dir = path.substring(0, lastSlash);
-                    file = path.substring(lastSlash + 1);
-                }
-
-                html += `
-                    <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; font-family: monospace; font-size: 0.85rem; word-break: break-all; color: #aaa;">
-                        <div style="margin-bottom: 8px;">
-                            <div style="font-size: 0.7rem; text-transform: uppercase; margin-bottom: 2px; color: #666;">Root Path</div>
-                            ${esc(dir)}
-                        </div>
-                        ${file ? `
-                        <div>
-                            <div style="font-size: 0.7rem; text-transform: uppercase; margin-bottom: 2px; color: #666;">Filename</div>
-                            <span style="color: #fff; font-weight: 600;">${esc(file)}</span>
-                        </div>` : ''}
-                    </div>
-                `;
-             }
+                    ${file ? `
+                    <div>
+                        <div style="font-size: 0.7rem; text-transform: uppercase; margin-bottom: 2px; color: #666;">Filename</div>
+                        <span style="color: #aaa; font-weight: 600;">${esc(file)}</span>
+                    </div>` : ''}
+                </div>
+            `;
         }
 
         // Current playback info at the bottom
@@ -1202,6 +1242,17 @@ async function loadAll(){
 // Auto-refresh
 async function start(){
     const refreshSeconds = await loadConfig();
+
+    // Fetch server versions once
+    SERVERS.forEach(async server => {
+        const ver = await fetchServerInfo(server);
+        if (ver) {
+            server.version = ver;
+            // Update UI if we are in server view
+            if (currentView === 'servers') renderServerGrid();
+        }
+    });
+
     if(refreshTimer) clearInterval(refreshTimer);
     await loadAll();
     refreshTimer = setInterval(loadAll, refreshSeconds * 1000);

@@ -16,6 +16,7 @@ $server = array_filter($servers, fn($s) => $s['name'] === $serverName);
 if (!$server) { echo json_encode([]); exit; }
 
 $server = array_values($server)[0];
+$action = $_GET['action'] ?? 'sessions';
 
 // Helper function to ensure URL has protocol
 function ensureProtocol($url) {
@@ -27,8 +28,13 @@ function ensureProtocol($url) {
 
 if ($server['type'] === 'plex') {
     $baseUrl = ensureProtocol($server['url']);
-    $url = rtrim($baseUrl, '/') . '/status/sessions';
     $token = isset($server['token']) ? decrypt($server['token']) : '';
+
+    if ($action === 'info') {
+        $url = rtrim($baseUrl, '/') . '/';
+    } else {
+        $url = rtrim($baseUrl, '/') . '/status/sessions';
+    }
 
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);
@@ -59,7 +65,7 @@ if ($server['type'] === 'plex') {
         writeLog("Plex API HTTP $httpCode for {$server['name']}", "ERROR");
     }
 
-    if ($res && $httpCode === 200) {
+    if ($res && $httpCode === 200 && $action !== 'info') {
         logWatchers($server['name'], 'plex', $res);
     }
 
@@ -70,8 +76,13 @@ if ($server['type'] === 'plex') {
 // Emby/Jellyfin proxy logic
 if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
     $baseUrl = ensureProtocol($server['url']);
-    $url = rtrim($baseUrl, '/') . '/Sessions';
     $apiKey = isset($server['apiKey']) ? decrypt($server['apiKey']) : '';
+
+    if ($action === 'info') {
+        $url = rtrim($baseUrl, '/') . '/System/Info';
+    } else {
+        $url = rtrim($baseUrl, '/') . '/Sessions';
+    }
 
     $headers = [
         "X-Emby-Token: $apiKey",
@@ -103,7 +114,7 @@ if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
         writeLog("Emby API HTTP $httpCode for {$server['name']}", "ERROR");
     }
 
-    if ($res && $httpCode === 200) {
+    if ($res && $httpCode === 200 && $action !== 'info') {
         logWatchers($server['name'], 'emby', $res);
     }
 
