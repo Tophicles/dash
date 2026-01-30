@@ -585,7 +585,7 @@ body {
 .modal-overview-inline {
   line-height: 1.6;
   color: rgba(255,255,255,0.85);
-  margin-top: 6px;
+  margin-top: 16px;
   flex: 1;
   max-height: 105px;
   overflow-y: auto;
