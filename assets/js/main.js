@@ -798,6 +798,7 @@ if (IS_ADMIN) {
         // Re-render to update drag handles
         renderServerGrid();
     });
+
 }
 
 // Drag and Drop handlers
