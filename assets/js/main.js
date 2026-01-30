@@ -799,17 +799,6 @@ if (IS_ADMIN) {
         renderServerGrid();
     });
 
-    // Privacy Mode Toggle
-    const privacyBtn = document.getElementById('privacy-btn');
-    if (privacyBtn) {
-        privacyBtn.addEventListener('click', function() {
-            document.body.classList.toggle('privacy-mode');
-            this.classList.toggle('active');
-
-            const isPrivacy = document.body.classList.contains('privacy-mode');
-            this.innerHTML = isPrivacy ? '<i class="fa-solid fa-eye"></i> Show Info' : '<i class="fa-solid fa-eye-slash"></i> Privacy';
-        });
-    }
 }
 
 // Drag and Drop handlers
@@ -1055,7 +1044,7 @@ async function showItemDetails(serverName, itemId, serverType) {
             }
 
             html += `
-                <div class="file-path-block" style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; font-family: monospace; font-size: 0.85rem; word-break: break-all; color: #aaa;">
+                <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; font-family: monospace; font-size: 0.85rem; word-break: break-all; color: #aaa;">
                     <div style="margin-bottom: 8px;">
                         <div style="font-size: 0.7rem; text-transform: uppercase; margin-bottom: 2px; color: #666;">Root Path</div>
                         ${esc(dir)}
