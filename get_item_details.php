@@ -140,7 +140,13 @@ try {
             'contentRating' => $data['OfficialRating'] ?? '',
             'poster' => '',
             'season' => $data['ParentIndexNumber'] ?? '',
-            'episode' => $data['IndexNumber'] ?? ''
+            'episode' => $data['IndexNumber'] ?? '',
+            'videoCodec' => '',
+            'audioCodec' => '',
+            'audioChannels' => '',
+            'resolution' => '',
+            'container' => '',
+            'path' => ''
         ];
         
         // Get genres - try Genres array first, then GenreItems
@@ -180,6 +186,41 @@ try {
         
         if (isset($data['ImageTags']['Primary']) || ($data['Type'] === 'Episode' && isset($data['SeriesId']))) {
             $item['poster'] = 'get_image.php?server=' . urlencode($serverName) . '&itemId=' . urlencode($posterItemId) . '&type=Primary';
+        }
+
+        // Extract File Info (Path, Codecs)
+        if (isset($data['Path'])) {
+             $item['path'] = $data['Path'];
+        } elseif (isset($data['MediaSources'][0]['Path'])) {
+             $item['path'] = $data['MediaSources'][0]['Path'];
+        }
+
+        if (isset($data['Container'])) {
+             $item['container'] = $data['Container'];
+        } elseif (isset($data['MediaSources'][0]['Container'])) {
+             $item['container'] = $data['MediaSources'][0]['Container'];
+        }
+
+        $streams = $data['MediaStreams'] ?? ($data['MediaSources'][0]['MediaStreams'] ?? []);
+        if (!empty($streams)) {
+            foreach ($streams as $stream) {
+                if (($stream['Type'] ?? '') === 'Video') {
+                    $item['videoCodec'] = $stream['Codec'] ?? '';
+                    if (isset($stream['Width']) && isset($stream['Height'])) {
+                        $item['resolution'] = $stream['Width'] . 'x' . $stream['Height'];
+                    }
+                } elseif (($stream['Type'] ?? '') === 'Audio') {
+                     if (empty($item['audioCodec']) || ($stream['IsDefault'] ?? false)) {
+                        $item['audioCodec'] = $stream['Codec'] ?? '';
+
+                        $channels = $stream['Channels'] ?? '';
+                        if ($channels == '2') $channels = '2.0';
+                        elseif ($channels == '6') $channels = '5.1';
+                        elseif ($channels == '8') $channels = '7.1';
+                        $item['audioChannels'] = $channels;
+                     }
+                }
+            }
         }
         
     } else {
@@ -225,7 +266,13 @@ try {
             'contentRating' => $metadata['contentRating'] ?? '',
             'poster' => '',
             'season' => $metadata['parentIndex'] ?? '',
-            'episode' => $metadata['index'] ?? ''
+            'episode' => $metadata['index'] ?? '',
+            'videoCodec' => '',
+            'audioCodec' => '',
+            'audioChannels' => '',
+            'resolution' => '',
+            'container' => '',
+            'path' => ''
         ];
         
         // Get genres
@@ -252,6 +299,27 @@ try {
         
         if ($posterPath) {
             $item['poster'] = 'get_image.php?server=' . urlencode($serverName) . '&path=' . urlencode($posterPath);
+        }
+
+        // Extract Media Info
+        if (isset($metadata['Media'][0])) {
+            $media = $metadata['Media'][0];
+            $item['videoCodec'] = $media['videoCodec'] ?? '';
+            $item['audioCodec'] = $media['audioCodec'] ?? '';
+
+            // Map common channel counts to friendly names
+            $channels = $media['audioChannels'] ?? '';
+            if ($channels == '2') $channels = '2.0';
+            elseif ($channels == '6') $channels = '5.1';
+            elseif ($channels == '8') $channels = '7.1';
+
+            $item['audioChannels'] = $channels;
+            $item['resolution'] = $media['videoResolution'] ?? '';
+            $item['container'] = $media['container'] ?? '';
+
+            if (isset($media['Part'][0]['file'])) {
+                $item['path'] = $media['Part'][0]['file'];
+            }
         }
     }
     

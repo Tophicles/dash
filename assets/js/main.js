@@ -933,6 +933,44 @@ async function showItemDetails(serverName, itemId, serverType) {
         }
         html += '</div>';
 
+        // Technical Badges
+        const hasTechInfo = item.videoCodec || item.audioCodec || item.resolution || item.container;
+        if (hasTechInfo) {
+            html += '<div class="modal-tech-badges">';
+
+            // Resolution Badge
+            let resBadge = '';
+            if (item.resolution) {
+                if (item.resolution.includes('x')) {
+                    const [w, h] = item.resolution.split('x').map(Number);
+                    resBadge = getQualityBadge(w, h);
+                } else if (!isNaN(item.resolution)) {
+                     resBadge = getQualityBadge(0, Number(item.resolution));
+                } else {
+                     resBadge = item.resolution;
+                }
+            }
+            if (resBadge) {
+                html += `<span class="modal-tech-badge resolution">${esc(resBadge)}</span>`;
+            }
+
+            // Container Badge
+            if (item.container) {
+                html += `<span class="modal-tech-badge container">${esc(item.container.toUpperCase())}</span>`;
+            }
+
+            // Audio Badge
+            if (item.audioCodec) {
+                let audioText = item.audioCodec.toUpperCase();
+                if (item.audioChannels) {
+                    audioText += ' ' + item.audioChannels + 'ch';
+                }
+                html += `<span class="modal-tech-badge audio">${esc(audioText)}</span>`;
+            }
+
+            html += '</div>';
+        }
+
         // Overview inline with poster
         if (item.overview) {
             html += `<div class="modal-overview-inline">${esc(item.overview)}</div>`;
@@ -977,6 +1015,33 @@ async function showItemDetails(serverName, itemId, serverType) {
                 `;
             }
             html += '</div>';
+        }
+
+        // File Path
+        if (item.path) {
+            const path = item.path;
+            const lastSlash = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+            let dir = path;
+            let file = '';
+
+            if (lastSlash > -1) {
+                dir = path.substring(0, lastSlash);
+                file = path.substring(lastSlash + 1);
+            }
+
+            html += `
+                <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; font-family: monospace; font-size: 0.85rem; word-break: break-all; color: #aaa;">
+                    <div style="margin-bottom: 8px;">
+                        <div style="font-size: 0.7rem; text-transform: uppercase; margin-bottom: 2px; color: #666;">Root Path</div>
+                        ${esc(dir)}
+                    </div>
+                    ${file ? `
+                    <div>
+                        <div style="font-size: 0.7rem; text-transform: uppercase; margin-bottom: 2px; color: #666;">Filename</div>
+                        <span>${esc(file)}</span>
+                    </div>` : ''}
+                </div>
+            `;
         }
 
         // Current playback info at the bottom

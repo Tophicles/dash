@@ -915,6 +915,40 @@ body {
   .user-mobile { display: inline; font-weight: bold; cursor: pointer; }
   .clock-full { display: none; }
   .clock-short { display: inline; }
+
+  /* Modal Responsive */
+  .modal-header-new {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .modal-poster {
+    margin-bottom: 16px;
+  }
+  .modal-poster img {
+    width: 140px; /* Slightly smaller on mobile */
+  }
+  .modal-meta {
+    justify-content: center;
+  }
+  .modal-tech-badges {
+    justify-content: center;
+  }
+  .status-badge-fixed, .playmethod-badge-fixed {
+    position: static;
+    display: inline-block;
+    margin-bottom: 8px;
+  }
+  .modal-playback-info-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    text-align: center;
+  }
+  .modal-playback-info {
+    padding-right: 0;
+  }
 }
 
 form input, form select, form button { padding:8px 12px; font-size:0.9rem; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:4px; }
@@ -932,4 +966,37 @@ form button:hover { background:#45a049; }
   0% { box-shadow: 0 0 5px rgba(76, 175, 80, 0.4); }
   50% { box-shadow: 0 0 20px rgba(76, 175, 80, 0.6); }
   100% { box-shadow: 0 0 5px rgba(76, 175, 80, 0.4); }
+}
+
+.modal-tech-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.modal-tech-badge {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ddd;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.modal-tech-badge.resolution {
+  background: rgba(33, 150, 243, 0.2);
+  border-color: rgba(33, 150, 243, 0.4);
+  color: #64b5f6;
+}
+.modal-tech-badge.container {
+  background: rgba(156, 39, 176, 0.2);
+  border-color: rgba(156, 39, 176, 0.4);
+  color: #ce93d8;
+}
+.modal-tech-badge.audio {
+  background: rgba(255, 152, 0, 0.2);
+  border-color: rgba(255, 152, 0, 0.4);
+  color: #ffb74d;
 }
