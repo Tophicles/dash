@@ -51,11 +51,53 @@ $isAdmin = isAdmin();
       <button class="btn" id="reorder-btn" title="Toggle Reorder Mode">Reorder</button>
       <button class="btn" id="users-btn" title="Manage Users">Users</button>
       <button class="btn" id="libraries-btn" title="Manage Libraries">Libraries</button>
+      <button class="btn" id="server-admin-btn" title="Server Administration"><i class="fa-solid fa-server"></i> Admin</button>
       <button class="btn" id="logs-btn" title="View System Logs" onclick="window.open('view_logs.php', 'SystemLogs')">Logs</button>
       <?php endif; ?>
       <button class="btn" id="activeonly-btn" title="Show Only Active Servers">Active Only</button>
       <button class="btn" id="showall-btn" title="Toggle All Sessions">Show All</button>
       <button class="btn danger" onclick="window.location.href='logout.php'">Logout</button>
+    </div>
+  </div>
+</div>
+
+<!-- Server Admin Modal -->
+<div id="server-admin-modal" class="modal">
+  <div class="modal-content" style="max-width: 900px;">
+    <span class="modal-close" onclick="closeServerAdminModal()">&times;</span>
+    <div id="server-admin-body" style="padding: 20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; margin-right: 40px;">
+        <h2 style="margin-bottom:0;">Server Administration</h2>
+        <button class="btn" id="ssh-keys-btn" title="SSH Key Manager"><i class="fa-solid fa-key"></i> SSH Keys</button>
+      </div>
+      <div id="admin-server-list" class="admin-server-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SSH Manager Modal -->
+<div id="ssh-modal" class="modal">
+  <div class="modal-content" style="max-width: 600px;">
+    <span class="modal-close" onclick="closeSSHModal()">&times;</span>
+    <h2 style="margin-bottom: 20px;">SSH Key Management</h2>
+
+    <div class="ssh-status-box">
+      <label>Public Key (for authorized_keys)</label>
+      <textarea id="ssh-public-key" readonly class="ssh-key-display" placeholder="No key generated yet."></textarea>
+      <button class="btn" id="ssh-copy-btn" style="margin-top: 8px;">Copy to Clipboard</button>
+    </div>
+
+    <div class="ssh-warning-box">
+      <div class="warning-title"><i class="fa-solid fa-triangle-exclamation"></i> WARNING</div>
+      <p>Generating a new key pair will overwrite any existing keys. You will need to update the <code>authorized_keys</code> file on all managed servers with the new public key.</p>
+      <p>This allows this dashboard server to execute remote commands (like restarting services) on your media servers.</p>
+
+      <div class="ssh-agreement">
+        <input type="checkbox" id="ssh-agree-chk">
+        <label for="ssh-agree-chk">I acknowledge the security risks involved in generating and storing private keys.</label>
+      </div>
+
+      <button class="btn danger" id="ssh-generate-btn" disabled>Generate New Key Pair</button>
     </div>
   </div>
 </div>
@@ -139,6 +181,30 @@ $isAdmin = isAdmin();
           <label>Token (Plex)</label>
           <input type="text" name="token">
         </div>
+
+        <!-- SSH Configuration -->
+        <div style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 15px;">
+            <h3 style="margin-bottom: 10px; font-size: 1rem; color: var(--accent);">SSH Configuration (Optional)</h3>
+            <div class="server-form-group">
+                <label>SSH Host (IP/Hostname)</label>
+                <input type="text" name="ssh_host" placeholder="e.g. 192.168.1.100">
+            </div>
+            <div class="ssh-row">
+                <div class="server-form-group" style="flex: 1;">
+                    <label>SSH Port</label>
+                    <input type="number" name="ssh_port" value="22" placeholder="22">
+                </div>
+                <div class="server-form-group" style="flex: 2;">
+                    <label>SSH User</label>
+                    <input type="text" name="ssh_user" placeholder="e.g. mediasvc">
+                </div>
+            </div>
+             <div class="server-form-group">
+                <label>Service Name (for systemctl)</label>
+                <input type="text" name="ssh_service" placeholder="e.g. plexmediaserver or emby-server">
+            </div>
+        </div>
+
         <div class="server-form-group" style="margin-top: 10px;">
           <button type="submit" class="btn primary" id="server-submit-btn">Add Server</button>
         </div>

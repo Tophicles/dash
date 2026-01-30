@@ -62,6 +62,12 @@ if (!empty($data['token'])) {
     $newServer['token'] = encrypt($data['token']);
 }
 
+// Add optional SSH fields
+if (!empty($data['ssh_host'])) $newServer['ssh_host'] = $data['ssh_host'];
+if (!empty($data['ssh_port'])) $newServer['ssh_port'] = $data['ssh_port'];
+if (!empty($data['ssh_user'])) $newServer['ssh_user'] = $data['ssh_user'];
+if (!empty($data['ssh_service'])) $newServer['ssh_service'] = $data['ssh_service'];
+
 $config['servers'][] = $newServer;
 
 error_log("Adding new server: " . json_encode($newServer));
