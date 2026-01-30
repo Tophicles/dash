@@ -58,6 +58,12 @@ if ($server['type'] === 'plex') {
              $response['updateAvailable'] = true;
         }
 
+        // Test flag to simulate update availability
+        if (isset($_GET['test_update'])) {
+            $response['updateAvailable'] = true;
+            writeLog("[TEST] Simulated update availability for server: {$server['name']}", "INFO");
+        }
+
         echo json_encode($response);
         exit;
     } else {
@@ -128,6 +134,12 @@ if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
             'version' => $data['Version'] ?? 'Unknown',
             'updateAvailable' => (bool)($data['HasUpdateAvailable'] ?? false)
         ];
+
+        // Test flag to simulate update availability
+        if (isset($_GET['test_update'])) {
+            $response['updateAvailable'] = true;
+            writeLog("[TEST] Simulated update availability for server: {$server['name']}", "INFO");
+        }
 
         echo json_encode($response);
         exit;
