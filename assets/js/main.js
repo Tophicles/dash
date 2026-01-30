@@ -378,6 +378,18 @@ async function checkServerUpdate(serverId, btn) {
     }
 }
 
+async function logSystemEvent(message, level = 'INFO') {
+    try {
+        await fetch('log_event.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message, level })
+        });
+    } catch (e) {
+        console.error('Failed to log event', e);
+    }
+}
+
 async function restartServer(serverId, serverName) {
     const sessions = ALL_SESSIONS[serverName] || [];
     if (sessions.length > 0) {
@@ -393,13 +405,42 @@ async function restartServer(serverId, serverName) {
         const data = await res.json();
 
         if (data.success) {
-            alert(`Restart command sent to ${serverName}`);
+            alert(`Restart command sent to ${serverName}. Monitoring restart process...`);
+
+            // Log initial request
+            logSystemEvent(`Restart command issued for ${serverName}`);
+
+            // Find server object
+            const server = SERVERS.find(s => s.id === serverId);
+            if (!server) return;
+
+            // Start monitoring
+            const checkInterval = setInterval(async () => {
+                const info = await fetchServerInfo(server);
+
+                if (info) {
+                    // Server is back online
+                    logSystemEvent(`Server ${serverName} has restarted successfully.`);
+                    clearInterval(checkInterval);
+
+                    server.version = info.version;
+                    renderServerAdminList(); // Update UI
+                    // alert(`Server ${serverName} is back online!`);
+                } else {
+                    // Server is offline
+                    logSystemEvent(`Server ${serverName} unreachable. Retrying connection...`, 'WARN');
+                    // Optional: Update UI to show "Restarting..." if we had a dedicated status element
+                }
+            }, 1000); // Check every second
+
         } else {
             alert(`Failed to restart: ${data.error || 'Unknown error'}`);
+            logSystemEvent(`Restart failed for ${serverName}: ${data.error}`, 'ERROR');
         }
     } catch (e) {
         console.error('Restart failed', e);
         alert('Failed to communicate with server');
+        logSystemEvent(`Restart communication failed for ${serverName}: ${e.message}`, 'ERROR');
     }
 }
 
