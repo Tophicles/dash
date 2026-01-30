@@ -1004,23 +1004,3 @@ form button:hover { background:#45a049; }
   gap: 8px;
   margin-top: -8px; /* Slightly pull up closer to meta */
 }
-
-/* Privacy Mode */
-body.privacy-mode .user-label,
-body.privacy-mode .online-user-badge,
-body.privacy-mode .user-info,
-body.privacy-mode .server-address,
-body.privacy-mode .server-match-preview,
-body.privacy-mode .modal-playback-info strong,
-body.privacy-mode .user-item-username,
-body.privacy-mode .file-path-block {
-  filter: blur(6px);
-  opacity: 0.7;
-  pointer-events: none;
-  user-select: none;
-}
-
-body.privacy-mode .user-label {
-  display: block; /* Ensure blur works correctly on flex items */
-  width: fit-content;
-}
