@@ -843,9 +843,22 @@ function renderServerGrid() {
             </div>
         `;
 
+        // Test Update Button (Admin Only)
+        if (IS_ADMIN) {
+            const testBtn = document.createElement('div');
+            testBtn.className = 'server-test-btn';
+            testBtn.title = 'Test Update Notification';
+            testBtn.innerHTML = '<i class="fa-solid fa-flask"></i>';
+            testBtn.onclick = (e) => {
+                e.stopPropagation();
+                testServerUpdate(server.id);
+            };
+            card.appendChild(testBtn);
+        }
+
         // Click to view sessions (only if not clicking drag handle)
         card.addEventListener('click', (e) => {
-            if (!e.target.classList.contains('drag-handle') && !e.target.closest('a') && !reorderMode) {
+            if (!e.target.classList.contains('drag-handle') && !e.target.closest('a') && !e.target.closest('.server-test-btn') && !reorderMode) {
                 showSessionsView(server.id, server.name);
             }
         });
