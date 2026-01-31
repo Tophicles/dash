@@ -587,6 +587,8 @@ body {
   color: rgba(255,255,255,0.85);
   margin-top: 16px;
   flex: 1;
+  max-height: 95px;
+  overflow-y: auto;
 }
 .modal-playback {
   background: rgba(76, 175, 80, 0.1);
@@ -879,6 +881,33 @@ body {
   flex: 1;
 }
 
+/* SSH Row - Responsive */
+.ssh-row {
+  display: flex;
+  gap: 10px;
+}
+@media (max-width: 480px) {
+  .ssh-row {
+    flex-direction: column;
+  }
+}
+
+/* Scrollbar styling for overview */
+.modal-overview-inline::-webkit-scrollbar {
+  width: 6px;
+}
+.modal-overview-inline::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.05);
+  border-radius: 3px;
+}
+.modal-overview-inline::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 3px;
+}
+.modal-overview-inline::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.3);
+}
+
 /* Mobile Responsive */
 @media (max-width: 768px) {
   .top-bar-header {
@@ -931,6 +960,9 @@ body {
   .modal-meta {
     justify-content: center;
   }
+  .modal-tech-badges {
+    justify-content: center;
+  }
   .status-badge-fixed, .playmethod-badge-fixed {
     position: static;
     display: inline-block;
@@ -963,4 +995,178 @@ form button:hover { background:#45a049; }
   0% { box-shadow: 0 0 5px rgba(76, 175, 80, 0.4); }
   50% { box-shadow: 0 0 20px rgba(76, 175, 80, 0.6); }
   100% { box-shadow: 0 0 5px rgba(76, 175, 80, 0.4); }
+}
+
+.tech-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #eee;
+  text-transform: uppercase;
+}
+.modal-tech-badges {
+  margin-bottom: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: -8px; /* Slightly pull up closer to meta */
+}
+
+
+.server-version {
+  font-size: 0.7rem;
+  color: #ccc;
+  margin-top: 2px;
+}
+
+.server-title-version {
+  font-size: 0.8em;
+  color: rgba(255, 255, 255, 0.8);
+  margin-left: 8px;
+  font-weight: normal;
+}
+
+.update-available {
+  color: #4caf50;
+  margin-left: 4px;
+  animation: pulse-green 2s infinite;
+}
+
+@keyframes pulse-green {
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
+}
+
+.server-test-btn {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  color: rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: color 0.2s;
+  z-index: 10;
+}
+.server-test-btn:hover {
+  color: var(--accent);
+}
+
+/* Server Admin Modal */
+.admin-server-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.admin-server-item {
+  background: rgba(0,0,0,0.3);
+  padding: 12px 16px;
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid var(--border);
+}
+.admin-server-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.admin-server-name {
+  font-weight: 600;
+  font-size: 1rem;
+}
+.admin-server-details {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.admin-server-actions {
+  display: flex;
+  gap: 8px;
+}
+.admin-action-btn {
+  background: #37474f;
+  border: 1px solid var(--border);
+  color: #eee;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+}
+.admin-action-btn:hover {
+  background: #455a64;
+  color: #fff;
+}
+.admin-action-btn.danger {
+  background: rgba(211, 47, 47, 0.2);
+  border-color: #d32f2f;
+  color: #ef5350;
+}
+.admin-action-btn.danger:hover {
+  background: #d32f2f;
+  color: #fff;
+}
+.admin-action-btn.success {
+  background: rgba(76, 175, 80, 0.2);
+  border-color: #4caf50;
+  color: #81c784;
+}
+.admin-action-btn.success:hover {
+  background: #4caf50;
+  color: #fff;
+}
+
+/* SSH Manager */
+.ssh-status-box {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 15px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
+.ssh-key-display {
+  width: 100%;
+  height: 100px;
+  background: #111;
+  color: #ccc;
+  border: 1px solid #444;
+  padding: 10px;
+  font-family: monospace;
+  font-size: 0.8rem;
+  resize: none;
+  margin-top: 8px;
+}
+.ssh-warning-box {
+  background: rgba(211, 47, 47, 0.1);
+  border: 1px solid #d32f2f;
+  padding: 15px;
+  border-radius: 6px;
+}
+.warning-title {
+  color: #ef5350;
+  font-weight: bold;
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ssh-agreement {
+  margin: 15px 0;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.ssh-agreement input {
+  margin-top: 4px;
+}
+.ssh-agreement label {
+  font-size: 0.9rem;
+  color: #ddd;
+  line-height: 1.4;
+  cursor: pointer;
 }
