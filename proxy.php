@@ -77,7 +77,8 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
     } elseif ($action === 'ssh_start') {
         $cmd = "nohup sudo systemctl start $service > /dev/null 2>&1 &";
     } elseif ($action === 'ssh_status') {
-        $cmd = "systemctl is-active $service";
+        // Append || true to ensure exit code 0 even if inactive (which returns 3)
+        $cmd = "systemctl is-active $service || true";
     } elseif ($action === 'ssh_system_stats') {
         // Detailed stats command chain: Uptime, Load, Mem, Net1, CPU1, Process, Sleep, Net2, CPU2
         $cmd = "cat /proc/uptime; echo '---'; " .

@@ -270,7 +270,10 @@ async function fetchServer(server){
             }));
         }
     } catch(e){
-        console.error('Server fetch error', e);
+        // Ignore expected AbortError during server restarts/offline
+        if (e.name !== 'AbortError') {
+            console.error('Server fetch error', e);
+        }
         return [];
     }
 }
@@ -524,8 +527,10 @@ async function fetchServerStatus(serverId) {
 
         containers.forEach(container => {
             if (data.success) {
-                // If data.success is true, SSH exited 0, so service is active/running.
-                const isRunning = true;
+                // Parse status (active/inactive/activating/etc)
+                const status = (data.status || '').trim();
+                const isRunning = status === 'active' || status === 'activating';
+
                 const server = SERVERS.find(s => s.id === serverId);
                 const serverName = server ? server.name : 'Server';
 
