@@ -32,25 +32,35 @@ if($serverIndex === null) {
     exit;
 }
 
-// Update server data (preserve existing apiKey/token if not provided, keep ID unchanged)
+// Partial Update Logic
 $existingServer = $servers['servers'][$serverIndex];
-$servers['servers'][$serverIndex] = [
-    "id" => $existingServer['id'], // Keep the original ID
-    "name" => $newName,
-    "type" => $data['type'] ?? $existingServer['type'],
-    "url" => $data['url'] ?? $existingServer['url'],
-    "apiKey" => isset($data['apiKey']) && $data['apiKey'] !== '' ? encrypt($data['apiKey']) : ($existingServer['apiKey'] ?? ''),
-    "token" => isset($data['token']) && $data['token'] !== '' ? encrypt($data['token']) : ($existingServer['token'] ?? ''),
-    "enabled" => true,
-    "order" => $existingServer['order'] ?? (count($servers['servers']) + 1)
-];
+
+// Fields to update if present in $data, otherwise keep existing
+$updatableFields = ['name', 'type', 'url', 'os_type', 'ssh_port', 'order', 'enabled', 'ssh_initialized'];
+
+foreach ($updatableFields as $field) {
+    if (isset($data[$field])) {
+        $existingServer[$field] = $data[$field];
+    }
+}
+
+// Handle Encryption Fields
+if (isset($data['apiKey']) && $data['apiKey'] !== '') {
+    $existingServer['apiKey'] = encrypt($data['apiKey']);
+}
+if (isset($data['token']) && $data['token'] !== '') {
+    $existingServer['token'] = encrypt($data['token']);
+}
+
+$servers['servers'][$serverIndex] = $existingServer;
+$serverName = $existingServer['name'];
 
 if(file_put_contents($serversFile, json_encode($servers, JSON_PRETTY_PRINT))){
     $user = getCurrentUser()['username'];
-    writeLog("User '$user' updated server '$newName' (ID: $serverId)", "AUTH");
-    echo json_encode(['success'=>true,'server'=>$servers['servers'][$serverIndex]]);
+    writeLog("User '$user' updated server '$serverName' (ID: $serverId)", "AUTH");
+    echo json_encode(['success'=>true,'server'=>$existingServer]);
 } else {
-    writeLog("Failed to update server '$newName': Write permission denied", "ERROR");
+    writeLog("Failed to update server '$serverName': Write permission denied", "ERROR");
     echo json_encode(['success'=>false,'error'=>'Failed to write servers.json']);
 }
 ?>
