@@ -518,7 +518,7 @@ function renderServerAdminList() {
     });
 }
 
-const RESTARTING_SERVERS = new Set();
+const SERVER_TRANSITIONS = {}; // { serverId: 'ssh_start'|'ssh_stop'|'ssh_restart' }
 
 async function fetchServerStatus(serverId) {
     try {
@@ -534,14 +534,24 @@ async function fetchServerStatus(serverId) {
                 const status = (data.status || '').trim();
                 const isRunning = status === 'active' || status === 'activating';
 
-                // Handle Restarting State
-                if (RESTARTING_SERVERS.has(serverId)) {
-                    if (isRunning) {
-                        RESTARTING_SERVERS.delete(serverId); // It's back online!
-                    } else {
-                        // Still offline/restarting
-                        container.innerHTML = '<span style="color:#e5a00d;"><i class="fa-solid fa-spinner fa-spin"></i> Restarting...</span>';
-                        return;
+                // Handle Pending State Transitions
+                const transition = SERVER_TRANSITIONS[serverId];
+                if (transition) {
+                    if (transition === 'ssh_restart' || transition === 'ssh_start') {
+                        if (isRunning) {
+                            delete SERVER_TRANSITIONS[serverId]; // Action complete
+                        } else {
+                            const label = transition === 'ssh_restart' ? 'Restarting' : 'Starting';
+                            container.innerHTML = `<span style="color:#e5a00d;"><i class="fa-solid fa-spinner fa-spin"></i> ${label}...</span>`;
+                            return;
+                        }
+                    } else if (transition === 'ssh_stop') {
+                        if (!isRunning) {
+                            delete SERVER_TRANSITIONS[serverId]; // Action complete
+                        } else {
+                            container.innerHTML = `<span style="color:#e5a00d;"><i class="fa-solid fa-spinner fa-spin"></i> Stopping...</span>`;
+                            return;
+                        }
                     }
                 }
 
@@ -595,13 +605,9 @@ async function controlServerSSH(serverId, serverName, action) {
         const data = await res.json();
 
         if (data.success) {
-            if (action === 'ssh_restart') {
-                RESTARTING_SERVERS.add(serverId);
-                pollServerStatus(serverId);
-            } else {
-                // Wait 2 seconds then refresh status
-                setTimeout(() => fetchServerStatus(serverId), 2000);
-            }
+            // Register transition and start polling for ALL actions
+            SERVER_TRANSITIONS[serverId] = action;
+            pollServerStatus(serverId);
         } else {
              alert(`SSH Command Failed: ${data.error}`);
              logSystemEvent(`SSH ${actionName} Failed for ${serverName}: ${data.error}`, 'ERROR');
@@ -618,9 +624,9 @@ function pollServerStatus(serverId) {
     const maxAttempts = 30; // 45 seconds approx
     const interval = setInterval(() => {
         attempts++;
-        if (!RESTARTING_SERVERS.has(serverId) || attempts >= maxAttempts) {
+        if (!SERVER_TRANSITIONS[serverId] || attempts >= maxAttempts) {
             clearInterval(interval);
-            RESTARTING_SERVERS.delete(serverId);
+            delete SERVER_TRANSITIONS[serverId]; // Ensure cleanup on timeout
             fetchServerStatus(serverId); // Final state check
             return;
         }
