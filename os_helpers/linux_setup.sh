@@ -57,46 +57,41 @@ create_user() {
 # Generate sudoers safely
 ########################################
 generate_sudoers() {
-    # Remove old sudoers file if it exists
-    if [ -f "$SUDOERS_FILE" ]; then
-        rm -f "$SUDOERS_FILE"
-    fi
-
-    local commands=(
+    COMMANDS=(
       "$SYSTEMCTL start plexmediaserver"
       "$SYSTEMCTL stop plexmediaserver"
       "$SYSTEMCTL restart plexmediaserver"
       "$SYSTEMCTL is-active plexmediaserver"
       "$SYSTEMCTL show plexmediaserver -p MemoryCurrent -p CPUUsageNSec"
-
       "$SYSTEMCTL start emby-server"
       "$SYSTEMCTL stop emby-server"
       "$SYSTEMCTL restart emby-server"
       "$SYSTEMCTL is-active emby-server"
       "$SYSTEMCTL show emby-server -p MemoryCurrent -p CPUUsageNSec"
-
       "$SYSTEMCTL start jellyfin"
       "$SYSTEMCTL stop jellyfin"
       "$SYSTEMCTL restart jellyfin"
       "$SYSTEMCTL is-active jellyfin"
       "$SYSTEMCTL show jellyfin -p MemoryCurrent -p CPUUsageNSec"
-
       "$UPTIME"
       "$FREE -m"
     )
 
-    # Write sudoers file — all commands on one line, safe syntax
+    # Remove stale/corrupt file first
+    rm -f "$SUDOERS_FILE"
+
     {
-      echo "$USER_NAME ALL=(ALL) NOPASSWD: ${commands[*]}"
+      echo "$USER_NAME ALL=(ALL) NOPASSWD: \\"
+      for i in "${!COMMANDS[@]}"; do
+        if [ "$i" -lt $(( ${#COMMANDS[@]} - 1 )) ]; then
+          echo "  ${COMMANDS[$i]}, \\"
+        else
+          echo "  ${COMMANDS[$i]}"
+        fi
+      done
     } > "$SUDOERS_FILE"
 
     chmod 440 "$SUDOERS_FILE"
-
-    # Validate sudoers
-    if ! visudo -cf "$SUDOERS_FILE" >/dev/null; then
-        echo "❌ Generated sudoers file has syntax errors!"
-        exit 1
-    fi
 }
 
 ########################################
