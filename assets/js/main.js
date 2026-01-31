@@ -2278,10 +2278,13 @@ async function fetchServerStats(serverId) {
             }
 
             // 1. Uptime
-            const uptimeSec = parseFloat(parts[0].split(' ')[0]);
+            // Handle SSH banners by taking the last line of the output
+            const uptimeLines = parts[0].trim().split('\n');
+            const uptimeLine = uptimeLines[uptimeLines.length - 1].trim();
+            const uptimeSec = parseFloat(uptimeLine.split(' ')[0]);
             const d = Math.floor(uptimeSec / 86400);
             const h = Math.floor((uptimeSec % 86400) / 3600);
-            const uptimeStr = `${d}d ${h}h`;
+            const uptimeStr = (isNaN(d) || isNaN(h)) ? 'Unknown' : `${d}d ${h}h`;
 
             // 2. Load
             const loadStr = parts[1].split(' ').slice(0, 3).join(' ');
