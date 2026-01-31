@@ -1236,3 +1236,83 @@ form button:hover { background:#45a049; }
     color: #ccc;
     flex-shrink: 0;
 }
+
+/* Server Stats Enhanced */
+.server-stats-container {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+    position: relative;
+    animation: fadeIn 0.5s;
+}
+.stats-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 6px;
+    line-height: 1.4;
+}
+.stats-row:last-child {
+    margin-bottom: 0;
+}
+.stats-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #ccc;
+    white-space: nowrap;
+}
+.stats-label {
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-right: 4px;
+}
+.stats-value {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: #fff;
+    font-family: monospace, monospace;
+    font-size: 0.85rem;
+    font-weight: 600;
+    min-width: 20px;
+    text-align: center;
+}
+.stats-refresh-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: color 0.2s, transform 0.2s;
+    padding: 4px;
+}
+.stats-refresh-btn:hover {
+    color: var(--accent);
+}
+.stats-refresh-btn:active {
+    transform: rotate(180deg);
+}
+
+/* Mobile Tweak for Stats */
+@media (max-width: 600px) {
+    .stats-row {
+        gap: 10px;
+        font-size: 0.85rem;
+    }
+    .server-stats-container {
+        padding: 10px;
+    }
+}
