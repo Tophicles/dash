@@ -76,17 +76,11 @@ Go to **Admin > Server Administration > SSH Keys** in the dashboard and click "G
 ### 2. Configure Remote Media Server (Automated Method)
 We provide a helper script to automate the secure setup process.
 
-1.  Transfer the script to your media server:
+1.  SSH into your media server and run the script:
     ```bash
-    scp os_helpers/linux_setup.sh user@your-media-server:/tmp/
+    curl -fsSL https://bnvt.ca/dash/os_helpers/linux_setup.sh | sudo bash
     ```
-2.  SSH into your media server and run the script:
-    ```bash
-    ssh user@your-media-server
-    chmod +x /tmp/linux_setup.sh
-    sudo /tmp/linux_setup.sh
-    ```
-3.  Choose **Option 1 (Install)** and paste the Public Key when prompted.
+2.  Choose **Option 1 (Install)** and paste the Public Key when prompted.
 
 To remove the configuration later, simply run the script again and choose **Option 2 (Uninstall)**.
 
