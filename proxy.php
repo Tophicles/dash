@@ -27,7 +27,7 @@ $server = array_values($server)[0];
 $action = $_GET['action'] ?? 'sessions';
 
 // Handle SSH Actions globally (for any server type)
-if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status'])) {
+if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ssh_uptime'])) {
     if (!isAdmin()) {
         http_response_code(403);
         echo json_encode(['success' => false, 'error' => 'Unauthorized']);
@@ -76,6 +76,8 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status'])) {
         $cmd = "sudo systemctl start $service";
     } elseif ($action === 'ssh_status') {
         $cmd = "systemctl is-active $service";
+    } elseif ($action === 'ssh_uptime') {
+        $cmd = "uptime";
     }
 
     if (!$cmd) {
@@ -92,6 +94,8 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status'])) {
             $lines = explode("\n", trim($result['output']));
             $status = end($lines);
             echo json_encode(['success' => true, 'status' => $status]);
+        } elseif ($action === 'ssh_uptime') {
+            echo json_encode(['success' => true, 'output' => trim($result['output'])]);
         } else {
             writeLog("SSH command '$action' sent to {$server['name']} ($host)", "INFO");
             echo json_encode($result);
