@@ -27,7 +27,7 @@ $server = array_values($server)[0];
 $action = $_GET['action'] ?? 'sessions';
 
 // Handle SSH Actions globally (for any server type)
-if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ssh_uptime'])) {
+if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ssh_system_stats'])) {
     if (!isAdmin()) {
         http_response_code(403);
         echo json_encode(['success' => false, 'error' => 'Unauthorized']);
@@ -76,8 +76,8 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
         $cmd = "sudo systemctl start $service";
     } elseif ($action === 'ssh_status') {
         $cmd = "systemctl is-active $service";
-    } elseif ($action === 'ssh_uptime') {
-        $cmd = "uptime";
+    } elseif ($action === 'ssh_system_stats') {
+        $cmd = "uptime; echo '---'; free -m; echo '---'; sudo systemctl show $service -p MemoryCurrent -p CPUUsageNSec";
     }
 
     if (!$cmd) {
@@ -94,7 +94,7 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
             $lines = explode("\n", trim($result['output']));
             $status = end($lines);
             echo json_encode(['success' => true, 'status' => $status]);
-        } elseif ($action === 'ssh_uptime') {
+        } elseif ($action === 'ssh_system_stats') {
             echo json_encode(['success' => true, 'output' => trim($result['output'])]);
         } else {
             writeLog("SSH command '$action' sent to {$server['name']} ($host)", "INFO");
