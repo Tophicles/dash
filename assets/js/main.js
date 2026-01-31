@@ -2354,10 +2354,10 @@ async function fetchServerStats(serverId) {
             const cpuStart = parseCpu(parts[4]);
             const cpuEnd = parseCpu(parts[8]);
             let cpuPercent = 0;
-            const dTotal = cpuEnd.total - cpuStart.total;
-            const dIdle = cpuEnd.idle - cpuStart.idle;
-            if (dTotal > 0) {
-                cpuPercent = ((1 - dIdle / dTotal) * 100).toFixed(0);
+            const diffTotal = cpuEnd.total - cpuStart.total;
+            const diffIdle = cpuEnd.idle - cpuStart.idle;
+            if (diffTotal > 0) {
+                cpuPercent = ((1 - diffIdle / diffTotal) * 100).toFixed(0);
             }
 
             // 6. Process Stats
