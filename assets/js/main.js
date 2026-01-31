@@ -982,6 +982,13 @@ function renderServerGrid() {
 
         const dragHandle = IS_ADMIN ? '<div class="drag-handle"><i class="fa-solid fa-bars"></i></div>' : '';
 
+        // OS Badge Logic
+        let osIcon = 'fa-server';
+        if (!server.os_type || server.os_type === 'linux') osIcon = 'fa-linux';
+        else if (server.os_type === 'windows') osIcon = 'fa-windows';
+        else if (server.os_type === 'macos') osIcon = 'fa-apple';
+        else if (server.os_type === 'other') osIcon = 'fa-server';
+
         card.innerHTML = `
             ${dragHandle}
             <div class="server-name">${esc(server.name)}</div>
@@ -995,6 +1002,7 @@ function renderServerGrid() {
                 <div class="status-dot ${isActive ? 'active server-' + esc(server.type) : ''}"></div>
                 ${isActive ? `${sessions.length} playing` : 'Idle'}
             </div>
+            <div class="card-os-badge"><i class="fa-brands ${osIcon}"></i></div>
         `;
 
         // Click to view sessions (only if not clicking drag handle)
@@ -1179,27 +1187,28 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
     const titleElement = document.getElementById('server-title');
 
     // Header Left
-    let headerHtml = `
-        <div class="header-left">
+    let headerHtml = '<div class="header-left">';
+
+    // Header OS Icon (Left)
+    if (server) {
+        let osIcon = 'fa-server';
+        if (!server.os_type || server.os_type === 'linux') osIcon = 'fa-linux';
+        else if (server.os_type === 'windows') osIcon = 'fa-windows';
+        else if (server.os_type === 'macos') osIcon = 'fa-apple';
+        else if (server.os_type === 'other') osIcon = 'fa-server';
+
+        headerHtml += `<div class="header-os-badge" title="OS: ${esc(server.os_type || 'linux')}"><i class="fa-brands ${osIcon}"></i></div>`;
+    }
+
+    headerHtml += `
             ${esc(serverName)}
             ${server && server.version ? `<span class="server-title-version">[v${esc(server.version)}]</span>` : ''}
             ${server ? `<a href="${esc(server.url)}" target="_blank" class="server-link-btn" title="Go to Server"><i class="fa-solid fa-external-link-alt"></i></a>` : ''}
         </div>
     `;
 
-    // Header Center (OS Badge)
-    let osBadge = '';
-    if (server) {
-        let osIcon = 'fa-server';
-        let osName = 'Server';
-        if (!server.os_type || server.os_type === 'linux') { osIcon = 'fa-linux'; osName = 'Linux'; }
-        else if (server.os_type === 'windows') { osIcon = 'fa-windows'; osName = 'Windows'; }
-        else if (server.os_type === 'macos') { osIcon = 'fa-apple'; osName = 'macOS'; }
-        else if (server.os_type === 'other') { osIcon = 'fa-server'; osName = 'Other'; }
-
-        osBadge = `<div class="os-badge"><i class="fa-brands ${osIcon}"></i> ${osName}</div>`;
-    }
-    headerHtml += `<div class="header-center">${osBadge}</div>`;
+    // Header Center (Hidden/Removed)
+    headerHtml += `<div class="header-center"></div>`;
 
     // Header Right (Controls)
     headerHtml += `<div class="header-right">`;

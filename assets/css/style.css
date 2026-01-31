@@ -1194,19 +1194,36 @@ form button:hover { background:#45a049; }
     gap: 12px;
 }
 .header-left { font-weight: 700; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.05em; }
-.header-center { flex: 1; justify-content: center; }
+.header-center { display: none; } /* Hidden as per request */
 
-.os-badge {
-    background: rgba(0,0,0,0.4);
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    color: #ddd;
-    display: flex;
+/* New Header OS Badge (Inline) */
+.header-os-badge {
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
-    border: 1px solid rgba(255,255,255,0.1);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    margin-right: 10px;
+    font-size: 1rem;
+    color: #eee;
+}
+
+/* Card OS Badge (Pinned Bottom Right) */
+.card-os-badge {
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    color: rgba(255, 255, 255, 0.15);
+    font-size: 1.1rem;
+    pointer-events: none;
+    transition: color 0.2s;
+    z-index: 1;
+}
+.server-card:hover .card-os-badge {
+    color: rgba(255, 255, 255, 0.4);
 }
 
 /* Header buttons specific override */
