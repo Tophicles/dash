@@ -480,11 +480,13 @@ function renderServerAdminList() {
             actionsHtml += `</span>`;
         }
 
-        actionsHtml += `
-            <button class="admin-action-btn danger" title="Restart Server (API)" onclick="restartServer('${esc(server.id)}', '${esc(server.name)}')">
-                <i class="fa-solid fa-power-off"></i>
-            </button>
-        `;
+        if (server.type !== 'plex') {
+            actionsHtml += `
+                <button class="admin-action-btn danger" title="Restart Server (API)" onclick="restartServer('${esc(server.id)}', '${esc(server.name)}')">
+                    <i class="fa-solid fa-power-off"></i>
+                </button>
+            `;
+        }
 
         item.innerHTML = `
             <div class="admin-server-info">
