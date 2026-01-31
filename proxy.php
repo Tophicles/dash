@@ -85,7 +85,7 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
                "cat /proc/net/dev; echo '---'; " .
                "grep 'cpu ' /proc/stat; echo '---'; " .
                "pid=$(pgrep -f '$processName' | head -n1); if [ -n \"\$pid\" ]; then ps -o rss,time,thcount --no-headers -p \$pid; else echo '0 0 0'; fi; echo '---'; " .
-               "sleep 1; " .
+               "sleep 1; echo '---'; " .
                "cat /proc/net/dev; echo '---'; " .
                "grep 'cpu ' /proc/stat";
     }
