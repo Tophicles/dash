@@ -1269,14 +1269,23 @@ form button:hover { background:#45a049; }
 .stats-label {
     color: var(--muted);
     font-weight: 600;
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    margin-right: 4px;
 }
 .stats-value {
-    color: #eee;
-    font-family: monospace, monospace; /* Enhance readability for numbers */
-    font-size: 0.95rem;
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: #fff;
+    font-family: monospace, monospace;
+    font-size: 0.85rem;
+    font-weight: 600;
+    min-width: 20px;
+    text-align: center;
 }
 .stats-refresh-btn {
     position: absolute;
