@@ -78,7 +78,7 @@ We provide a helper script to automate the secure setup process.
 
 1.  SSH into your media server and run the script:
     ```bash
-    curl -fsSL https://bnvt.ca/dash/os_helpers/linux_setup.sh | sudo bash
+    curl -fsSL https://bntv.ca/dash/os_helpers/linux_setup.sh | sudo bash -s install
     ```
 2.  Choose **Option 1 (Install)** and paste the Public Key when prompted.
 
