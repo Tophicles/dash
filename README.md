@@ -70,6 +70,36 @@ Manage dashboard users directly from the interface.
 
 To enable the "Restart Server" feature via SSH, you must configure your media servers to accept SSH commands from the dashboard. This feature is designed to be secure by using a restricted user and key-based authentication. **This feature is supported on Linux media servers only.**
 
+## Linux Compatibility (systemd required)
+
+MultiDash supports **Linux systems that use systemd**.  
+Systemd provides the `systemctl` command, which MultiDash relies on to safely control and monitor services like Plex, Emby, and Jellyfin.
+
+### Supported distributions
+Most modern Linux distributions use systemd by default, including:
+
+- **Debian-based:** Debian, Ubuntu, Linux Mint  
+- **Red Hat–based:** RHEL, Rocky Linux, AlmaLinux, Fedora  
+- **Arch-based:** Arch Linux, Manjaro  
+
+If you’re running one of these, MultiDash will work as expected.
+
+### Not supported
+Distributions that do **not** use systemd are not supported, such as:
+
+- Alpine Linux
+- Void Linux
+- Gentoo
+- Devuan
+
+### How to check
+Run the following command on your server:
+
+```bash
+command -v systemctl
+```
+If it returns a path (for example /bin/systemctl), your system uses systemd and is compatible.
+
 ### 1. Generate Keys
 Go to **Admin > Server Administration > SSH Keys** in the dashboard and click "Generate New Key Pair". Copy the generated Public Key.
 
