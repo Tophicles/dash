@@ -1216,14 +1216,14 @@ form button:hover { background:#45a049; }
     position: absolute;
     bottom: 6px;
     right: 6px;
-    color: rgba(255, 255, 255, 0.15);
+    color: #ccc;
     font-size: 1.1rem;
     pointer-events: none;
     transition: color 0.2s;
     z-index: 1;
 }
 .server-card:hover .card-os-badge {
-    color: rgba(255, 255, 255, 0.4);
+    color: #fff;
 }
 
 /* Header buttons specific override */

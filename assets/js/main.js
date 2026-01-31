@@ -493,6 +493,7 @@ function renderServerAdminList() {
 
         let osIcon = 'fa-server';
         if (!server.os_type || server.os_type === 'linux') osIcon = 'fa-linux';
+        else if (server.os_type === 'docker') osIcon = 'fa-docker';
         else if (server.os_type === 'windows') osIcon = 'fa-windows';
         else if (server.os_type === 'macos') osIcon = 'fa-apple';
         else if (server.os_type === 'other') osIcon = 'fa-server';
@@ -985,6 +986,7 @@ function renderServerGrid() {
         // OS Badge Logic
         let osIcon = 'fa-server';
         if (!server.os_type || server.os_type === 'linux') osIcon = 'fa-linux';
+        else if (server.os_type === 'docker') osIcon = 'fa-docker';
         else if (server.os_type === 'windows') osIcon = 'fa-windows';
         else if (server.os_type === 'macos') osIcon = 'fa-apple';
         else if (server.os_type === 'other') osIcon = 'fa-server';
@@ -1193,6 +1195,7 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
     if (server) {
         let osIcon = 'fa-server';
         if (!server.os_type || server.os_type === 'linux') osIcon = 'fa-linux';
+        else if (server.os_type === 'docker') osIcon = 'fa-docker';
         else if (server.os_type === 'windows') osIcon = 'fa-windows';
         else if (server.os_type === 'macos') osIcon = 'fa-apple';
         else if (server.os_type === 'other') osIcon = 'fa-server';
