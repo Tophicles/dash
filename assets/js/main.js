@@ -488,11 +488,22 @@ function renderServerAdminList() {
             `;
         }
 
+        let osIcon = 'fa-server';
+        if (!server.os_type || server.os_type === 'linux') osIcon = 'fa-linux';
+        else if (server.os_type === 'windows') osIcon = 'fa-windows';
+        else if (server.os_type === 'macos') osIcon = 'fa-apple';
+        else if (server.os_type === 'other') osIcon = 'fa-server';
+
         item.innerHTML = `
-            <div class="admin-server-info">
-                <div class="admin-server-name">${esc(server.name)}</div>
-                <div class="admin-server-details">
-                    Type: ${esc(server.type.toUpperCase())} • Version: ${esc(server.version || 'Unknown')} • ${status}
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div class="admin-os-badge" title="OS: ${esc(server.os_type || 'linux')}">
+                    <i class="fa-brands ${osIcon}"></i>
+                </div>
+                <div class="admin-server-info">
+                    <div class="admin-server-name">${esc(server.name)}</div>
+                    <div class="admin-server-details">
+                        Type: ${esc(server.type.toUpperCase())} • Version: ${esc(server.version || 'Unknown')} • ${status}
+                    </div>
                 </div>
             </div>
             <div class="admin-server-actions">
