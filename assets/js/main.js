@@ -1197,10 +1197,29 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
     headerHtml += `<div class="header-center">${osBadge}</div>`;
 
     // Header Right (Controls)
-    headerHtml += `<div class="header-right" id="js-header-controls-${esc(serverId)}"></div>`;
+    headerHtml += `<div class="header-right">`;
+
+    // API Restart Button (non-Plex)
+    if (IS_ADMIN && server && server.type !== 'plex') {
+         headerHtml += `
+            <button class="admin-action-btn danger" title="Restart Server (API)" onclick="restartServer('${esc(server.id)}', '${esc(server.name)}')">
+                <i class="fa-solid fa-power-off"></i>
+            </button>
+        `;
+    }
+
+    // SSH Controls Container
+    headerHtml += `<span id="js-header-controls-${esc(serverId)}"></span></div>`;
 
     titleElement.innerHTML = headerHtml;
     titleElement.className = `server-header-enhanced ${serverType}`;
+
+    // Clear stats
+    const statsEl = document.getElementById('server-stats');
+    if (statsEl) {
+        statsEl.style.display = 'none';
+        statsEl.innerHTML = '';
+    }
 
     // Trigger async load of controls if admin and linux
     if (IS_ADMIN && server && (!server.os_type || server.os_type === 'linux')) {
@@ -1210,6 +1229,7 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
              if (server.ssh_initialized) {
                  container.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
                  fetchServerStatus(serverId);
+                 fetchServerStats(serverId);
              } else {
                  container.innerHTML = `
                     <button class="admin-action-btn" title="Check SSH Connection" onclick="deployServerKey('${esc(server.id)}')">
