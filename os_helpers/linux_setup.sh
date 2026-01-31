@@ -1,8 +1,10 @@
 #!/bin/bash
+set -euo pipefail
 
+########################################
 # MultiDash - Linux Server Setup Helper
-# This script automates the creation/removal of the restricted 'mediasvc' user
-# for use with the MultiDash SSH Remote Control feature.
+# Supports systemd-based distros only
+########################################
 
 USER_NAME="mediasvc"
 SUDOERS_FILE="/etc/sudoers.d/$USER_NAME"
@@ -10,36 +12,69 @@ SSHD_CONFIG="/etc/ssh/sshd_config"
 MARKER_START="# BEGIN MEDIASVC-MULTIDASH"
 MARKER_END="# END MEDIASVC-MULTIDASH"
 
-# Check for root
+########################################
+# Root check
+########################################
 if [ "$EUID" -ne 0 ]; then
-  echo "Please run as root (use sudo)"
+  echo "❌ Please run as root (use sudo)"
   exit 1
 fi
 
-function install_user() {
+########################################
+# systemd check
+########################################
+if ! command -v systemctl >/dev/null; then
+  echo "❌ systemd not detected. This installer supports systemd-based Linux only."
+  exit 1
+fi
+
+########################################
+# Command detection (portable paths)
+########################################
+SYSTEMCTL=$(command -v systemctl)
+UPTIME=$(command -v uptime)
+FREE=$(command -v free)
+
+########################################
+# User creation helper
+########################################
+create_user() {
+    if id "$USER_NAME" &>/dev/null; then
+        echo "User '$USER_NAME' already exists."
+        return
+    fi
+
+    echo "Creating user '$USER_NAME'..."
+
+    if command -v adduser >/dev/null; then
+        adduser --disabled-password --gecos "" "$USER_NAME"
+    else
+        useradd -m -s /usr/sbin/nologin "$USER_NAME"
+    fi
+}
+
+########################################
+# Install
+########################################
+install_user() {
     echo "=========================================="
     echo "   MultiDash Linux Server Setup (Install) "
     echo "=========================================="
     echo ""
 
-    # 1. Prompt for Key
     echo "Please paste the SSH Public Key generated in your MultiDash dashboard:"
     read -r PUB_KEY
 
     if [ -z "$PUB_KEY" ]; then
-        echo "Error: Public key cannot be empty."
+        echo "❌ Public key cannot be empty."
         exit 1
     fi
 
-    # 2. Create User
-    if id "$USER_NAME" &>/dev/null; then
-        echo "User '$USER_NAME' already exists. Updating configuration..."
-    else
-        echo "Creating user '$USER_NAME'..."
-        adduser --disabled-password --gecos "" $USER_NAME
-    fi
+    create_user
 
-    # 3. Setup SSH Key
+    ########################################
+    # SSH key setup
+    ########################################
     echo "Configuring SSH key..."
     SSH_DIR="/home/$USER_NAME/.ssh"
     mkdir -p "$SSH_DIR"
@@ -48,39 +83,41 @@ function install_user() {
     chmod 700 "$SSH_DIR"
     chmod 600 "$SSH_DIR/authorized_keys"
 
-    # 4. Setup Sudoers
+    ########################################
+    # Sudoers (locked down)
+    ########################################
     echo "Configuring sudoers restrictions..."
     cat > "$SUDOERS_FILE" << EOF
 $USER_NAME ALL=(ALL) NOPASSWD: \\
-  /bin/systemctl start plexmediaserver, \\
-  /bin/systemctl stop plexmediaserver, \\
-  /bin/systemctl restart plexmediaserver, \\
-  /bin/systemctl is-active plexmediaserver, \\
-  /bin/systemctl show plexmediaserver -p MemoryCurrent -p CPUUsageNSec, \\
+  $SYSTEMCTL start plexmediaserver, \\
+  $SYSTEMCTL stop plexmediaserver, \\
+  $SYSTEMCTL restart plexmediaserver, \\
+  $SYSTEMCTL is-active plexmediaserver, \\
+  $SYSTEMCTL show plexmediaserver -p MemoryCurrent -p CPUUsageNSec, \\
 
-  /bin/systemctl start emby-server, \\
-  /bin/systemctl stop emby-server, \\
-  /bin/systemctl restart emby-server, \\
-  /bin/systemctl is-active emby-server, \\
-  /bin/systemctl show emby-server -p MemoryCurrent -p CPUUsageNSec, \\
+  $SYSTEMCTL start emby-server, \\
+  $SYSTEMCTL stop emby-server, \\
+  $SYSTEMCTL restart emby-server, \\
+  $SYSTEMCTL is-active emby-server, \\
+  $SYSTEMCTL show emby-server -p MemoryCurrent -p CPUUsageNSec, \\
 
-  /bin/systemctl start jellyfin, \\
-  /bin/systemctl stop jellyfin, \\
-  /bin/systemctl restart jellyfin, \\
-  /bin/systemctl is-active jellyfin, \\
-  /bin/systemctl show jellyfin -p MemoryCurrent -p CPUUsageNSec, \\
+  $SYSTEMCTL start jellyfin, \\
+  $SYSTEMCTL stop jellyfin, \\
+  $SYSTEMCTL restart jellyfin, \\
+  $SYSTEMCTL is-active jellyfin, \\
+  $SYSTEMCTL show jellyfin -p MemoryCurrent -p CPUUsageNSec, \\
 
-  /usr/bin/uptime, \\
-  /usr/bin/free -m
+  $UPTIME, \\
+  $FREE -m
 EOF
     chmod 440 "$SUDOERS_FILE"
 
-    # 5. Setup SSHD Config
+    ########################################
+    # SSHD lockdown
+    ########################################
     echo "Configuring SSHD restrictions..."
-    # Remove old block if exists
     sed -i "/$MARKER_START/,/$MARKER_END/d" "$SSHD_CONFIG"
 
-    # Append new block
     cat >> "$SSHD_CONFIG" << EOF
 
 $MARKER_START
@@ -91,75 +128,74 @@ Match User $USER_NAME
 $MARKER_END
 EOF
 
-    # 6. Restart SSH
+    ########################################
+    # Reload SSH
+    ########################################
     echo "Reloading SSH service..."
     if systemctl is-active --quiet ssh; then
         systemctl reload ssh
     elif systemctl is-active --quiet sshd; then
         systemctl reload sshd
     else
-        echo "Warning: Could not detect ssh service name to reload. Please reload manually."
+        echo "⚠️ Could not detect SSH service name. Reload manually if needed."
     fi
 
     echo ""
-    echo "✅ Setup Complete!"
-    echo "You can now configure your server in MultiDash using the 'Linux' OS type."
+    echo "✅ Setup complete!"
+    echo "Systemd detected, user locked down, safe for MultiDash."
 }
 
-function uninstall_user() {
+########################################
+# Uninstall
+########################################
+uninstall_user() {
     echo "=========================================="
     echo "  MultiDash Linux Server Setup (Uninstall)"
     echo "=========================================="
     echo ""
 
-    # 1. Remove User
     if id "$USER_NAME" &>/dev/null; then
         echo "Removing user '$USER_NAME'..."
-        deluser --remove-home $USER_NAME
+        deluser --remove-home "$USER_NAME" 2>/dev/null || userdel -r "$USER_NAME"
     else
         echo "User '$USER_NAME' not found."
     fi
 
-    # 2. Remove Sudoers
     if [ -f "$SUDOERS_FILE" ]; then
         echo "Removing sudoers file..."
-        rm "$SUDOERS_FILE"
+        rm -f "$SUDOERS_FILE"
     fi
 
-    # 3. Remove SSHD Config Block
     echo "Cleaning up SSHD config..."
     if grep -q "$MARKER_START" "$SSHD_CONFIG"; then
         sed -i "/$MARKER_START/,/$MARKER_END/d" "$SSHD_CONFIG"
-        # Reload SSH
-        echo "Reloading SSH service..."
         if systemctl is-active --quiet ssh; then
             systemctl reload ssh
         elif systemctl is-active --quiet sshd; then
             systemctl reload sshd
         fi
-    else
-        echo "No configuration block found in $SSHD_CONFIG."
     fi
 
     echo ""
-    echo "✅ Uninstall Complete!"
+    echo "✅ Uninstall complete."
 }
 
-# Main Menu
-if [ "$1" == "install" ]; then
-    install_user
-elif [ "$1" == "uninstall" ]; then
-    uninstall_user
-else
-    echo "Usage: sudo ./linux_setup.sh [install|uninstall]"
-    echo ""
-    echo "Select an option:"
-    echo "1) Install (Create user & lock down)"
-    echo "2) Uninstall (Remove user & clean up)"
-    read -p "Choice [1-2]: " choice
-    case $choice in
-        1) install_user ;;
-        2) uninstall_user ;;
-        *) echo "Invalid choice"; exit 1 ;;
-    esac
-fi
+########################################
+# Main
+########################################
+case "${1:-}" in
+    install) install_user ;;
+    uninstall) uninstall_user ;;
+    *)
+        echo "Usage: sudo ./linux_setup.sh [install|uninstall]"
+        echo ""
+        echo "1) Install (Create user & lock down)"
+        echo "2) Uninstall (Remove user & clean up)"
+        read -p "Choice [1-2]: " choice
+        case "$choice" in
+            1) install_user ;;
+            2) uninstall_user ;;
+            *) echo "Invalid choice"; exit 1 ;;
+        esac
+        ;;
+esac
