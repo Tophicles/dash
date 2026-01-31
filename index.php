@@ -191,6 +191,7 @@ $isAdmin = isAdmin();
                 <label>OS Type</label>
                 <select name="os_type" id="server-os-select">
                     <option value="linux">Linux</option>
+                    <option value="docker">Docker</option>
                     <option value="windows">Windows</option>
                     <option value="macos">macOS</option>
                     <option value="other">Other</option>
