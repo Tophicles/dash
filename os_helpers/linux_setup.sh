@@ -152,7 +152,7 @@ case "${1:-}" in
     uninstall) uninstall_user ;;
     *)
         echo "Usage: sudo ./linux_setup.sh [install|uninstall]"
-        read -p "Choice [1-2]: " c
+        read -p "Choice [1] INSTALL USER or [2] REMOVE USER: " c
         [ "$c" = "1" ] && install_user
         [ "$c" = "2" ] && uninstall_user
         ;;
