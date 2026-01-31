@@ -518,6 +518,8 @@ function renderServerAdminList() {
     });
 }
 
+const RESTARTING_SERVERS = new Set();
+
 async function fetchServerStatus(serverId) {
     try {
         const res = await fetch(`proxy.php?id=${encodeURIComponent(serverId)}&action=ssh_status`);
@@ -531,6 +533,17 @@ async function fetchServerStatus(serverId) {
                 // Parse status (active/inactive/activating/etc)
                 const status = (data.status || '').trim();
                 const isRunning = status === 'active' || status === 'activating';
+
+                // Handle Restarting State
+                if (RESTARTING_SERVERS.has(serverId)) {
+                    if (isRunning) {
+                        RESTARTING_SERVERS.delete(serverId); // It's back online!
+                    } else {
+                        // Still offline/restarting
+                        container.innerHTML = '<span style="color:#e5a00d;"><i class="fa-solid fa-spinner fa-spin"></i> Restarting...</span>';
+                        return;
+                    }
+                }
 
                 const server = SERVERS.find(s => s.id === serverId);
                 const serverName = server ? server.name : 'Server';
@@ -582,8 +595,13 @@ async function controlServerSSH(serverId, serverName, action) {
         const data = await res.json();
 
         if (data.success) {
-            // Wait 2 seconds then refresh status
-            setTimeout(() => fetchServerStatus(serverId), 2000);
+            if (action === 'ssh_restart') {
+                RESTARTING_SERVERS.add(serverId);
+                pollServerStatus(serverId);
+            } else {
+                // Wait 2 seconds then refresh status
+                setTimeout(() => fetchServerStatus(serverId), 2000);
+            }
         } else {
              alert(`SSH Command Failed: ${data.error}`);
              logSystemEvent(`SSH ${actionName} Failed for ${serverName}: ${data.error}`, 'ERROR');
@@ -593,6 +611,21 @@ async function controlServerSSH(serverId, serverName, action) {
         alert('Request failed: ' + e.message);
         fetchServerStatus(serverId);
     }
+}
+
+function pollServerStatus(serverId) {
+    let attempts = 0;
+    const maxAttempts = 30; // 45 seconds approx
+    const interval = setInterval(() => {
+        attempts++;
+        if (!RESTARTING_SERVERS.has(serverId) || attempts >= maxAttempts) {
+            clearInterval(interval);
+            RESTARTING_SERVERS.delete(serverId);
+            fetchServerStatus(serverId); // Final state check
+            return;
+        }
+        fetchServerStatus(serverId);
+    }, 1500);
 }
 
 async function deployServerKey(serverId) {
