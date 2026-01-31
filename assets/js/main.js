@@ -2266,6 +2266,8 @@ async function fetchServerStats(serverId) {
 
     try {
         const res = await fetch(`proxy.php?id=${encodeURIComponent(serverId)}&action=ssh_system_stats`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
         const data = await res.json();
 
         if (data.success && data.output) {
@@ -2435,6 +2437,6 @@ async function fetchServerStats(serverId) {
         }
     } catch (e) {
         console.error('Failed to fetch stats', e);
-        statsEl.innerHTML = `<div style="color:#d32f2f; font-size:0.8rem; padding:10px;">Connection Failed</div>`;
+        statsEl.innerHTML = `<div style="color:#d32f2f; font-size:0.8rem; padding:10px;">Connection Failed: ${esc(e.message)}</div>`;
     }
 }
