@@ -70,11 +70,12 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
     // Determine Action
     $cmd = "";
     if ($action === 'ssh_restart') {
-        $cmd = "sudo systemctl restart $service";
+        // Run in background to prevent timeout
+        $cmd = "nohup sudo systemctl restart $service > /dev/null 2>&1 &";
     } elseif ($action === 'ssh_stop') {
-        $cmd = "sudo systemctl stop $service";
+        $cmd = "nohup sudo systemctl stop $service > /dev/null 2>&1 &";
     } elseif ($action === 'ssh_start') {
-        $cmd = "sudo systemctl start $service";
+        $cmd = "nohup sudo systemctl start $service > /dev/null 2>&1 &";
     } elseif ($action === 'ssh_status') {
         $cmd = "systemctl is-active $service";
     } elseif ($action === 'ssh_system_stats') {

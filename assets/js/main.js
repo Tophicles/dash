@@ -2254,6 +2254,38 @@ async function scanLibrary(serverName, libraryId, libraryName, btn) {
         }
     }
 }
+const toGB = (b) => (b / 1073741824).toFixed(1);
+
+const parseNet = (str) => {
+    let rx = 0, tx = 0;
+    const lines = str.split('\n');
+    for (const line of lines) {
+        if (line.includes(':')) {
+            const parts = line.split(':')[1].trim().split(/\s+/);
+            rx += parseInt(parts[0]);
+            tx += parseInt(parts[8]);
+        }
+    }
+    return { rx, tx };
+};
+
+const formatSpeed = (bytes) => {
+    const bits = bytes * 8;
+    if (bits >= 1000000) return (bits / 1000000).toFixed(1) + ' Mbps';
+    if (bits >= 1000) return (bits / 1000).toFixed(1) + ' Kbps';
+    return bits + ' bps';
+};
+
+const parseCpu = (str) => {
+    const line = str.split('\n')[0];
+    if (!line) return { total: 0, idle: 0 };
+    const vals = line.match(/\d+/g).map(Number);
+    // user+nice+system+idle+iowait...
+    const idle = vals[3] + vals[4]; // idle + iowait
+    const total = vals.reduce((a, b) => a + b, 0);
+    return { total, idle };
+};
+
 async function fetchServerStats(serverId) {
     const statsEl = document.getElementById('server-stats');
     if (!statsEl) return;
@@ -2305,54 +2337,17 @@ async function fetchServerStats(serverId) {
                      memAvail = parseInt(vals[5]) || parseInt(vals[2]);
                 }
             }
-            const toGB = (b) => (b / 1073741824).toFixed(1);
             const memString = `${toGB(memUsed)}/${toGB(memTotal)} GB`;
             const memAvailStr = `${toGB(memAvail)} GB avail`;
 
             // 4. Net
-            const parseNet = (str) => {
-                let rx = 0, tx = 0;
-                const lines = str.split('\n');
-                for (const line of lines) {
-                    if (line.includes(':')) {
-                        const parts = line.split(':')[1].trim().split(/\s+/);
-                        rx += parseInt(parts[0]);
-                        tx += parseInt(parts[8]);
-                    }
-                }
-                return { rx, tx };
-            };
             const netStart = parseNet(parts[3]);
             const netEnd = parseNet(parts[7]);
-
-            const formatSpeed = (bytes) => {
-                const bits = bytes * 8;
-                if (bits >= 1000000) return (bits / 1000000).toFixed(1) + ' Mbps';
-                if (bits >= 1000) return (bits / 1000).toFixed(1) + ' Kbps';
-                return bits + ' bps';
-            };
-            const cpu1 = parseCpu(parts[4]);
-            const cpu2 = parseCpu(parts[8]);
-            let cpuUsage = 0;
-            const dTotal = cpu2.total - cpu1.total;
-            const dIdle = cpu2.idle - cpu1.idle;
-            if (dTotal > 0) {
-                cpuUsage = ((1 - dIdle / dTotal) * 100).toFixed(0);
-            }
 
             const rxStr = formatSpeed(netEnd.rx - netStart.rx);
             const txStr = formatSpeed(netEnd.tx - netStart.tx);
 
             // 5. CPU
-            const parseCpu = (str) => {
-                const line = str.split('\n')[0];
-                if (!line) return { total: 0, idle: 0 };
-                const vals = line.match(/\d+/g).map(Number);
-                // user+nice+system+idle+iowait...
-                const idle = vals[3] + vals[4]; // idle + iowait
-                const total = vals.reduce((a, b) => a + b, 0);
-                return { total, idle };
-            };
             const cpuStart = parseCpu(parts[4]);
             const cpuEnd = parseCpu(parts[8]);
             let cpuPercent = 0;
