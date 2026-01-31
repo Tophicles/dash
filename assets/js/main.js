@@ -2254,84 +2254,184 @@ async function scanLibrary(serverName, libraryId, libraryName, btn) {
         }
     }
 }
+const toGB = (b) => (b / 1073741824).toFixed(1);
+
+const parseNet = (str) => {
+    let rx = 0, tx = 0;
+    const lines = str.split('\n');
+    for (const line of lines) {
+        if (line.includes(':')) {
+            const parts = line.split(':')[1].trim().split(/\s+/);
+            rx += parseInt(parts[0]);
+            tx += parseInt(parts[8]);
+        }
+    }
+    return { rx, tx };
+};
+
+const formatSpeed = (bytes) => {
+    const bits = bytes * 8;
+    if (bits >= 1000000) return (bits / 1000000).toFixed(1) + ' Mbps';
+    if (bits >= 1000) return (bits / 1000).toFixed(1) + ' Kbps';
+    return bits + ' bps';
+};
+
+const parseCpu = (str) => {
+    const line = str.split('\n')[0];
+    if (!line) return { total: 0, idle: 0 };
+    const vals = line.match(/\d+/g).map(Number);
+    // user+nice+system+idle+iowait...
+    const idle = vals[3] + vals[4]; // idle + iowait
+    const total = vals.reduce((a, b) => a + b, 0);
+    return { total, idle };
+};
+
 async function fetchServerStats(serverId) {
     const statsEl = document.getElementById('server-stats');
     if (!statsEl) return;
 
+    // Show loading state if it's empty or hidden
+    if (statsEl.innerHTML.trim() === '' || statsEl.style.display === 'none') {
+        statsEl.innerHTML = '<div style="color:var(--muted); font-size:0.9rem; padding:10px;"><i class="fa-solid fa-spinner fa-spin"></i> Loading system stats...</div>';
+        statsEl.style.display = 'block';
+    }
+
     try {
         const res = await fetch(`proxy.php?id=${encodeURIComponent(serverId)}&action=ssh_system_stats`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
         const data = await res.json();
 
         if (data.success && data.output) {
-            // Parse output parts separated by "---"
-            const parts = data.output.split('---');
-            const uptimeOutput = parts[0] ? parts[0].trim() : '';
-            const freeOutput = parts[1] ? parts[1].trim() : '';
-            const serviceOutput = parts[2] ? parts[2].trim() : '';
+            const parts = data.output.split('---').map(p => p.trim());
 
-            // 1. Extract Uptime & Load
-            const upMatch = uptimeOutput.match(/up\s+(.+?),\s+\d+\s+users?/);
-            let uptime = upMatch ? upMatch[1] : 'Unknown';
-            const loadMatch = uptimeOutput.match(/load average:\s+(.+)$/);
-            let load = loadMatch ? loadMatch[1] : 'Unknown';
-
-            // 2. Extract System Memory (free -m)
-            // Mem: 12345 5678 ...
-            let memSysTotal = 0;
-            let memSysUsed = 0;
-            const memMatch = freeOutput.match(/Mem:\s+(\d+)\s+(\d+)/);
-            if (memMatch) {
-                memSysTotal = parseInt(memMatch[1]);
-                memSysUsed = parseInt(memMatch[2]);
+            if (parts.length < 9) {
+                console.warn('Incomplete stats data received', parts);
+                statsEl.innerHTML = '<div style="color:orange; font-size:0.8rem;">Stats incomplete</div>';
+                return;
             }
 
-            // 3. Extract Service Stats (systemctl show)
-            let svcMem = 0;
-            let svcCpuNS = 0;
+            // 1. Uptime
+            // Handle SSH banners by taking the last line of the output
+            const uptimeLines = parts[0].trim().split('\n');
+            const uptimeLine = uptimeLines[uptimeLines.length - 1].trim();
+            const uptimeSec = parseFloat(uptimeLine.split(' ')[0]);
+            const d = Math.floor(uptimeSec / 86400);
+            const h = Math.floor((uptimeSec % 86400) / 3600);
+            const uptimeStr = (isNaN(d) || isNaN(h)) ? 'Unknown' : `${d}d ${h}h`;
 
-            const svcMemMatch = serviceOutput.match(/MemoryCurrent=(\d+)/);
-            if (svcMemMatch) svcMem = parseInt(svcMemMatch[1]);
+            // 2. Load
+            const loadString = parts[1].split(' ').slice(0, 3).join(' ');
 
-            const svcCpuMatch = serviceOutput.match(/CPUUsageNSec=(\d+)/);
-            if (svcCpuMatch) svcCpuNS = parseInt(svcCpuMatch[1]); // This is NOT a constant, just current value
-
-            // Format Helpers
-            const formatBytes = (bytes) => {
-                if (bytes === 0) return '0 MB';
-                const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-                const i = Math.floor(Math.log(bytes) / Math.log(1024));
-                return parseFloat((bytes / Math.pow(1024, i)).toFixed(2)) + ' ' + sizes[i];
-            };
-
-            const formatTime = (ns) => {
-                if (!ns || ns === 18446744073709551615) return 'N/A'; // UINT64_MAX check
-                const seconds = ns / 1e9;
-                const h = Math.floor(seconds / 3600);
-                const m = Math.floor((seconds % 3600) / 60);
-                return `${h}h ${m}m`;
-            };
-
-            // Build Display Strings
-            // Line 1: Uptime & Load
-            let html = `<div>Uptime: <span style="color:var(--text);">${esc(uptime)}</span> • Load: <span style="color:var(--text);">${esc(load)}</span></div>`;
-
-            // Line 2: System Memory & Service Stats
-            // Service Memory: Bytes -> Formatted
-            // System Memory: MB -> Formatted
-            const sysMemStr = `${(memSysUsed/1024).toFixed(1)}/${(memSysTotal/1024).toFixed(1)} GB`;
-
-            html += `<div style="margin-top:4px; font-size:0.85rem; color:#888;">`;
-            html += `Sys Mem: <span style="color:#aaa;">${sysMemStr}</span>`;
-
-            if (svcMem > 0 || svcCpuNS > 0) {
-                 html += ` • App: <span style="color:#aaa;">${formatBytes(svcMem)}</span> / <span style="color:#aaa;">${formatTime(svcCpuNS)} CPU</span>`;
+            // 3. Memory
+            const memLines = parts[2].split('\n');
+            const memLine = memLines.find(l => l.startsWith('Mem:'));
+            let memTotal = 0, memUsed = 0, memAvail = 0;
+            if (memLine) {
+                const vals = memLine.match(/\d+/g);
+                if (vals && vals.length >= 3) {
+                     // free output: total used free shared buff/cache available
+                     memTotal = parseInt(vals[0]);
+                     memUsed = parseInt(vals[1]);
+                     // Available is usually index 5, fallback to free (2)
+                     memAvail = parseInt(vals[5]) || parseInt(vals[2]);
+                }
             }
-            html += `</div>`;
+            const memString = `${toGB(memUsed)}/${toGB(memTotal)} GB`;
+            const memAvailStr = `${toGB(memAvail)} GB avail`;
+
+            // 4. Net
+            const netStart = parseNet(parts[3]);
+            const netEnd = parseNet(parts[7]);
+
+            const rxStr = formatSpeed(netEnd.rx - netStart.rx);
+            const txStr = formatSpeed(netEnd.tx - netStart.tx);
+
+            // 5. CPU
+            const cpuStart = parseCpu(parts[4]);
+            const cpuEnd = parseCpu(parts[8]);
+            let cpuPercent = 0;
+            const diffTotal = cpuEnd.total - cpuStart.total;
+            const diffIdle = cpuEnd.idle - cpuStart.idle;
+            if (diffTotal > 0) {
+                cpuPercent = ((1 - diffIdle / diffTotal) * 100).toFixed(0);
+            }
+
+            // 6. Process Stats
+            let procStr = '';
+            const procParts = parts[5].trim().split(/\s+/);
+            if (procParts.length >= 3 && procParts[0] !== '0') {
+                const rssKB = parseInt(procParts[0]);
+                const timeStr = procParts[1];
+                const threads = procParts[2];
+                const rssGB = (rssKB / 1048576).toFixed(2);
+
+                let hours = 0;
+                if (timeStr.includes('-')) {
+                    const [day, t] = timeStr.split('-');
+                    hours += parseInt(day) * 24;
+                    const tParts = t.split(':');
+                    hours += parseInt(tParts[0]);
+                } else {
+                    const tParts = timeStr.split(':');
+                    if (tParts.length === 3) hours += parseInt(tParts[0]);
+                }
+
+                let svcName = 'Process';
+                const server = SERVERS.find(s => s.id === serverId);
+                if (server) {
+                    svcName = server.type === 'plex' ? 'Plex' : (server.type === 'emby' ? 'Emby' : 'Jellyfin');
+                }
+
+                procStr = `${svcName} ${rssGB} GB • ${hours}h CPU • ${threads} threads`;
+            } else {
+                procStr = 'Service Stopped';
+            }
+
+            // Render
+            const html = `
+                <div class="server-stats-container">
+                    <button class="stats-refresh-btn" onclick="fetchServerStats('${esc(serverId)}')" title="Refresh Stats">
+                        <i class="fa-solid fa-rotate-right"></i>
+                    </button>
+                    <div class="stats-row">
+                        <div class="stats-item">
+                            <span class="stats-label">Uptime</span>
+                            <span class="stats-value">${uptimeStr}</span>
+                        </div>
+                        <div class="stats-item">
+                            <span class="stats-label">CPU</span>
+                            <span class="stats-value">${cpuPercent}%</span>
+                        </div>
+                        <div class="stats-item">
+                            <span class="stats-label">Load</span>
+                            <span class="stats-value">${loadString}</span>
+                        </div>
+                    </div>
+                    <div class="stats-row">
+                        <div class="stats-item">
+                            <span class="stats-label">RAM</span>
+                            <span class="stats-value">${memString} <span style="color:#888;font-size:0.85rem;">(${memAvailStr})</span></span>
+                        </div>
+                        <div class="stats-item">
+                            <span class="stats-label">Net</span>
+                            <span class="stats-value">↓${rxStr} ↑${txStr}</span>
+                        </div>
+                        <div class="stats-item" style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 10px; margin-left: 6px;">
+                            <span class="stats-value" style="color:var(--accent); font-weight:600;">${procStr}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
 
             statsEl.innerHTML = html;
             statsEl.style.display = 'block';
+
+        } else {
+            statsEl.innerHTML = `<div style="color:#d32f2f; font-size:0.8rem; padding:10px;">Stats Error: ${esc(data.error || 'Unknown')}</div>`;
         }
     } catch (e) {
         console.error('Failed to fetch stats', e);
+        statsEl.innerHTML = `<div style="color:#d32f2f; font-size:0.8rem; padding:10px;">Connection Failed: ${esc(e.message)}</div>`;
     }
 }

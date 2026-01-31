@@ -57,9 +57,10 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
     $service = '';
     $type = $server['type'] ?? '';
 
-    if ($type === 'plex') $service = 'plexmediaserver';
-    else if ($type === 'emby') $service = 'emby-server';
-    else if ($type === 'jellyfin') $service = 'jellyfin';
+    $processName = '';
+    if ($type === 'plex') { $service = 'plexmediaserver'; $processName = 'Plex Media Server'; }
+    else if ($type === 'emby') { $service = 'emby-server'; $processName = 'EmbyServer'; }
+    else if ($type === 'jellyfin') { $service = 'jellyfin'; $processName = 'jellyfin'; }
 
     if (!$service) {
          echo json_encode(['success' => false, 'error' => 'Unknown server type for service restart']);
@@ -69,15 +70,25 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
     // Determine Action
     $cmd = "";
     if ($action === 'ssh_restart') {
-        $cmd = "sudo systemctl restart $service";
+        // Run in background to prevent timeout
+        $cmd = "nohup sudo systemctl restart $service > /dev/null 2>&1 &";
     } elseif ($action === 'ssh_stop') {
-        $cmd = "sudo systemctl stop $service";
+        $cmd = "nohup sudo systemctl stop $service > /dev/null 2>&1 &";
     } elseif ($action === 'ssh_start') {
-        $cmd = "sudo systemctl start $service";
+        $cmd = "nohup sudo systemctl start $service > /dev/null 2>&1 &";
     } elseif ($action === 'ssh_status') {
         $cmd = "systemctl is-active $service";
     } elseif ($action === 'ssh_system_stats') {
-        $cmd = "uptime; echo '---'; free -m; echo '---'; sudo systemctl show $service -p MemoryCurrent -p CPUUsageNSec";
+        // Detailed stats command chain: Uptime, Load, Mem, Net1, CPU1, Process, Sleep, Net2, CPU2
+        $cmd = "cat /proc/uptime; echo '---'; " .
+               "cat /proc/loadavg; echo '---'; " .
+               "free -b; echo '---'; " .
+               "cat /proc/net/dev; echo '---'; " .
+               "grep 'cpu ' /proc/stat; echo '---'; " .
+               "pid=$(pgrep -f '$processName' | head -n1); if [ -n \"\$pid\" ]; then ps -o rss,time,thcount --no-headers -p \$pid; else echo '0 0 0'; fi; echo '---'; " .
+               "sleep 1; echo '---'; " .
+               "cat /proc/net/dev; echo '---'; " .
+               "grep 'cpu ' /proc/stat";
     }
 
     if (!$cmd) {
