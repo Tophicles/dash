@@ -2287,7 +2287,7 @@ async function fetchServerStats(serverId) {
             const uptimeStr = (isNaN(d) || isNaN(h)) ? 'Unknown' : `${d}d ${h}h`;
 
             // 2. Load
-            const loadStr = parts[1].split(' ').slice(0, 3).join(' ');
+            const loadString = parts[1].split(' ').slice(0, 3).join(' ');
 
             // 3. Memory
             const memLines = parts[2].split('\n');
@@ -2304,7 +2304,7 @@ async function fetchServerStats(serverId) {
                 }
             }
             const toGB = (b) => (b / 1073741824).toFixed(1);
-            const memStr = `${toGB(memUsed)}/${toGB(memTotal)} GB`;
+            const memString = `${toGB(memUsed)}/${toGB(memTotal)} GB`;
             const memAvailStr = `${toGB(memAvail)} GB avail`;
 
             // 4. Net
@@ -2353,11 +2353,11 @@ async function fetchServerStats(serverId) {
             };
             const cpuStart = parseCpu(parts[4]);
             const cpuEnd = parseCpu(parts[8]);
-            let cpuUsage = 0;
+            let cpuPercent = 0;
             const dTotal = cpuEnd.total - cpuStart.total;
             const dIdle = cpuEnd.idle - cpuStart.idle;
             if (dTotal > 0) {
-                cpuUsage = ((1 - dIdle / dTotal) * 100).toFixed(0);
+                cpuPercent = ((1 - dIdle / dTotal) * 100).toFixed(0);
             }
 
             // 6. Process Stats
@@ -2404,17 +2404,17 @@ async function fetchServerStats(serverId) {
                         </div>
                         <div class="stats-item">
                             <span class="stats-label">CPU</span>
-                            <span class="stats-value">${cpuUsage}%</span>
+                            <span class="stats-value">${cpuPercent}%</span>
                         </div>
                         <div class="stats-item">
                             <span class="stats-label">Load</span>
-                            <span class="stats-value">${loadStr}</span>
+                            <span class="stats-value">${loadString}</span>
                         </div>
                     </div>
                     <div class="stats-row">
                         <div class="stats-item">
                             <span class="stats-label">RAM</span>
-                            <span class="stats-value">${memStr} <span style="color:#888;font-size:0.85rem;">(${memAvailStr})</span></span>
+                            <span class="stats-value">${memString} <span style="color:#888;font-size:0.85rem;">(${memAvailStr})</span></span>
                         </div>
                         <div class="stats-item">
                             <span class="stats-label">Net</span>
