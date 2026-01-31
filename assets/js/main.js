@@ -1197,10 +1197,29 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
     headerHtml += `<div class="header-center">${osBadge}</div>`;
 
     // Header Right (Controls)
-    headerHtml += `<div class="header-right" id="js-header-controls-${esc(serverId)}"></div>`;
+    headerHtml += `<div class="header-right">`;
+
+    // API Restart Button (non-Plex)
+    if (IS_ADMIN && server && server.type !== 'plex') {
+         headerHtml += `
+            <button class="admin-action-btn danger" title="Restart Server (API)" onclick="restartServer('${esc(server.id)}', '${esc(server.name)}')">
+                <i class="fa-solid fa-power-off"></i>
+            </button>
+        `;
+    }
+
+    // SSH Controls Container
+    headerHtml += `<span id="js-header-controls-${esc(serverId)}"></span></div>`;
 
     titleElement.innerHTML = headerHtml;
     titleElement.className = `server-header-enhanced ${serverType}`;
+
+    // Clear stats
+    const statsEl = document.getElementById('server-stats');
+    if (statsEl) {
+        statsEl.style.display = 'none';
+        statsEl.innerHTML = '';
+    }
 
     // Trigger async load of controls if admin and linux
     if (IS_ADMIN && server && (!server.os_type || server.os_type === 'linux')) {
@@ -1210,6 +1229,7 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
              if (server.ssh_initialized) {
                  container.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
                  fetchServerStatus(serverId);
+                 if (typeof fetchServerStats === 'function') fetchServerStats(serverId);
              } else {
                  container.innerHTML = `
                     <button class="admin-action-btn" title="Check SSH Connection" onclick="deployServerKey('${esc(server.id)}')">
@@ -2232,5 +2252,86 @@ async function scanLibrary(serverName, libraryId, libraryName, btn) {
             btn.disabled = false;
             btn.innerHTML = '<i class="fa-solid fa-times"></i> Error';
         }
+    }
+}
+async function fetchServerStats(serverId) {
+    const statsEl = document.getElementById('server-stats');
+    if (!statsEl) return;
+
+    try {
+        const res = await fetch(`proxy.php?id=${encodeURIComponent(serverId)}&action=ssh_system_stats`);
+        const data = await res.json();
+
+        if (data.success && data.output) {
+            // Parse output parts separated by "---"
+            const parts = data.output.split('---');
+            const uptimeOutput = parts[0] ? parts[0].trim() : '';
+            const freeOutput = parts[1] ? parts[1].trim() : '';
+            const serviceOutput = parts[2] ? parts[2].trim() : '';
+
+            // 1. Extract Uptime & Load
+            const upMatch = uptimeOutput.match(/up\s+(.+?),\s+\d+\s+users?/);
+            let uptime = upMatch ? upMatch[1] : 'Unknown';
+            const loadMatch = uptimeOutput.match(/load average:\s+(.+)$/);
+            let load = loadMatch ? loadMatch[1] : 'Unknown';
+
+            // 2. Extract System Memory (free -m)
+            // Mem: 12345 5678 ...
+            let memSysTotal = 0;
+            let memSysUsed = 0;
+            const memMatch = freeOutput.match(/Mem:\s+(\d+)\s+(\d+)/);
+            if (memMatch) {
+                memSysTotal = parseInt(memMatch[1]);
+                memSysUsed = parseInt(memMatch[2]);
+            }
+
+            // 3. Extract Service Stats (systemctl show)
+            let svcMem = 0;
+            let svcCpuNS = 0;
+
+            const svcMemMatch = serviceOutput.match(/MemoryCurrent=(\d+)/);
+            if (svcMemMatch) svcMem = parseInt(svcMemMatch[1]);
+
+            const svcCpuMatch = serviceOutput.match(/CPUUsageNSec=(\d+)/);
+            if (svcCpuMatch) svcCpuNS = parseInt(svcCpuMatch[1]); // This is NOT a constant, just current value
+
+            // Format Helpers
+            const formatBytes = (bytes) => {
+                if (bytes === 0) return '0 MB';
+                const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(1024));
+                return parseFloat((bytes / Math.pow(1024, i)).toFixed(2)) + ' ' + sizes[i];
+            };
+
+            const formatTime = (ns) => {
+                if (!ns || ns === 18446744073709551615) return 'N/A'; // UINT64_MAX check
+                const seconds = ns / 1e9;
+                const h = Math.floor(seconds / 3600);
+                const m = Math.floor((seconds % 3600) / 60);
+                return `${h}h ${m}m`;
+            };
+
+            // Build Display Strings
+            // Line 1: Uptime & Load
+            let html = `<div>Uptime: <span style="color:var(--text);">${esc(uptime)}</span> • Load: <span style="color:var(--text);">${esc(load)}</span></div>`;
+
+            // Line 2: System Memory & Service Stats
+            // Service Memory: Bytes -> Formatted
+            // System Memory: MB -> Formatted
+            const sysMemStr = `${(memSysUsed/1024).toFixed(1)}/${(memSysTotal/1024).toFixed(1)} GB`;
+
+            html += `<div style="margin-top:4px; font-size:0.85rem; color:#888;">`;
+            html += `Sys Mem: <span style="color:#aaa;">${sysMemStr}</span>`;
+
+            if (svcMem > 0 || svcCpuNS > 0) {
+                 html += ` • App: <span style="color:#aaa;">${formatBytes(svcMem)}</span> / <span style="color:#aaa;">${formatTime(svcCpuNS)} CPU</span>`;
+            }
+            html += `</div>`;
+
+            statsEl.innerHTML = html;
+            statsEl.style.display = 'block';
+        }
+    } catch (e) {
+        console.error('Failed to fetch stats', e);
     }
 }

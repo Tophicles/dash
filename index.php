@@ -51,7 +51,7 @@ $isAdmin = isAdmin();
       <button class="btn" id="reorder-btn" title="Toggle Reorder Mode">Reorder</button>
       <button class="btn" id="users-btn" title="Manage Users">Users</button>
       <button class="btn" id="libraries-btn" title="Manage Libraries">Libraries</button>
-      <button class="btn" id="server-admin-btn" title="Server Administration"><i class="fa-solid fa-server"></i> Admin</button>
+      <button class="btn" id="server-admin-btn" title="Server Administration">Admin</button>
       <button class="btn" id="logs-btn" title="View System Logs" onclick="window.open('view_logs.php', 'SystemLogs')">Logs</button>
       <?php endif; ?>
       <button class="btn" id="activeonly-btn" title="Show Only Active Servers">Active Only</button>
@@ -138,6 +138,7 @@ $isAdmin = isAdmin();
 <div id="sessions-view" class="view-container">
   <button class="back-btn" id="back-btn">← Back to Servers</button>
   <div id="server-title"></div>
+  <div id="server-stats" style="text-align:center; color:var(--muted); font-size:0.9rem; margin-bottom:10px; display:none; font-family: monospace;"></div>
   <div class="search-container">
     <input type="text" id="session-search" placeholder="Filter sessions...">
   </div>
