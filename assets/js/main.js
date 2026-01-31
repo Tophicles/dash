@@ -21,9 +21,12 @@ function updateServerFormFields() {
     const apiKeyGroup = document.getElementById('group-apikey');
     const tokenGroup = document.getElementById('group-token');
     const urlInput = document.getElementById('server-url-input');
+    const osSelect = document.getElementById('server-os-select');
+    const sshPortGroup = document.getElementById('ssh-port-group');
 
     if (!typeSelect || !apiKeyGroup || !tokenGroup) return;
 
+    // Type Logic
     if (typeSelect.value === 'plex') {
         apiKeyGroup.style.display = 'none';
         tokenGroup.style.display = 'flex';
@@ -37,12 +40,26 @@ function updateServerFormFields() {
         tokenGroup.querySelector('input').removeAttribute('required');
         if (urlInput) urlInput.placeholder = "192.168.1.10:8096";
     }
+
+    // OS Logic
+    if (osSelect && sshPortGroup) {
+        if (osSelect.value === 'linux') {
+            sshPortGroup.style.display = 'flex';
+        } else {
+            sshPortGroup.style.display = 'none';
+        }
+    }
 }
 
 // Add event listener for server type change
 const serverTypeSelect = document.getElementById('server-type-select');
 if (serverTypeSelect) {
     serverTypeSelect.addEventListener('change', updateServerFormFields);
+}
+
+const serverOsSelect = document.getElementById('server-os-select');
+if (serverOsSelect) {
+    serverOsSelect.addEventListener('change', updateServerFormFields);
 }
 
 // Input listener for stripping protocol
@@ -167,7 +184,19 @@ function getQualityBadge(width, height) {
     if (height >= 1080 || width >= 1920) return '1080p';
     if (height >= 720 || width >= 1280) return '720p';
     if (height >= 480) return '480p';
+    if (height > 0) return height + 'p';
     return '';
+}
+
+// Helper to format audio channels
+function formatAudioChannels(channels) {
+    if (!channels) return '';
+    const ch = parseFloat(channels);
+    if (ch === 6) return '5.1';
+    if (ch === 8) return '7.1';
+    if (ch === 2) return '2.0';
+    if (ch === 1) return '1.0';
+    return channels;
 }
 
 // Get play method icon
@@ -243,6 +272,443 @@ async function fetchServer(server){
     } catch(e){
         console.error('Server fetch error', e);
         return [];
+    }
+}
+
+// Fetch server info (version and updates)
+async function fetchServerInfo(server) {
+    try {
+        const res = await fetch(`proxy.php?server=${encodeURIComponent(server.name)}&action=info`);
+        if (!res.ok) return null;
+        const data = await res.json();
+
+        // Return object with version and update status
+        return {
+            version: data.version || 'Unknown',
+            hasUpdate: !!data.updateAvailable
+        };
+    } catch (e) {
+        console.error('Server info fetch error', e);
+        return null;
+    }
+}
+
+// Test server update simulation
+async function testServerUpdate(serverId) {
+    try {
+        const res = await fetch(`proxy.php?id=${encodeURIComponent(serverId)}&action=info&test_update=1`);
+        if (res.ok) {
+            const data = await res.json();
+            if (data.updateAvailable) {
+                // Find server and update state
+                const server = SERVERS.find(s => s.id === serverId);
+                if (server) {
+                    server.hasUpdate = true;
+                    renderServerGrid();
+                    openServerAdminModal(); // Refresh modal
+                    alert(`Update simulation triggered for ${server.name}`);
+                }
+            }
+        }
+    } catch (e) {
+        console.error('Test update failed', e);
+    }
+}
+
+// Server Admin Logic
+if (IS_ADMIN) {
+    const adminBtn = document.getElementById('server-admin-btn');
+    if (adminBtn) {
+        adminBtn.addEventListener('click', openServerAdminModal);
+    }
+
+    // SSH Keys Button (inside Admin Modal)
+    const sshBtn = document.getElementById('ssh-keys-btn');
+    if (sshBtn) {
+        sshBtn.addEventListener('click', openSSHModal);
+    }
+}
+
+function openServerAdminModal() {
+    const modal = document.getElementById('server-admin-modal');
+    modal.classList.add('visible');
+    renderServerAdminList();
+}
+
+function closeServerAdminModal() {
+    document.getElementById('server-admin-modal').classList.remove('visible');
+}
+
+// Close on click outside
+document.getElementById('server-admin-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeServerAdminModal();
+    }
+});
+
+// SSH Manager Logic
+async function openSSHModal() {
+    // Hide Admin Modal temporarily (or stack on top, but hiding is cleaner)
+    closeServerAdminModal();
+
+    const modal = document.getElementById('ssh-modal');
+    modal.classList.add('visible');
+
+    // Load current key
+    const keyDisplay = document.getElementById('ssh-public-key');
+    keyDisplay.value = 'Loading...';
+
+    try {
+        const res = await fetch('ssh_manager.php?action=get_public_key');
+        const data = await res.json();
+        if (data.success && data.key) {
+            keyDisplay.value = data.key;
+        } else {
+            keyDisplay.value = 'No public key found. Generate one below.';
+        }
+    } catch (e) {
+        keyDisplay.value = 'Error loading key.';
+    }
+
+    // Reset form
+    document.getElementById('ssh-agree-chk').checked = false;
+    document.getElementById('ssh-generate-btn').disabled = true;
+}
+
+function closeSSHModal() {
+    document.getElementById('ssh-modal').classList.remove('visible');
+    // Re-open Admin Modal
+    openServerAdminModal();
+}
+
+document.getElementById('ssh-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeSSHModal();
+    }
+});
+
+const sshAgreeChk = document.getElementById('ssh-agree-chk');
+if (sshAgreeChk) {
+    sshAgreeChk.addEventListener('change', function() {
+        document.getElementById('ssh-generate-btn').disabled = !this.checked;
+    });
+}
+
+const sshGenBtn = document.getElementById('ssh-generate-btn');
+if (sshGenBtn) {
+    sshGenBtn.addEventListener('click', async function() {
+        if (!confirm('Are you sure you want to generate a new key pair? This will invalidate existing connections.')) return;
+
+        this.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
+        this.disabled = true;
+
+        try {
+            const res = await fetch('ssh_manager.php?action=generate', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ agreed: true })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                document.getElementById('ssh-public-key').value = data.key;
+                alert('New SSH Key Pair Generated Successfully!');
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error'));
+            }
+        } catch (e) {
+            alert('Failed to generate key: ' + e.message);
+        }
+
+        this.innerHTML = 'Generate New Key Pair';
+        this.disabled = false;
+        // Uncheck agreement to force re-check for next time
+        sshAgreeChk.checked = false;
+        this.disabled = true;
+    });
+}
+
+const sshCopyBtn = document.getElementById('ssh-copy-btn');
+if (sshCopyBtn) {
+    sshCopyBtn.addEventListener('click', function() {
+        const copyText = document.getElementById("ssh-public-key");
+        copyText.select();
+        copyText.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(copyText.value).then(() => {
+            const originalText = this.innerText;
+            this.innerText = 'Copied!';
+            setTimeout(() => this.innerText = originalText, 2000);
+        });
+    });
+}
+
+function renderServerAdminList() {
+    const container = document.getElementById('admin-server-list');
+    container.innerHTML = '';
+
+    SERVERS.forEach(async server => {
+        const item = document.createElement('div');
+        item.className = 'admin-server-item';
+
+        const sessions = ALL_SESSIONS[server.name] || [];
+        const isActive = sessions.length > 0;
+        const status = isActive ? `<span style="color:#4caf50;">Online (${sessions.length} active)</span>` : '<span style="color:#aaa;">Idle</span>';
+        const isLinux = !server.os_type || server.os_type === 'linux';
+
+        let actionsHtml = `
+            <button class="admin-action-btn" title="Check for Updates" onclick="checkServerUpdate('${esc(server.id)}', this)">
+                <i class="fa-solid fa-rotate"></i>
+            </button>
+            <button class="admin-action-btn" title="Simulate Update Available" onclick="testServerUpdate('${esc(server.id)}')">
+                <i class="fa-solid fa-flask"></i>
+            </button>
+        `;
+
+        if (isLinux) {
+            actionsHtml += `<span id="ssh-controls-${esc(server.id)}">`;
+            if (server.ssh_initialized) {
+                actionsHtml += `<i class="fa-solid fa-spinner fa-spin"></i>`;
+                // Fetch status asynchronously
+                fetchServerStatus(server.id);
+            } else {
+                actionsHtml += `
+                    <button class="admin-action-btn" title="Check SSH Connection" onclick="deployServerKey('${esc(server.id)}')">
+                        <i class="fa-solid fa-key"></i> Check SSH
+                    </button>
+                `;
+            }
+            actionsHtml += `</span>`;
+        }
+
+        if (server.type !== 'plex') {
+            actionsHtml += `
+                <button class="admin-action-btn danger" title="Restart Server (API)" onclick="restartServer('${esc(server.id)}', '${esc(server.name)}')">
+                    <i class="fa-solid fa-power-off"></i>
+                </button>
+            `;
+        }
+
+        item.innerHTML = `
+            <div class="admin-server-info">
+                <div class="admin-server-name">${esc(server.name)}</div>
+                <div class="admin-server-details">
+                    Type: ${esc(server.type.toUpperCase())} • Version: ${esc(server.version || 'Unknown')} • ${status}
+                </div>
+            </div>
+            <div class="admin-server-actions">
+                ${actionsHtml}
+            </div>
+        `;
+        container.appendChild(item);
+    });
+}
+
+async function fetchServerStatus(serverId) {
+    try {
+        const res = await fetch(`proxy.php?id=${encodeURIComponent(serverId)}&action=ssh_status`);
+        const data = await res.json();
+
+        // Update both Admin Modal and Header controls
+        const containers = document.querySelectorAll(`[id^="ssh-controls-${serverId}"], [id^="js-header-controls-${serverId}"]`);
+
+        containers.forEach(container => {
+            if (data.success) {
+                // If data.success is true, SSH exited 0, so service is active/running.
+                const isRunning = true;
+                const server = SERVERS.find(s => s.id === serverId);
+                const serverName = server ? server.name : 'Server';
+
+                if (isRunning) {
+                    container.innerHTML = `
+                        <button class="admin-action-btn danger" title="Stop Service" onclick="controlServerSSH('${esc(serverId)}', '${esc(serverName)}', 'ssh_stop')">
+                            <i class="fa-solid fa-stop"></i>
+                        </button>
+                        <button class="admin-action-btn" style="color:orange; border-color:orange; background:rgba(255, 165, 0, 0.1);" title="Restart Service" onclick="controlServerSSH('${esc(serverId)}', '${esc(serverName)}', 'ssh_restart')">
+                            <i class="fa-solid fa-rotate-right"></i>
+                        </button>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <button class="admin-action-btn success" title="Start Service" onclick="controlServerSSH('${esc(serverId)}', '${esc(serverName)}', 'ssh_start')">
+                            <i class="fa-solid fa-play"></i>
+                        </button>
+                    `;
+                }
+            } else {
+                container.innerHTML = `<span style="font-size:0.8rem; color:red;" title="${esc(data.error)}">Error</span>`;
+            }
+        });
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+async function controlServerSSH(serverId, serverName, action) {
+    const actionMap = {
+        'ssh_stop': 'Stop',
+        'ssh_start': 'Start',
+        'ssh_restart': 'Restart'
+    };
+    const actionName = actionMap[action] || action;
+
+    if (!confirm(`${actionName} "${serverName}" via SSH?`)) return;
+
+    // Log
+    logSystemEvent(`SSH ${actionName} command issued for ${serverName}`);
+
+    // Set loading state
+    const containers = document.querySelectorAll(`[id^="ssh-controls-${serverId}"], [id^="js-header-controls-${serverId}"]`);
+    containers.forEach(c => c.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>');
+
+    try {
+        const res = await fetch(`proxy.php?id=${encodeURIComponent(serverId)}&action=${action}`);
+        const data = await res.json();
+
+        if (data.success) {
+            // Wait 2 seconds then refresh status
+            setTimeout(() => fetchServerStatus(serverId), 2000);
+        } else {
+             alert(`SSH Command Failed: ${data.error}`);
+             logSystemEvent(`SSH ${actionName} Failed for ${serverName}: ${data.error}`, 'ERROR');
+             fetchServerStatus(serverId); // Restore buttons
+        }
+    } catch (e) {
+        alert('Request failed: ' + e.message);
+        fetchServerStatus(serverId);
+    }
+}
+
+async function deployServerKey(serverId) {
+    const containers = document.querySelectorAll(`[id^="ssh-controls-${serverId}"], [id^="js-header-controls-${serverId}"]`);
+    containers.forEach(c => c.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verifying...');
+
+    try {
+        // Try to connect (status check)
+        const res = await fetch(`proxy.php?id=${encodeURIComponent(serverId)}&action=ssh_status`);
+        const data = await res.json();
+
+        if (data.success) {
+            // Connection successful! Update server config.
+            await fetch('update_server.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    id: serverId,
+                    ssh_initialized: true
+                })
+            });
+
+            // Update local state
+            const server = SERVERS.find(s => s.id === serverId);
+            if (server) server.ssh_initialized = true;
+
+            // Refresh
+            fetchServerStatus(serverId);
+            alert('SSH Connection Verified! Controls enabled.');
+        } else {
+            // Failed
+            alert('Connection Failed: ' + data.error + '\n\nPlease ensure you have run the "linux_setup.sh" script on the target server.');
+            // Revert button
+            const server = SERVERS.find(s => s.id === serverId);
+            const containers = document.querySelectorAll(`[id^="ssh-controls-${serverId}"], [id^="js-header-controls-${serverId}"]`);
+            if (server) {
+                containers.forEach(c => {
+                    c.innerHTML = `
+                        <button class="admin-action-btn" title="Check SSH Connection" onclick="deployServerKey('${esc(server.id)}')">
+                            <i class="fa-solid fa-key"></i> Check SSH
+                        </button>
+                    `;
+                });
+            }
+        }
+    } catch (e) {
+        alert('Request failed: ' + e.message);
+    }
+}
+
+async function checkServerUpdate(serverId, btn) {
+    const server = SERVERS.find(s => s.id === serverId);
+    if (!server) return;
+
+    const icon = btn.querySelector('i');
+    icon.classList.add('fa-spin');
+
+    const info = await fetchServerInfo(server);
+    icon.classList.remove('fa-spin');
+
+    if (info) {
+        server.version = info.version;
+        server.hasUpdate = info.hasUpdate;
+        renderServerGrid();
+        renderServerAdminList(); // Refresh list to show new version/status if changed
+    } else {
+        alert('Failed to fetch server info');
+    }
+}
+
+async function logSystemEvent(message, level = 'INFO') {
+    try {
+        await fetch('log_event.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message, level })
+        });
+    } catch (e) {
+        console.error('Failed to log event', e);
+    }
+}
+
+async function restartServer(serverId, serverName) {
+    const sessions = ALL_SESSIONS[serverName] || [];
+    if (sessions.length > 0) {
+        if (!confirm(`WARNING: There are ${sessions.length} active sessions on "${serverName}".\nRestarting will disconnect these users.\n\nAre you sure you want to proceed?`)) {
+            return;
+        }
+    } else {
+        if (!confirm(`Restart server "${serverName}"?`)) return;
+    }
+
+    try {
+        const res = await fetch(`proxy.php?id=${encodeURIComponent(serverId)}&action=restart`);
+        const data = await res.json();
+
+        if (data.success) {
+            alert(`Restart command sent to ${serverName}. Monitoring restart process...`);
+
+            // Log initial request
+            logSystemEvent(`Restart command issued for ${serverName}`);
+
+            // Find server object
+            const server = SERVERS.find(s => s.id === serverId);
+            if (!server) return;
+
+            // Start monitoring
+            const checkInterval = setInterval(async () => {
+                const info = await fetchServerInfo(server);
+
+                if (info) {
+                    // Server is back online
+                    logSystemEvent(`Server ${serverName} has restarted successfully.`);
+                    clearInterval(checkInterval);
+
+                    server.version = info.version;
+                    renderServerAdminList(); // Update UI
+                    // alert(`Server ${serverName} is back online!`);
+                } else {
+                    // Server is offline
+                    logSystemEvent(`Server ${serverName} unreachable. Retrying connection...`, 'WARN');
+                    // Optional: Update UI to show "Restarting..." if we had a dedicated status element
+                }
+            }, 1000); // Check every second
+
+        } else {
+            alert(`Failed to restart: ${data.error || 'Unknown error'}`);
+            logSystemEvent(`Restart failed for ${serverName}: ${data.error}`, 'ERROR');
+        }
+    } catch (e) {
+        console.error('Restart failed', e);
+        alert('Failed to communicate with server');
+        logSystemEvent(`Restart communication failed for ${serverName}: ${e.message}`, 'ERROR');
     }
 }
 
@@ -503,6 +969,12 @@ function renderServerGrid() {
         card.innerHTML = `
             ${dragHandle}
             <div class="server-name">${esc(server.name)}</div>
+            ${server.version ? `
+                <div class="server-version">
+                    v${esc(server.version)}
+                    ${server.hasUpdate ? '<i class="fa-solid fa-circle-up update-available" title="Update Available: New version ready!"></i>' : ''}
+                </div>
+            ` : ''}
             <div class="server-status">
                 <div class="status-dot ${isActive ? 'active server-' + esc(server.type) : ''}"></div>
                 ${isActive ? `${sessions.length} playing` : 'Idle'}
@@ -689,11 +1161,53 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
 
     // Update the server title with themed header
     const titleElement = document.getElementById('server-title');
-    titleElement.innerHTML = `
-        ${esc(serverName)}
-        ${server ? `<a href="${esc(server.url)}" target="_blank" class="server-link-btn" title="Go to Server"><i class="fa-solid fa-external-link-alt"></i></a>` : ''}
+
+    // Header Left
+    let headerHtml = `
+        <div class="header-left">
+            ${esc(serverName)}
+            ${server && server.version ? `<span class="server-title-version">[v${esc(server.version)}]</span>` : ''}
+            ${server ? `<a href="${esc(server.url)}" target="_blank" class="server-link-btn" title="Go to Server"><i class="fa-solid fa-external-link-alt"></i></a>` : ''}
+        </div>
     `;
-    titleElement.className = `section-divider ${serverType}`;
+
+    // Header Center (OS Badge)
+    let osBadge = '';
+    if (server) {
+        let osIcon = 'fa-server';
+        let osName = 'Server';
+        if (!server.os_type || server.os_type === 'linux') { osIcon = 'fa-linux'; osName = 'Linux'; }
+        else if (server.os_type === 'windows') { osIcon = 'fa-windows'; osName = 'Windows'; }
+        else if (server.os_type === 'macos') { osIcon = 'fa-apple'; osName = 'macOS'; }
+        else if (server.os_type === 'other') { osIcon = 'fa-server'; osName = 'Other'; }
+
+        osBadge = `<div class="os-badge"><i class="fa-brands ${osIcon}"></i> ${osName}</div>`;
+    }
+    headerHtml += `<div class="header-center">${osBadge}</div>`;
+
+    // Header Right (Controls)
+    headerHtml += `<div class="header-right" id="js-header-controls-${esc(serverId)}"></div>`;
+
+    titleElement.innerHTML = headerHtml;
+    titleElement.className = `server-header-enhanced ${serverType}`;
+
+    // Trigger async load of controls if admin and linux
+    if (IS_ADMIN && server && (!server.os_type || server.os_type === 'linux')) {
+        // Initial render
+        const container = document.getElementById(`js-header-controls-${esc(serverId)}`);
+        if (container) {
+             if (server.ssh_initialized) {
+                 container.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                 fetchServerStatus(serverId);
+             } else {
+                 container.innerHTML = `
+                    <button class="admin-action-btn" title="Check SSH Connection" onclick="deployServerKey('${esc(server.id)}')">
+                        <i class="fa-solid fa-key"></i> Check SSH
+                    </button>
+                `;
+             }
+        }
+    }
 
     // Hide Reorder, Active Only, Show All, and Users buttons when viewing single server
     if (IS_ADMIN) {
@@ -786,6 +1300,7 @@ if (IS_ADMIN) {
         // Re-render to update drag handles
         renderServerGrid();
     });
+
 }
 
 // Drag and Drop handlers
@@ -933,6 +1448,45 @@ async function showItemDetails(serverName, itemId, serverType) {
         }
         html += '</div>';
 
+        // Tech Badges Logic
+        let qualityBadge = '';
+        if (item.resolution) {
+            if (item.resolution.toLowerCase() === 'sd') {
+                qualityBadge = 'SD';
+            } else {
+                const resolutionParts = item.resolution.split('x');
+                // If "WxH", use both. If single number "H", assume height.
+                if (resolutionParts.length > 1) {
+                    const w = parseInt(resolutionParts[0]);
+                    const h = parseInt(resolutionParts[1]);
+                    qualityBadge = getQualityBadge(w, h);
+                } else if (resolutionParts.length === 1) {
+                    const val = parseInt(resolutionParts[0]);
+                    if (!isNaN(val)) {
+                         // Assume height if single number (e.g. "1080", "480")
+                         qualityBadge = getQualityBadge(0, val);
+                    }
+                }
+            }
+        }
+
+        const hasTechInfo = qualityBadge || item.container || item.audioCodec;
+
+        if (hasTechInfo) {
+            html += '<div class="modal-tech-badges">';
+            if (qualityBadge) {
+                html += `<div class="tech-badge">${esc(qualityBadge)}</div>`;
+            }
+            if (item.container) {
+                html += `<div class="tech-badge">${esc(item.container)}</div>`;
+            }
+            if (item.audioCodec) {
+                const audioCh = formatAudioChannels(item.audioChannels);
+                html += `<div class="tech-badge">${esc(item.audioCodec)} ${audioCh ? esc(audioCh) + 'ch' : ''}</div>`;
+            }
+            html += '</div>';
+        }
+
         // Overview inline with poster
         if (item.overview) {
             html += `<div class="modal-overview-inline">${esc(item.overview)}</div>`;
@@ -979,63 +1533,31 @@ async function showItemDetails(serverName, itemId, serverType) {
             html += '</div>';
         }
 
-        // File Info
-        const hasFileInfo = item.videoCodec || item.audioCodec || item.resolution || item.container || item.path;
-        if (hasFileInfo) {
-             html += '<div class="modal-details" style="margin-top: 12px; background: rgba(0,0,0,0.2);">';
+        // File Info (Path only, tech details moved to badges)
+        if (item.path) {
+            const path = item.path;
+            const lastSlash = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+            let dir = path;
+            let file = '';
 
-             if (item.videoCodec) {
-                html += `
-                    <div class="modal-detail-item">
-                        <div class="modal-detail-label">Video</div>
-                        <div class="modal-detail-value">${esc(item.videoCodec.toUpperCase())}${item.resolution ? ' ' + esc(item.resolution) : ''}</div>
+            if (lastSlash > -1) {
+                dir = path.substring(0, lastSlash);
+                file = path.substring(lastSlash + 1);
+            }
+
+            html += `
+                <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; font-family: monospace; font-size: 0.85rem; word-break: break-all; color: #aaa;">
+                    <div style="margin-bottom: 8px;">
+                        <div style="font-size: 0.7rem; text-transform: uppercase; margin-bottom: 2px; color: #666;">Root Path</div>
+                        ${esc(dir)}
                     </div>
-                `;
-             }
-             if (item.audioCodec) {
-                html += `
-                    <div class="modal-detail-item">
-                        <div class="modal-detail-label">Audio</div>
-                        <div class="modal-detail-value">${esc(item.audioCodec.toUpperCase())}${item.audioChannels ? ' ' + esc(item.audioChannels) : ''}</div>
-                    </div>
-                `;
-             }
-             if (item.container) {
-                html += `
-                    <div class="modal-detail-item">
-                        <div class="modal-detail-label">Container</div>
-                        <div class="modal-detail-value">${esc(item.container.toUpperCase())}</div>
-                    </div>
-                `;
-             }
-
-             html += '</div>';
-
-             if (item.path) {
-                const path = item.path;
-                const lastSlash = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
-                let dir = path;
-                let file = '';
-
-                if (lastSlash > -1) {
-                    dir = path.substring(0, lastSlash);
-                    file = path.substring(lastSlash + 1);
-                }
-
-                html += `
-                    <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; font-family: monospace; font-size: 0.85rem; word-break: break-all; color: #aaa;">
-                        <div style="margin-bottom: 8px;">
-                            <div style="font-size: 0.7rem; text-transform: uppercase; margin-bottom: 2px; color: #666;">Root Path</div>
-                            ${esc(dir)}
-                        </div>
-                        ${file ? `
-                        <div>
-                            <div style="font-size: 0.7rem; text-transform: uppercase; margin-bottom: 2px; color: #666;">Filename</div>
-                            <span style="color: #fff; font-weight: 600;">${esc(file)}</span>
-                        </div>` : ''}
-                    </div>
-                `;
-             }
+                    ${file ? `
+                    <div>
+                        <div style="font-size: 0.7rem; text-transform: uppercase; margin-bottom: 2px; color: #666;">Filename</div>
+                        <span style="color: #aaa;">${esc(file)}</span>
+                    </div>` : ''}
+                </div>
+            `;
         }
 
         // Current playback info at the bottom
@@ -1202,6 +1724,18 @@ async function loadAll(){
 // Auto-refresh
 async function start(){
     const refreshSeconds = await loadConfig();
+
+    // Fetch server versions once
+    SERVERS.forEach(async server => {
+        const info = await fetchServerInfo(server);
+        if (info) {
+            server.version = info.version;
+            server.hasUpdate = info.hasUpdate;
+            // Update UI if we are in server view
+            if (currentView === 'servers') renderServerGrid();
+        }
+    });
+
     if(refreshTimer) clearInterval(refreshTimer);
     await loadAll();
     refreshTimer = setInterval(loadAll, refreshSeconds * 1000);
@@ -1247,6 +1781,9 @@ if (IS_ADMIN) {
 
         form.querySelector('[name="apiKey"]').value = server.apiKey || '';
         form.querySelector('[name="token"]').value = server.token || '';
+
+        form.querySelector('[name="os_type"]').value = server.os_type || 'linux';
+        form.querySelector('[name="ssh_port"]').value = server.ssh_port || '22';
 
         // Store server ID for update
         form.dataset.originalName = server.id;
@@ -1330,7 +1867,9 @@ document.getElementById('add-server-form').addEventListener('submit', async e=>{
         type:f.type.value,
         url:fullUrl,
         apiKey:f.apiKey.value,
-        token:f.token.value
+        token:f.token.value,
+        os_type: f.os_type.value,
+        ssh_port: f.ssh_port.value
     };
 
     // If editing, include server ID
