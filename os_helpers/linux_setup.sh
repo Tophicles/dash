@@ -55,12 +55,23 @@ $USER_NAME ALL=(ALL) NOPASSWD: \\
   /bin/systemctl start plexmediaserver, \\
   /bin/systemctl stop plexmediaserver, \\
   /bin/systemctl restart plexmediaserver, \\
+  /bin/systemctl is-active plexmediaserver, \\
+  /bin/systemctl show plexmediaserver -p MemoryCurrent -p CPUUsageNSec, \\
+
   /bin/systemctl start emby-server, \\
   /bin/systemctl stop emby-server, \\
   /bin/systemctl restart emby-server, \\
+  /bin/systemctl is-active emby-server, \\
+  /bin/systemctl show emby-server -p MemoryCurrent -p CPUUsageNSec, \\
+
   /bin/systemctl start jellyfin, \\
   /bin/systemctl stop jellyfin, \\
-  /bin/systemctl restart jellyfin
+  /bin/systemctl restart jellyfin, \\
+  /bin/systemctl is-active jellyfin, \\
+  /bin/systemctl show jellyfin -p MemoryCurrent -p CPUUsageNSec, \\
+
+  /usr/bin/uptime, \\
+  /usr/bin/free -m
 EOF
     chmod 440 "$SUDOERS_FILE"
 
