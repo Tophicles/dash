@@ -77,7 +77,36 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
     } elseif ($action === 'ssh_status') {
         $cmd = "systemctl is-active $service";
     } elseif ($action === 'ssh_system_stats') {
-        $cmd = "uptime; echo '---'; free -m; echo '---'; sudo systemctl show $service -p MemoryCurrent -p CPUUsageNSec";
+        // Complex command to gather stats (excluding disk)
+        $procName = $service;
+        if ($type === 'plex') $procName = 'Plex Media Server';
+        elseif ($type === 'emby') $procName = 'EmbyServer';
+        elseif ($type === 'jellyfin') $procName = 'jellyfin';
+
+        // Escape for security
+        $safeProcName = escapeshellarg($procName);
+
+        $cmd = "
+            uptime -p
+            echo '---SECTION---'
+            cat /proc/loadavg
+            echo '---SECTION---'
+            cat /proc/stat | grep 'cpu '
+            echo '---SECTION---'
+            cat /proc/net/dev
+            echo '---SECTION---'
+            sleep 1
+            cat /proc/stat | grep 'cpu '
+            echo '---SECTION---'
+            cat /proc/net/dev
+            echo '---SECTION---'
+            free -m
+            echo '---SECTION---'
+            pid=$(pgrep -f $safeProcName | head -n 1)
+            if [ -n \"\$pid\" ]; then ps -o rss,time,nlwp -p \$pid | tail -n 1; else echo '0 0 0'; fi
+        ";
+        // Remove newlines and collapse spaces
+        $cmd = str_replace(array("\r", "\n"), '; ', $cmd);
     }
 
     if (!$cmd) {

@@ -2263,70 +2263,117 @@ async function fetchServerStats(serverId) {
         const data = await res.json();
 
         if (data.success && data.output) {
-            // Parse output parts separated by "---"
-            const parts = data.output.split('---');
-            const uptimeOutput = parts[0] ? parts[0].trim() : '';
-            const freeOutput = parts[1] ? parts[1].trim() : '';
-            const serviceOutput = parts[2] ? parts[2].trim() : '';
+            const parts = data.output.split('---SECTION---').map(s => s.trim());
 
-            // 1. Extract Uptime & Load
-            const upMatch = uptimeOutput.match(/up\s+(.+?),\s+\d+\s+users?/);
-            let uptime = upMatch ? upMatch[1] : 'Unknown';
-            const loadMatch = uptimeOutput.match(/load average:\s+(.+)$/);
-            let load = loadMatch ? loadMatch[1] : 'Unknown';
+            // Expected parts: 0=Uptime, 1=Load, 2=CPU1, 3=Net1, 4=CPU2, 5=Net2, 6=RAM, 7=Service
+            if (parts.length < 8) return;
 
-            // 2. Extract System Memory (free -m)
-            // Mem: 12345 5678 ...
-            let memSysTotal = 0;
-            let memSysUsed = 0;
-            const memMatch = freeOutput.match(/Mem:\s+(\d+)\s+(\d+)/);
+            // 1. Uptime
+            let uptime = parts[0].replace(/.*up\s+/, '');
+            // Normalize "5 days, 22 hours, 4 minutes"
+            const upRaw = parts[0].replace('up ', '');
+            const upParts = upRaw.split(',').map(s => s.trim());
+            if (upParts.length > 0) {
+                uptime = upParts[0].replace(/ days?/, 'd').replace(/ hours?/, 'h').replace(/ minutes?/, 'm');
+                if (upParts.length > 1 && !uptime.includes('m')) {
+                    uptime += ' ' + upParts[1].replace(/ hours?/, 'h').replace(/ minutes?/, 'm');
+                }
+            }
+
+            // 2. Load
+            // Raw /proc/loadavg is "0.06 0.24 0.23 1/450 12345"
+            // We just want the first three numbers.
+            const loadParts = parts[1].split(' ');
+            const load = loadParts.slice(0, 3).join(' ');
+
+            // 3. CPU
+            const parseCpu = (str) => {
+                const lines = str.split('\n');
+                let total = 0, idle = 0;
+                for (const line of lines) {
+                    if (line.startsWith('cpu ')) {
+                        const cols = line.split(/\s+/).slice(1).map(Number);
+                        idle = cols[3] + cols[4];
+                        total = cols.reduce((a, b) => a + b, 0);
+                        break;
+                    }
+                }
+                return { total, idle };
+            };
+            const cpu1 = parseCpu(parts[2]);
+            const cpu2 = parseCpu(parts[4]); // CPU2 is immediately after Net1 because sleep output is empty
+            let cpuPercent = 0;
+            if (cpu2.total > cpu1.total) {
+                const diffTotal = cpu2.total - cpu1.total;
+                const diffIdle = cpu2.idle - cpu1.idle;
+                cpuPercent = ((diffTotal - diffIdle) / diffTotal) * 100;
+            }
+
+            // 4. Net
+            const parseNet = (str) => {
+                const lines = str.split('\n');
+                let rx = 0, tx = 0;
+                for (const line of lines) {
+                    if (line.includes(':')) {
+                        const [iface, stats] = line.split(':');
+                        if (iface.trim() === 'lo') continue;
+                        const cols = stats.trim().split(/\s+/).map(Number);
+                        rx += cols[0] || 0;
+                        tx += cols[8] || 0;
+                    }
+                }
+                return { rx, tx };
+            };
+            const net1 = parseNet(parts[3]);
+            const net2 = parseNet(parts[5]);
+            const rxSpeed = ((net2.rx - net1.rx) * 8 / 1000 / 1000).toFixed(1);
+            const txSpeed = ((net2.tx - net1.tx) * 8 / 1000 / 1000).toFixed(1);
+
+            // 5. RAM
+            let memTotal = 0, memUsed = 0, memAvail = 0;
+            const memMatch = parts[6].match(/Mem:\s+(\d+)\s+(\d+)\s+\d+\s+\d+\s+\d+\s+(\d+)/);
             if (memMatch) {
-                memSysTotal = parseInt(memMatch[1]);
-                memSysUsed = parseInt(memMatch[2]);
+                memTotal = parseInt(memMatch[1]) / 1024; // GB
+                memUsed = parseInt(memMatch[2]) / 1024; // Used (strict)
+                memAvail = parseInt(memMatch[3]) / 1024; // Available
             }
 
-            // 3. Extract Service Stats (systemctl show)
-            let svcMem = 0;
-            let svcCpuNS = 0;
+            // 6. Service
+            const svcParts = parts[7].split(/\s+/);
+            let svcMem = '0 GB';
+            let svcTime = '0h';
+            let svcThreads = '0';
+            if (svcParts.length >= 3) {
+                const rss = parseInt(svcParts[0]); // KB
+                if (rss > 1024*1024) svcMem = (rss/1024/1024).toFixed(2) + ' GB';
+                else svcMem = (rss/1024).toFixed(0) + ' MB';
 
-            const svcMemMatch = serviceOutput.match(/MemoryCurrent=(\d+)/);
-            if (svcMemMatch) svcMem = parseInt(svcMemMatch[1]);
-
-            const svcCpuMatch = serviceOutput.match(/CPUUsageNSec=(\d+)/);
-            if (svcCpuMatch) svcCpuNS = parseInt(svcCpuMatch[1]); // This is NOT a constant, just current value
-
-            // Format Helpers
-            const formatBytes = (bytes) => {
-                if (bytes === 0) return '0 MB';
-                const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-                const i = Math.floor(Math.log(bytes) / Math.log(1024));
-                return parseFloat((bytes / Math.pow(1024, i)).toFixed(2)) + ' ' + sizes[i];
-            };
-
-            const formatTime = (ns) => {
-                if (!ns || ns === 18446744073709551615) return 'N/A'; // UINT64_MAX check
-                const seconds = ns / 1e9;
-                const h = Math.floor(seconds / 3600);
-                const m = Math.floor((seconds % 3600) / 60);
-                return `${h}h ${m}m`;
-            };
-
-            // Build Display Strings
-            // Line 1: Uptime & Load
-            let html = `<div>Uptime: <span style="color:var(--text);">${esc(uptime)}</span> • Load: <span style="color:var(--text);">${esc(load)}</span></div>`;
-
-            // Line 2: System Memory & Service Stats
-            // Service Memory: Bytes -> Formatted
-            // System Memory: MB -> Formatted
-            const sysMemStr = `${(memSysUsed/1024).toFixed(1)}/${(memSysTotal/1024).toFixed(1)} GB`;
-
-            html += `<div style="margin-top:4px; font-size:0.85rem; color:#888;">`;
-            html += `Sys Mem: <span style="color:#aaa;">${sysMemStr}</span>`;
-
-            if (svcMem > 0 || svcCpuNS > 0) {
-                 html += ` • App: <span style="color:#aaa;">${formatBytes(svcMem)}</span> / <span style="color:#aaa;">${formatTime(svcCpuNS)} CPU</span>`;
+                svcTime = svcParts[1];
+                svcThreads = svcParts[2];
             }
-            html += `</div>`;
+
+            // Identify service name
+            const server = SERVERS.find(s => s.id === serverId);
+            let svcName = 'Emby';
+            if (server) {
+                if (server.type === 'plex') svcName = 'Plex';
+                else if (server.type === 'jellyfin') svcName = 'Jellyfin';
+            }
+
+            let html = `
+                <div style="text-align: center; line-height: 1.5;">
+                    <div style="margin-bottom: 2px;">
+                        Uptime <span style="color:var(--text);">${esc(uptime)}</span> •
+                        CPU <span style="color:var(--text);">${cpuPercent.toFixed(0)}%</span> •
+                        Load <span style="color:var(--text);">${esc(load)}</span>
+                    </div>
+                    <div style="font-size: 0.9em; color:#aaa; white-space: nowrap; overflow-x: auto; padding-bottom: 2px;">
+                        RAM <span style="color:#ddd;">${memUsed.toFixed(1)}/${memTotal.toFixed(1)} GB</span> (${memAvail.toFixed(1)} GB avail) &nbsp;&bull;&nbsp;
+                        Net <span style="color:#ddd;">&darr;${rxSpeed} &uarr;${txSpeed} Mbps</span> &nbsp;&bull;&nbsp;
+                        ${svcName} <span style="color:#ddd;">${svcMem}</span> &bull; ${esc(svcTime)} CPU &bull; ${esc(svcThreads)} threads
+                    </div>
+                </div>
+            `;
 
             statsEl.innerHTML = html;
             statsEl.style.display = 'block';
