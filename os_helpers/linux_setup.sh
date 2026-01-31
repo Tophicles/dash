@@ -10,7 +10,7 @@ USER_NAME="mediasvc"
 SUDOERS_FILE="/etc/sudoers.d/$USER_NAME"
 SSHD_CONFIG="/etc/ssh/sshd_config"
 MARKER_START="# BEGIN MEDIASVC-MULTIDASH"
-MARKER_END="# END MEDIASVC-MULTIDASH"
+MARKER_END="# END MEDIDASH-MULTIDASH"
 
 ########################################
 # Root check
