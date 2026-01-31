@@ -2331,6 +2331,14 @@ async function fetchServerStats(serverId) {
                 if (bits >= 1000) return (bits / 1000).toFixed(1) + ' Kbps';
                 return bits + ' bps';
             };
+            const cpu1 = parseCpu(parts[4]);
+            const cpu2 = parseCpu(parts[8]);
+            let cpuUsage = 0;
+            const dTotal = cpu2.total - cpu1.total;
+            const dIdle = cpu2.idle - cpu1.idle;
+            if (dTotal > 0) {
+                cpuUsage = ((1 - dIdle / dTotal) * 100).toFixed(0);
+            }
 
             const rxStr = formatSpeed(netEnd.rx - netStart.rx);
             const txStr = formatSpeed(netEnd.tx - netStart.tx);
