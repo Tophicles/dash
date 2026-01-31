@@ -88,24 +88,24 @@ install_user() {
     ########################################
     echo "Configuring sudoers restrictions..."
     cat > "$SUDOERS_FILE" << EOF
-$USER_NAME ALL=(ALL) NOPASSWD: \\
-  $SYSTEMCTL start plexmediaserver, \\
-  $SYSTEMCTL stop plexmediaserver, \\
-  $SYSTEMCTL restart plexmediaserver, \\
-  $SYSTEMCTL is-active plexmediaserver, \\
-  $SYSTEMCTL show plexmediaserver -p MemoryCurrent -p CPUUsageNSec, \\
-  $SYSTEMCTL start emby-server, \\
-  $SYSTEMCTL stop emby-server, \\
-  $SYSTEMCTL restart emby-server, \\
-  $SYSTEMCTL is-active emby-server, \\
-  $SYSTEMCTL show emby-server -p MemoryCurrent -p CPUUsageNSec, \\
-  $SYSTEMCTL start jellyfin, \\
-  $SYSTEMCTL stop jellyfin, \\
-  $SYSTEMCTL restart jellyfin, \\
-  $SYSTEMCTL is-active jellyfin, \\
-  $SYSTEMCTL show jellyfin -p MemoryCurrent -p CPUUsageNSec, \\
-  $UPTIME, \\
-  $FREE -m
+$USER_NAME ALL=(ALL) NOPASSWD: \
+  /usr/bin/systemctl start plexmediaserver, \
+  /usr/bin/systemctl stop plexmediaserver, \
+  /usr/bin/systemctl restart plexmediaserver, \
+  /usr/bin/systemctl is-active plexmediaserver, \
+  /usr/bin/systemctl show plexmediaserver -p MemoryCurrent -p CPUUsageNSec, \
+  /usr/bin/systemctl start emby-server, \
+  /usr/bin/systemctl stop emby-server, \
+  /usr/bin/systemctl restart emby-server, \
+  /usr/bin/systemctl is-active emby-server, \
+  /usr/bin/systemctl show emby-server -p MemoryCurrent -p CPUUsageNSec, \
+  /usr/bin/systemctl start jellyfin, \
+  /usr/bin/systemctl stop jellyfin, \
+  /usr/bin/systemctl restart jellyfin, \
+  /usr/bin/systemctl is-active jellyfin, \
+  /usr/bin/systemctl show jellyfin -p MemoryCurrent -p CPUUsageNSec, \
+  /usr/bin/uptime, \
+  /usr/bin/free -m
 EOF
     chmod 440 "$SUDOERS_FILE"
 
