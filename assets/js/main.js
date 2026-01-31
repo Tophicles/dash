@@ -530,15 +530,17 @@ async function fetchServerStatus(serverId) {
 
         containers.forEach(container => {
             if (data.success) {
-                // Parse status (active/inactive/activating/etc)
+                // Parse detailed status
                 const status = (data.status || '').trim();
-                const isRunning = status === 'active' || status === 'activating';
+                const isActive = ['active', 'activating', 'reloading'].includes(status);
+                // "Stopped" includes inactive, failed, dead, or unknown. Deactivating is NOT stopped.
+                const isStopped = ['inactive', 'failed', 'dead'].includes(status);
 
                 // Handle Pending State Transitions
                 const transition = SERVER_TRANSITIONS[serverId];
                 if (transition) {
                     if (transition === 'ssh_restart' || transition === 'ssh_start') {
-                        if (isRunning) {
+                        if (isActive) {
                             delete SERVER_TRANSITIONS[serverId]; // Action complete
                         } else {
                             const label = transition === 'ssh_restart' ? 'Restarting' : 'Starting';
@@ -546,9 +548,11 @@ async function fetchServerStatus(serverId) {
                             return;
                         }
                     } else if (transition === 'ssh_stop') {
-                        if (!isRunning) {
+                        // Wait until fully stopped (inactive/failed)
+                        if (isStopped) {
                             delete SERVER_TRANSITIONS[serverId]; // Action complete
                         } else {
+                            // Still deactivating or active
                             container.innerHTML = `<span style="color:#e5a00d;"><i class="fa-solid fa-spinner fa-spin"></i> Stopping...</span>`;
                             return;
                         }
@@ -558,7 +562,8 @@ async function fetchServerStatus(serverId) {
                 const server = SERVERS.find(s => s.id === serverId);
                 const serverName = server ? server.name : 'Server';
 
-                if (isRunning) {
+                // Render buttons: If NOT stopped (Active/Deactivating), show Stop/Restart.
+                if (!isStopped) {
                     container.innerHTML = `
                         <button class="admin-action-btn danger" title="Stop Service" onclick="controlServerSSH('${esc(serverId)}', '${esc(serverName)}', 'ssh_stop')">
                             <i class="fa-solid fa-stop"></i>
