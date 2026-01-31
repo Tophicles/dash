@@ -472,8 +472,8 @@ function renderServerAdminList() {
                 fetchServerStatus(server.id);
             } else {
                 actionsHtml += `
-                    <button class="admin-action-btn" title="Deploy/Verify SSH Key" onclick="deployServerKey('${esc(server.id)}')">
-                        <i class="fa-solid fa-key"></i> Deploy Key
+                    <button class="admin-action-btn" title="Check SSH Connection" onclick="deployServerKey('${esc(server.id)}')">
+                        <i class="fa-solid fa-key"></i> Check SSH
                     </button>
                 `;
             }
@@ -505,35 +505,37 @@ async function fetchServerStatus(serverId) {
     try {
         const res = await fetch(`proxy.php?id=${encodeURIComponent(serverId)}&action=ssh_status`);
         const data = await res.json();
-        const container = document.getElementById(`ssh-controls-${serverId}`);
-        if (!container) return;
 
-        if (data.success) {
-            // If data.success is true, SSH exited 0, so service is active/running.
-            // We ignore specific text output to avoid issues with SSH banners or warnings.
-            const isRunning = true;
-            const server = SERVERS.find(s => s.id === serverId);
-            const serverName = server ? server.name : 'Server';
+        // Update both Admin Modal and Header controls
+        const containers = document.querySelectorAll(`[id^="ssh-controls-${serverId}"], [id^="js-header-controls-${serverId}"]`);
 
-            if (isRunning) {
-                container.innerHTML = `
-                    <button class="admin-action-btn danger" title="Stop Service" onclick="controlServerSSH('${esc(serverId)}', '${esc(serverName)}', 'ssh_stop')">
-                        <i class="fa-solid fa-stop"></i>
-                    </button>
-                    <button class="admin-action-btn" style="color:orange; border-color:orange; background:rgba(255, 165, 0, 0.1);" title="Restart Service" onclick="controlServerSSH('${esc(serverId)}', '${esc(serverName)}', 'ssh_restart')">
-                        <i class="fa-solid fa-rotate-right"></i>
-                    </button>
-                `;
+        containers.forEach(container => {
+            if (data.success) {
+                // If data.success is true, SSH exited 0, so service is active/running.
+                const isRunning = true;
+                const server = SERVERS.find(s => s.id === serverId);
+                const serverName = server ? server.name : 'Server';
+
+                if (isRunning) {
+                    container.innerHTML = `
+                        <button class="admin-action-btn danger" title="Stop Service" onclick="controlServerSSH('${esc(serverId)}', '${esc(serverName)}', 'ssh_stop')">
+                            <i class="fa-solid fa-stop"></i>
+                        </button>
+                        <button class="admin-action-btn" style="color:orange; border-color:orange; background:rgba(255, 165, 0, 0.1);" title="Restart Service" onclick="controlServerSSH('${esc(serverId)}', '${esc(serverName)}', 'ssh_restart')">
+                            <i class="fa-solid fa-rotate-right"></i>
+                        </button>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <button class="admin-action-btn success" title="Start Service" onclick="controlServerSSH('${esc(serverId)}', '${esc(serverName)}', 'ssh_start')">
+                            <i class="fa-solid fa-play"></i>
+                        </button>
+                    `;
+                }
             } else {
-                container.innerHTML = `
-                    <button class="admin-action-btn success" title="Start Service" onclick="controlServerSSH('${esc(serverId)}', '${esc(serverName)}', 'ssh_start')">
-                        <i class="fa-solid fa-play"></i>
-                    </button>
-                `;
+                container.innerHTML = `<span style="font-size:0.8rem; color:red;" title="${esc(data.error)}">Error</span>`;
             }
-        } else {
-            container.innerHTML = `<span style="font-size:0.8rem; color:red;" title="${esc(data.error)}">Error</span>`;
-        }
+        });
     } catch (e) {
         console.error(e);
     }
@@ -553,8 +555,8 @@ async function controlServerSSH(serverId, serverName, action) {
     logSystemEvent(`SSH ${actionName} command issued for ${serverName}`);
 
     // Set loading state
-    const container = document.getElementById(`ssh-controls-${serverId}`);
-    if (container) container.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+    const containers = document.querySelectorAll(`[id^="ssh-controls-${serverId}"], [id^="js-header-controls-${serverId}"]`);
+    containers.forEach(c => c.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>');
 
     try {
         const res = await fetch(`proxy.php?id=${encodeURIComponent(serverId)}&action=${action}`);
@@ -575,8 +577,8 @@ async function controlServerSSH(serverId, serverName, action) {
 }
 
 async function deployServerKey(serverId) {
-    const container = document.getElementById(`ssh-controls-${serverId}`);
-    if (container) container.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verifying...';
+    const containers = document.querySelectorAll(`[id^="ssh-controls-${serverId}"], [id^="js-header-controls-${serverId}"]`);
+    containers.forEach(c => c.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verifying...');
 
     try {
         // Try to connect (status check)
@@ -606,12 +608,15 @@ async function deployServerKey(serverId) {
             alert('Connection Failed: ' + data.error + '\n\nPlease ensure you have run the "linux_setup.sh" script on the target server.');
             // Revert button
             const server = SERVERS.find(s => s.id === serverId);
-            if (container && server) {
-                 container.innerHTML = `
-                    <button class="admin-action-btn" title="Deploy/Verify SSH Key" onclick="deployServerKey('${esc(server.id)}')">
-                        <i class="fa-solid fa-key"></i> Deploy Key
-                    </button>
-                `;
+            const containers = document.querySelectorAll(`[id^="ssh-controls-${serverId}"], [id^="js-header-controls-${serverId}"]`);
+            if (server) {
+                containers.forEach(c => {
+                    c.innerHTML = `
+                        <button class="admin-action-btn" title="Check SSH Connection" onclick="deployServerKey('${esc(server.id)}')">
+                            <i class="fa-solid fa-key"></i> Check SSH
+                        </button>
+                    `;
+                });
             }
         }
     } catch (e) {
@@ -1154,12 +1159,53 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
 
     // Update the server title with themed header
     const titleElement = document.getElementById('server-title');
-    titleElement.innerHTML = `
-        ${esc(serverName)}
-        ${server && server.version ? `<span class="server-title-version">[${esc(server.version)}]</span>` : ''}
-        ${server ? `<a href="${esc(server.url)}" target="_blank" class="server-link-btn" title="Go to Server"><i class="fa-solid fa-external-link-alt"></i></a>` : ''}
+
+    // Header Left
+    let headerHtml = `
+        <div class="header-left">
+            ${esc(serverName)}
+            ${server && server.version ? `<span class="server-title-version">[v${esc(server.version)}]</span>` : ''}
+            ${server ? `<a href="${esc(server.url)}" target="_blank" class="server-link-btn" title="Go to Server"><i class="fa-solid fa-external-link-alt"></i></a>` : ''}
+        </div>
     `;
-    titleElement.className = `section-divider ${serverType}`;
+
+    // Header Center (OS Badge)
+    let osBadge = '';
+    if (server) {
+        let osIcon = 'fa-server';
+        let osName = 'Server';
+        if (!server.os_type || server.os_type === 'linux') { osIcon = 'fa-linux'; osName = 'Linux'; }
+        else if (server.os_type === 'windows') { osIcon = 'fa-windows'; osName = 'Windows'; }
+        else if (server.os_type === 'macos') { osIcon = 'fa-apple'; osName = 'macOS'; }
+        else if (server.os_type === 'other') { osIcon = 'fa-server'; osName = 'Other'; }
+
+        osBadge = `<div class="os-badge"><i class="fa-brands ${osIcon}"></i> ${osName}</div>`;
+    }
+    headerHtml += `<div class="header-center">${osBadge}</div>`;
+
+    // Header Right (Controls)
+    headerHtml += `<div class="header-right" id="js-header-controls-${esc(serverId)}"></div>`;
+
+    titleElement.innerHTML = headerHtml;
+    titleElement.className = `server-header-enhanced ${serverType}`;
+
+    // Trigger async load of controls if admin and linux
+    if (IS_ADMIN && server && (!server.os_type || server.os_type === 'linux')) {
+        // Initial render
+        const container = document.getElementById(`js-header-controls-${esc(serverId)}`);
+        if (container) {
+             if (server.ssh_initialized) {
+                 container.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                 fetchServerStatus(serverId);
+             } else {
+                 container.innerHTML = `
+                    <button class="admin-action-btn" title="Check SSH Connection" onclick="deployServerKey('${esc(server.id)}')">
+                        <i class="fa-solid fa-key"></i> Check SSH
+                    </button>
+                `;
+             }
+        }
+    }
 
     // Hide Reorder, Active Only, Show All, and Users buttons when viewing single server
     if (IS_ADMIN) {
@@ -1434,7 +1480,7 @@ async function showItemDetails(serverName, itemId, serverType) {
             }
             if (item.audioCodec) {
                 const audioCh = formatAudioChannels(item.audioChannels);
-                html += `<div class="tech-badge">${esc(item.audioCodec)} ${audioCh ? esc(audioCh) : ''}</div>`;
+                html += `<div class="tech-badge">${esc(item.audioCodec)} ${audioCh ? esc(audioCh) + 'ch' : ''}</div>`;
             }
             html += '</div>';
         }
@@ -1506,7 +1552,7 @@ async function showItemDetails(serverName, itemId, serverType) {
                     ${file ? `
                     <div>
                         <div style="font-size: 0.7rem; text-transform: uppercase; margin-bottom: 2px; color: #666;">Filename</div>
-                        <span style="color: #aaa; font-weight: 600;">${esc(file)}</span>
+                        <span style="color: #aaa;">${esc(file)}</span>
                     </div>` : ''}
                 </div>
             `;

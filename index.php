@@ -13,7 +13,7 @@ $isAdmin = isAdmin();
 <title>Now Playing – MultiDash</title>
 <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/style.css?v=<?= time() ?>">
 </head>
 <body>
 
@@ -289,6 +289,6 @@ $isAdmin = isAdmin();
 <script>
     const IS_ADMIN = <?php echo $isAdmin ? 'true' : 'false'; ?>;
 </script>
-<script src="assets/js/main.js"></script>
+<script src="assets/js/main.js?v=<?= time() ?>"></script>
 </body>
 </html>

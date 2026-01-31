@@ -1170,3 +1170,53 @@ form button:hover { background:#45a049; }
   line-height: 1.4;
   cursor: pointer;
 }
+
+/* Enhanced Server Header */
+.server-header-enhanced {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--card); /* Fallback */
+}
+/* Theming */
+.server-header-enhanced.emby { background: linear-gradient(to right, rgba(31, 47, 31, 0.9), rgba(31, 47, 31, 0.6)); border-left: 4px solid #4caf50; }
+.server-header-enhanced.jellyfin { background: linear-gradient(to right, rgba(47, 31, 47, 0.9), rgba(47, 31, 47, 0.6)); border-left: 4px solid #aa00aa; }
+.server-header-enhanced.plex { background: linear-gradient(to right, rgba(47, 47, 31, 0.9), rgba(47, 47, 31, 0.6)); border-left: 4px solid #ffc107; }
+
+.header-left, .header-center, .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.header-left { font-weight: 700; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.header-center { flex: 1; justify-content: center; }
+
+.os-badge {
+    background: rgba(0,0,0,0.4);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    color: #ddd;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Header buttons specific override */
+.header-right .admin-action-btn {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    background: rgba(0,0,0,0.3);
+    border-color: rgba(255,255,255,0.2);
+}
+.header-right .admin-action-btn:hover {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    border-color: #fff;
+}
