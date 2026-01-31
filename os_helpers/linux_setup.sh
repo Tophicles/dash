@@ -57,33 +57,46 @@ create_user() {
 # Generate sudoers safely
 ########################################
 generate_sudoers() {
-    COMMANDS=(
+    # Define commands with potential empty lines for readability in source
+    local raw_commands=(
       "$SYSTEMCTL start plexmediaserver"
       "$SYSTEMCTL stop plexmediaserver"
       "$SYSTEMCTL restart plexmediaserver"
       "$SYSTEMCTL is-active plexmediaserver"
       "$SYSTEMCTL show plexmediaserver -p MemoryCurrent -p CPUUsageNSec"
+
       "$SYSTEMCTL start emby-server"
       "$SYSTEMCTL stop emby-server"
       "$SYSTEMCTL restart emby-server"
       "$SYSTEMCTL is-active emby-server"
       "$SYSTEMCTL show emby-server -p MemoryCurrent -p CPUUsageNSec"
+
       "$SYSTEMCTL start jellyfin"
       "$SYSTEMCTL stop jellyfin"
       "$SYSTEMCTL restart jellyfin"
       "$SYSTEMCTL is-active jellyfin"
       "$SYSTEMCTL show jellyfin -p MemoryCurrent -p CPUUsageNSec"
+
       "$UPTIME"
       "$FREE -m"
     )
 
+    # Filter out empty entries to ensure contiguous array
+    local valid_cmds=()
+    for cmd in "${raw_commands[@]}"; do
+        if [[ -n "$cmd" ]]; then
+            valid_cmds+=("$cmd")
+        fi
+    done
+
     {
       echo "$USER_NAME ALL=(ALL) NOPASSWD: \\"
-      for i in "${!COMMANDS[@]}"; do
-        if [ "$i" -lt $(( ${#COMMANDS[@]} - 1 )) ]; then
-          echo "  ${COMMANDS[$i]}, \\"
+      local last_idx=$(( ${#valid_cmds[@]} - 1 ))
+      for i in "${!valid_cmds[@]}"; do
+        if [ "$i" -lt "$last_idx" ]; then
+          echo "  ${valid_cmds[$i]}, \\"
         else
-          echo "  ${COMMANDS[$i]}"
+          echo "  ${valid_cmds[$i]}"
         fi
       done
     } > "$SUDOERS_FILE"
