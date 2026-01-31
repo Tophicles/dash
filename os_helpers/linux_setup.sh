@@ -63,19 +63,16 @@ generate_sudoers() {
       "$SYSTEMCTL restart plexmediaserver"
       "$SYSTEMCTL is-active plexmediaserver"
       "$SYSTEMCTL show plexmediaserver -p MemoryCurrent -p CPUUsageNSec"
-
       "$SYSTEMCTL start emby-server"
       "$SYSTEMCTL stop emby-server"
       "$SYSTEMCTL restart emby-server"
       "$SYSTEMCTL is-active emby-server"
       "$SYSTEMCTL show emby-server -p MemoryCurrent -p CPUUsageNSec"
-
       "$SYSTEMCTL start jellyfin"
       "$SYSTEMCTL stop jellyfin"
       "$SYSTEMCTL restart jellyfin"
       "$SYSTEMCTL is-active jellyfin"
       "$SYSTEMCTL show jellyfin -p MemoryCurrent -p CPUUsageNSec"
-
       "$UPTIME"
       "$FREE -m"
     )
