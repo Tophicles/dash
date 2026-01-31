@@ -106,6 +106,8 @@ command -v systemctl
 ```
 If it returns a path (for example /bin/systemctl), your system uses systemd and is compatible.
 
+###Running the script
+
 1.  Transfer the script to your media server:
     ```bash
     scp os_helpers/linux_setup.sh user@your-media-server:/tmp/
