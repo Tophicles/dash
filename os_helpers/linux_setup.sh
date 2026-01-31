@@ -54,6 +54,47 @@ create_user() {
 }
 
 ########################################
+# Generate sudoers safely
+########################################
+generate_sudoers() {
+    COMMANDS=(
+      "$SYSTEMCTL start plexmediaserver"
+      "$SYSTEMCTL stop plexmediaserver"
+      "$SYSTEMCTL restart plexmediaserver"
+      "$SYSTEMCTL is-active plexmediaserver"
+      "$SYSTEMCTL show plexmediaserver -p MemoryCurrent -p CPUUsageNSec"
+
+      "$SYSTEMCTL start emby-server"
+      "$SYSTEMCTL stop emby-server"
+      "$SYSTEMCTL restart emby-server"
+      "$SYSTEMCTL is-active emby-server"
+      "$SYSTEMCTL show emby-server -p MemoryCurrent -p CPUUsageNSec"
+
+      "$SYSTEMCTL start jellyfin"
+      "$SYSTEMCTL stop jellyfin"
+      "$SYSTEMCTL restart jellyfin"
+      "$SYSTEMCTL is-active jellyfin"
+      "$SYSTEMCTL show jellyfin -p MemoryCurrent -p CPUUsageNSec"
+
+      "$UPTIME"
+      "$FREE -m"
+    )
+
+    {
+      echo "$USER_NAME ALL=(ALL) NOPASSWD: \\"
+      for i in "${!COMMANDS[@]}"; do
+        if [ "$i" -lt $(( ${#COMMANDS[@]} - 1 )) ]; then
+          echo "  ${COMMANDS[$i]}, \\"
+        else
+          echo "  ${COMMANDS[$i]}"
+        fi
+      done
+    } > "$SUDOERS_FILE"
+
+    chmod 440 "$SUDOERS_FILE"
+}
+
+########################################
 # Install
 ########################################
 install_user() {
@@ -84,33 +125,10 @@ install_user() {
     chmod 600 "$SSH_DIR/authorized_keys"
 
     ########################################
-    # Sudoers (locked down)
+    # Sudoers
     ########################################
     echo "Configuring sudoers restrictions..."
-    cat > "$SUDOERS_FILE" << EOF
-$USER_NAME ALL=(ALL) NOPASSWD: \\
-  $SYSTEMCTL start plexmediaserver, \\
-  $SYSTEMCTL stop plexmediaserver, \\
-  $SYSTEMCTL restart plexmediaserver, \\
-  $SYSTEMCTL is-active plexmediaserver, \\
-  $SYSTEMCTL show plexmediaserver -p MemoryCurrent -p CPUUsageNSec, \\
-
-  $SYSTEMCTL start emby-server, \\
-  $SYSTEMCTL stop emby-server, \\
-  $SYSTEMCTL restart emby-server, \\
-  $SYSTEMCTL is-active emby-server, \\
-  $SYSTEMCTL show emby-server -p MemoryCurrent -p CPUUsageNSec, \\
-
-  $SYSTEMCTL start jellyfin, \\
-  $SYSTEMCTL stop jellyfin, \\
-  $SYSTEMCTL restart jellyfin, \\
-  $SYSTEMCTL is-active jellyfin, \\
-  $SYSTEMCTL show jellyfin -p MemoryCurrent -p CPUUsageNSec, \\
-
-  $UPTIME, \\
-  $FREE -m
-EOF
-    chmod 440 "$SUDOERS_FILE"
+    generate_sudoers
 
     ########################################
     # SSHD lockdown
