@@ -2322,24 +2322,8 @@ async function fetchServerStats(serverId) {
             };
             const net1 = parseNet(parts[3]);
             const net2 = parseNet(parts[7]);
-
-            const formatSpeed = (bytes) => {
-                const bits = bytes * 8;
-                if (bits >= 1000000) return (bits / 1000000).toFixed(1) + ' Mbps';
-                if (bits >= 1000) return (bits / 1000).toFixed(1) + ' Kbps';
-                return bits + ' bps';
-            };
-            const cpu1 = parseCpu(parts[4]);
-            const cpu2 = parseCpu(parts[8]);
-            let cpuUsage = 0;
-            const dTotal = cpu2.total - cpu1.total;
-            const dIdle = cpu2.idle - cpu1.idle;
-            if (dTotal > 0) {
-                cpuUsage = ((1 - dIdle / dTotal) * 100).toFixed(0);
-            }
-
-            const rxStr = formatSpeed(net2.rx - net1.rx);
-            const txStr = formatSpeed(net2.tx - net1.tx);
+            const rxMbps = ((net2.rx - net1.rx) * 8 / 1e6).toFixed(1);
+            const txMbps = ((net2.tx - net1.tx) * 8 / 1e6).toFixed(1);
 
             // 5. CPU
             const parseCpu = (str) => {
@@ -2418,7 +2402,7 @@ async function fetchServerStats(serverId) {
                         </div>
                         <div class="stats-item">
                             <span class="stats-label">Net</span>
-                            <span class="stats-value">↓${rxStr} ↑${txStr}</span>
+                            <span class="stats-value">↓${rxMbps} ↑${txMbps} Mbps</span>
                         </div>
                         <div class="stats-item" style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 10px; margin-left: 6px;">
                             <span class="stats-value" style="color:var(--accent); font-weight:600;">${procStr}</span>
