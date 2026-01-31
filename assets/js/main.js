@@ -2320,8 +2320,8 @@ async function fetchServerStats(serverId) {
                 }
                 return { rx, tx };
             };
-            const net1 = parseNet(parts[3]);
-            const net2 = parseNet(parts[7]);
+            const netStart = parseNet(parts[3]);
+            const netEnd = parseNet(parts[7]);
 
             const formatSpeed = (bytes) => {
                 const bits = bytes * 8;
@@ -2338,8 +2338,8 @@ async function fetchServerStats(serverId) {
                 cpuUsage = ((1 - dIdle / dTotal) * 100).toFixed(0);
             }
 
-            const rxStr = formatSpeed(net2.rx - net1.rx);
-            const txStr = formatSpeed(net2.tx - net1.tx);
+            const rxStr = formatSpeed(netEnd.rx - netStart.rx);
+            const txStr = formatSpeed(netEnd.tx - netStart.tx);
 
             // 5. CPU
             const parseCpu = (str) => {
@@ -2351,11 +2351,11 @@ async function fetchServerStats(serverId) {
                 const total = vals.reduce((a, b) => a + b, 0);
                 return { total, idle };
             };
-            const cpu1 = parseCpu(parts[4]);
-            const cpu2 = parseCpu(parts[8]);
+            const cpuStart = parseCpu(parts[4]);
+            const cpuEnd = parseCpu(parts[8]);
             let cpuUsage = 0;
-            const dTotal = cpu2.total - cpu1.total;
-            const dIdle = cpu2.idle - cpu1.idle;
+            const dTotal = cpuEnd.total - cpuStart.total;
+            const dIdle = cpuEnd.idle - cpuStart.idle;
             if (dTotal > 0) {
                 cpuUsage = ((1 - dIdle / dTotal) * 100).toFixed(0);
             }
