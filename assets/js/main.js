@@ -385,7 +385,10 @@ async function testServerUpdate(serverId) {
                 if (server) {
                     server.hasUpdate = true;
                     renderServerGrid();
-                    openServerAdminModal(); // Refresh modal
+                    // If we are viewing this server, refresh the view to show the badge
+                    if (currentView === 'sessions' && selectedServerId === serverId) {
+                        showSessionsView(serverId, server.name);
+                    }
                     showModalAlert(`Update simulation triggered for ${esc(server.name)}`);
                 }
             }
@@ -1247,23 +1250,48 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
     headerHtml += `
             ${esc(serverName)}
             ${server && server.version ? `<span class="server-title-version">[v${esc(server.version)}]</span>` : ''}
+    `;
+
+    // Update Badge
+    if (server && server.hasUpdate) {
+        headerHtml += `<span class="badge" style="background:#4caf50; color:white; margin-left:10px; font-size:0.7rem;"><i class="fa-solid fa-circle-arrow-up"></i> Update Available</span>`;
+    }
+
+    headerHtml += `
             ${server ? `<a href="${esc(server.url)}" target="_blank" class="server-link-btn" title="Go to Server"><i class="fa-solid fa-external-link-alt"></i></a>` : ''}
         </div>
     `;
 
-    // Header Center (Hidden/Removed)
-    headerHtml += `<div class="header-center"></div>`;
+    // Header Center (SSH Indicator)
+    headerHtml += `<div class="header-center" style="display:flex;">`;
+    if (server && (!server.os_type || server.os_type === 'linux')) {
+        if (server.ssh_initialized) {
+            headerHtml += `<span class="badge" style="background:rgba(255,255,255,0.1); color:#81c784; font-size:0.75rem; border:1px solid rgba(76,175,80,0.3);"><i class="fa-solid fa-check"></i> SSH KEYS</span>`;
+        } else {
+            headerHtml += `<span class="badge" style="background:rgba(255,255,255,0.1); color:#e57373; font-size:0.75rem; border:1px solid rgba(229,115,115,0.3); cursor:pointer;" onclick="deployServerKey('${esc(server.id)}')"><i class="fa-solid fa-key"></i> Check SSH</span>`;
+        }
+    }
+    headerHtml += `</div>`;
 
     // Header Right (Controls)
     headerHtml += `<div class="header-right">`;
 
-    // API Restart Button (non-Plex)
-    if (IS_ADMIN && server && server.type !== 'plex') {
-         headerHtml += `
-            <button class="admin-action-btn danger" title="Restart Server (API)" onclick="restartServer('${esc(server.id)}', '${esc(server.name)}')">
-                <i class="fa-solid fa-power-off"></i>
+    if (IS_ADMIN && server) {
+        // Update Check Button
+        headerHtml += `
+            <button class="admin-action-btn" title="Check for Updates" onclick="checkServerUpdate('${esc(server.id)}', this)">
+                <i class="fa-solid fa-rotate"></i>
             </button>
         `;
+
+        // API Restart Button (non-Plex)
+        if (server.type !== 'plex') {
+             headerHtml += `
+                <button class="admin-action-btn danger" title="Restart Server (API)" onclick="restartServer('${esc(server.id)}', '${esc(server.name)}')">
+                    <i class="fa-solid fa-power-off"></i>
+                </button>
+            `;
+        }
     }
 
     // SSH Controls Container
