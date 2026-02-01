@@ -316,6 +316,23 @@ function startUpdatePolling(serverId) {
 
                     showModalAlert('Update Completed Successfully!');
                     fetchServerStatus(serverId); // Refresh status (it might be restarting)
+
+                    // Force refresh of version info
+                    const server = SERVERS.find(s => s.id === serverId);
+                    if (server) {
+                        // Wait a moment for service to potentially restart before checking version
+                        setTimeout(async () => {
+                            const info = await fetchServerInfo(server);
+                            if (info) {
+                                server.version = info.version;
+                                server.hasUpdate = info.hasUpdate;
+                                renderServerGrid();
+                                if (currentView === 'sessions' && selectedServerId === serverId) {
+                                    showSessionsView(serverId, server.name);
+                                }
+                            }
+                        }, 5000);
+                    }
                 } else if (data.output.includes('UPDATE_FAILED')) {
                     clearInterval(updatePollInterval);
                     updatePollInterval = null;
