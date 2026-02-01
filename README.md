@@ -156,7 +156,7 @@ mediasvc ALL=(ALL) NOPASSWD: \
   /bin/systemctl start jellyfin, \
   /bin/systemctl stop jellyfin, \
   /bin/systemctl restart jellyfin, \
-  /usr/bin/dpkg -i /home/mediasvc/multidash_update.deb
+  /usr/bin/dpkg -i /tmp/multidash_update.deb
 EOF
 
 sudo chmod 440 /etc/sudoers.d/mediasvc
