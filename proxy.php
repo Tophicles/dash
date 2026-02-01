@@ -27,7 +27,7 @@ $server = array_values($server)[0];
 $action = $_GET['action'] ?? 'sessions';
 
 // Handle SSH Actions globally (for any server type)
-if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ssh_system_stats'])) {
+if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ssh_system_stats', 'ssh_update', 'ssh_update_log'])) {
     if (!isAdmin()) {
         http_response_code(403);
         echo json_encode(['success' => false, 'error' => 'Unauthorized']);
@@ -90,6 +90,79 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
                "sleep 1; echo '---'; " .
                "cat /proc/net/dev; echo '---'; " .
                "grep 'cpu ' /proc/stat";
+    } elseif ($action === 'ssh_update') {
+        $logFile = "/tmp/multidash_update_{$server['id']}.log";
+        $tmpDeb = "/tmp/multidash_update.deb";
+
+        // 1. Detect Architecture (via SSH sync)
+        $archCmd = "uname -m";
+        $archRes = executeSSHCommand($host, $port, $user, $archCmd);
+
+        // Sanitize output (remove SSH banners)
+        $archRaw = $archRes['success'] ? trim($archRes['output']) : 'x86_64';
+        $lines = explode("\n", $archRaw);
+        $arch = trim(end($lines));
+
+        // Normalize Arch
+        if ($arch === 'x86_64') $arch = 'amd64';
+        if ($arch === 'aarch64') $arch = 'arm64';
+
+        // 2. Resolve URL
+        $downloadUrl = '';
+        $branch = $_GET['branch'] ?? 'stable';
+
+        if ($server['type'] === 'plex') {
+            $token = isset($server['token']) ? decrypt($server['token']) : '';
+            $downloadUrl = getPlexDownloadUrl($server, $token, $arch, $branch);
+        } elseif ($server['type'] === 'emby') {
+            $downloadUrl = getEmbyDownloadUrl($arch, $branch);
+        } elseif ($server['type'] === 'jellyfin') {
+            $downloadUrl = getJellyfinDownloadUrl($arch, $branch);
+        }
+
+        if (!$downloadUrl) {
+            echo json_encode(['success' => false, 'error' => 'Could not resolve download URL']);
+            exit;
+        }
+
+        // 3. Construct Command
+        // We use curl -L to follow redirects, -o to save.
+        // Then sudo dpkg -i
+        // Then rm
+
+        // Use bash -c with arguments to avoid quoting issues
+        // $1 = Download URL, $2 = Log File, $3 = Temp Deb
+
+        $script =
+            "echo \"Starting update for $service...\" > \"$2\"; " .
+            "echo \"Architecture: $arch\" >> \"$2\"; " .
+            "echo \"Downloading from: $1\" >> \"$2\"; " .
+            "curl -L -A \"Mozilla/5.0\" \"$1\" -o \"$3\" >> \"$2\" 2>&1; " .
+            "if [ $? -eq 0 ]; then " .
+            "  echo \"Download complete. Installing...\" >> \"$2\"; " .
+            "  sudo dpkg -i \"$3\" >> \"$2\" 2>&1; " .
+            "  if [ $? -eq 0 ]; then " .
+            "    echo \"UPDATE_COMPLETE\" >> \"$2\"; " .
+            "    rm \"$3\"; " .
+            "  else " .
+            "    echo \"Install failed.\" >> \"$2\"; " .
+            "    echo \"UPDATE_FAILED\" >> \"$2\"; " .
+            "  fi; " .
+            "else " .
+            "  echo \"Download failed.\" >> \"$2\"; " .
+            "  echo \"UPDATE_FAILED\" >> \"$2\"; " .
+            "fi";
+
+        $cmd = "nohup bash -c " . escapeshellarg($script) . " -- " .
+               escapeshellarg($downloadUrl) . " " .
+               escapeshellarg($logFile) . " " .
+               escapeshellarg($tmpDeb) .
+               " > /dev/null 2>&1 &";
+
+    } elseif ($action === 'ssh_update_log') {
+        $logFile = "/tmp/multidash_update_{$server['id']}.log";
+        // Check if file exists first to avoid error spam
+        $cmd = "if [ -f $logFile ]; then cat $logFile; else echo \"Waiting for log...\"; fi";
     }
 
     if (!$cmd) {
@@ -394,5 +467,84 @@ function logWatchers($serverName, $type, $jsonResponse) {
         file_put_contents($stateFile, json_encode($state));
         @chmod($stateFile, 0666);
     }
+}
+
+// Update URL Resolvers
+
+function getPlexDownloadUrl($server, $token, $arch, $branch) {
+    // Use user-provided patterns
+    if ($branch === 'stable') {
+        return "https://downloads.plex.tv/plex-media-server-new/latest/debian/plexmediaserver_latest_{$arch}.deb";
+    } else {
+        // Beta: Requires mapping internal arch (amd64/arm64) to Plex build names (linux-x86_64/linux-aarch64)
+        $build = 'linux-x86_64';
+        if ($arch === 'arm64') $build = 'linux-aarch64';
+
+        return "https://plex.tv/downloads/latest/5?channel=8&build=$build&distro=debian&X-Plex-Token=$token";
+    }
+}
+
+function getEmbyDownloadUrl($arch, $branch) {
+    // 1. Get version from GitHub API
+    $url = "https://api.github.com/repos/MediaBrowser/Emby.Releases/releases";
+    $opts = [
+        "http" => [
+            "method" => "GET",
+            "header" => "User-Agent: MultiDash-Updater\r\n"
+        ]
+    ];
+    $context = stream_context_create($opts);
+    $res = @file_get_contents($url, false, $context);
+
+    if (!$res) return null;
+    $releases = json_decode($res, true);
+    if (!is_array($releases)) return null;
+
+    $version = '';
+    foreach ($releases as $release) {
+        if ($branch === 'stable' && !empty($release['prerelease'])) continue;
+
+        // Emby releases often have tag_name like '4.8.10.0'
+        $version = $release['tag_name'];
+        break;
+    }
+
+    if (!$version) return null;
+
+    // 2. Construct Package URL
+    return "https://pkg.emby.media/pool/main/e/emby-server/emby-server_{$version}_{$arch}.deb";
+}
+
+function getJellyfinDownloadUrl($arch, $branch) {
+    // Scrape Jellyfin Repo Directory
+    $repoType = ($branch === 'beta') ? 'unstable' : 'latest-stable';
+    $baseUrl = "https://repo.jellyfin.org/files/server/debian/$repoType/$arch/";
+
+    $opts = [
+        "http" => [
+            "method" => "GET",
+            "header" => "User-Agent: MultiDash-Updater\r\n"
+        ]
+    ];
+    $context = stream_context_create($opts);
+    $html = @file_get_contents($baseUrl, false, $context);
+
+    if (!$html) return null;
+
+    // Regex to find server package
+    // Looking for: jellyfin-server_10.11.6+deb12_amd64.deb
+    // We prefer higher versions. Since parsing versions is hard, we'll assume the list is sorted or we grab them all and sort.
+    // Simpler approach: Match all, pick the last one (apache/nginx directory listings usually sort by name/date).
+
+    preg_match_all('/href="(jellyfin-server_[^"]+_' . $arch . '\.deb)"/i', $html, $matches);
+
+    if (!empty($matches[1])) {
+        // Sort natural to ensure higher versions are last
+        natsort($matches[1]);
+        $latest = end($matches[1]);
+        return $baseUrl . $latest;
+    }
+
+    return null;
 }
 ?>
