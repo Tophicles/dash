@@ -517,8 +517,8 @@ function getEmbyDownloadUrl($arch, $branch) {
                 $name = $asset['name'];
                 // Match .deb and arch
                 if (strpos($name, '.deb') !== false) {
-                    if ($arch === 'amd64' && strpos($name, 'amd64') !== false) return $asset['browser_download_url'];
-                    if ($arch === 'arm64' && strpos($name, 'arm64') !== false) return $asset['browser_download_url'];
+                    if ($arch === 'amd64' && (strpos($name, 'amd64') !== false || strpos($name, 'x86_64') !== false)) return $asset['browser_download_url'];
+                    if ($arch === 'arm64' && (strpos($name, 'arm64') !== false || strpos($name, 'aarch64') !== false)) return $asset['browser_download_url'];
                 }
             }
         }
@@ -554,8 +554,8 @@ function getJellyfinDownloadUrl($arch, $branch) {
                 $name = $asset['name'];
                 // Look for 'jellyfin_..._amd64.deb' which is usually the meta-package or combined
                 if (strpos($name, '.deb') !== false && strpos($name, 'jellyfin_') === 0) {
-                    if ($arch === 'amd64' && strpos($name, 'amd64') !== false) return $asset['browser_download_url'];
-                    if ($arch === 'arm64' && strpos($name, 'arm64') !== false) return $asset['browser_download_url'];
+                    if ($arch === 'amd64' && (strpos($name, 'amd64') !== false || strpos($name, 'x86_64') !== false)) return $asset['browser_download_url'];
+                    if ($arch === 'arm64' && (strpos($name, 'arm64') !== false || strpos($name, 'aarch64') !== false)) return $asset['browser_download_url'];
                 }
             }
         }
