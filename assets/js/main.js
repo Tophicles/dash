@@ -185,6 +185,168 @@ document.getElementById('server-modal').addEventListener('click', function(e) {
     }
 });
 
+// Update Modal Logic
+let updatePollInterval = null;
+let currentUpdateServerId = null;
+
+function openUpdateModal(serverId) {
+    const modal = document.getElementById('update-modal');
+    modal.classList.add('visible');
+    currentUpdateServerId = serverId;
+
+    const logOutput = document.getElementById('update-log-output');
+    logOutput.textContent = 'Ready to start update...';
+
+    // Infer branch from version
+    const server = SERVERS.find(s => s.id === serverId);
+    let initialBranch = 'stable';
+    if (server && server.version) {
+        const isBeta = server.version.toLowerCase().includes('beta');
+        initialBranch = isBeta ? 'beta' : 'stable';
+    }
+
+    // Set active button
+    document.getElementById('update-branch-select').value = initialBranch;
+    document.querySelectorAll('.branch-btn').forEach(btn => {
+        if (btn.dataset.branch === initialBranch) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
+    // Enable/Disable button
+    const btn = document.getElementById('start-update-btn');
+    btn.disabled = false;
+    btn.textContent = 'Start Update';
+
+    // Ensure close button is visible
+    const closeBtn = document.querySelector('#update-modal .btn:not(.primary)');
+    if (closeBtn) closeBtn.style.display = '';
+}
+
+function closeUpdateModal() {
+    const modal = document.getElementById('update-modal');
+    modal.classList.remove('visible');
+    if (updatePollInterval) {
+        clearInterval(updatePollInterval);
+        updatePollInterval = null;
+    }
+    currentUpdateServerId = null;
+}
+
+document.getElementById('update-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeUpdateModal();
+});
+
+// Branch selection logic
+document.querySelectorAll('.branch-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const branch = this.dataset.branch;
+        document.getElementById('update-branch-select').value = branch;
+
+        // Update UI
+        document.querySelectorAll('.branch-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+    });
+});
+
+document.getElementById('start-update-btn').addEventListener('click', async function() {
+    if (!currentUpdateServerId && this.textContent !== 'Close') return;
+
+    // If button says Close, just close modal
+    if (this.textContent === 'Close') {
+        closeUpdateModal();
+        return;
+    }
+
+    const branch = document.getElementById('update-branch-select').value;
+    const btn = this;
+    const logOutput = document.getElementById('update-log-output');
+
+    if (!await showModalConfirm('Start update process? The server service will be restarted.')) return;
+
+    // Hide standard close button during update to prevent premature exit
+    const closeBtn = document.querySelector('#update-modal .btn:not(.primary)');
+    if (closeBtn) closeBtn.style.display = 'none';
+
+    btn.disabled = true;
+    btn.textContent = 'Updating...';
+    logOutput.textContent = 'Initializing update sequence...\n';
+
+    try {
+        const res = await fetch(`proxy.php?id=${encodeURIComponent(currentUpdateServerId)}&action=ssh_update&branch=${encodeURIComponent(branch)}`);
+        const data = await res.json();
+
+        if (data.success) {
+            logOutput.textContent += 'Update command sent successfully.\nMonitoring progress...\n';
+            startUpdatePolling(currentUpdateServerId);
+        } else {
+            logOutput.textContent += 'Error: ' + (data.error || 'Unknown error') + '\n';
+            btn.disabled = false;
+            btn.textContent = 'Retry Update';
+        }
+    } catch (e) {
+        logOutput.textContent += 'Request failed: ' + e.message + '\n';
+        btn.disabled = false;
+        btn.textContent = 'Retry Update';
+    }
+});
+
+function startUpdatePolling(serverId) {
+    if (updatePollInterval) clearInterval(updatePollInterval);
+
+    updatePollInterval = setInterval(async () => {
+        try {
+            const res = await fetch(`proxy.php?id=${encodeURIComponent(serverId)}&action=ssh_update_log`);
+            const data = await res.json();
+
+            if (data.success && data.output) {
+                const logEl = document.getElementById('update-log-output');
+                logEl.textContent = data.output;
+                logEl.scrollTop = logEl.scrollHeight; // Auto-scroll
+
+                if (data.output.includes('UPDATE_COMPLETE')) {
+                    clearInterval(updatePollInterval);
+                    updatePollInterval = null;
+
+                    const btn = document.getElementById('start-update-btn');
+                    btn.disabled = false;
+                    btn.textContent = 'Close';
+
+                    showModalAlert('Update Completed Successfully!');
+                    fetchServerStatus(serverId); // Refresh status (it might be restarting)
+
+                    // Force refresh of version info
+                    const server = SERVERS.find(s => s.id === serverId);
+                    if (server) {
+                        // Wait a moment for service to potentially restart before checking version
+                        setTimeout(async () => {
+                            const info = await fetchServerInfo(server);
+                            if (info) {
+                                server.version = info.version;
+                                server.hasUpdate = info.hasUpdate;
+                                renderServerGrid();
+                                if (currentView === 'sessions' && selectedServerId === serverId) {
+                                    showSessionsView(serverId, server.name);
+                                }
+                            }
+                        }, 5000);
+                    }
+                } else if (data.output.includes('UPDATE_FAILED')) {
+                    clearInterval(updatePollInterval);
+                    updatePollInterval = null;
+                    document.getElementById('start-update-btn').disabled = false;
+                    document.getElementById('start-update-btn').textContent = 'Retry Update';
+                    showModalAlert('Update Failed. Check logs.');
+                }
+            }
+        } catch (e) {
+            console.error('Update polling error', e);
+        }
+    }, 1000);
+}
+
 if (IS_ADMIN) {
     document.getElementById('toggle-form').addEventListener('click', function() {
         openServerModal(false);
@@ -1268,14 +1430,7 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
     headerHtml += `<div class="header-right">`;
 
     if (IS_ADMIN && server) {
-        // Update Check Button
-        headerHtml += `
-            <button class="admin-action-btn" title="Check for Updates" onclick="checkServerUpdate('${esc(server.id)}', this)">
-                <i class="fa-solid fa-rotate"></i>
-            </button>
-        `;
-
-        // API Restart Button (non-Plex)
+        // 1. Restart Server (API) - Non-Plex
         if (server.type !== 'plex') {
              headerHtml += `
                 <button class="admin-action-btn danger" title="Restart Server (API)" onclick="restartServer('${esc(server.id)}', '${esc(server.name)}')">
@@ -1283,10 +1438,49 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
                 </button>
             `;
         }
+
+        // 2. SSH Controls Container (Start/Stop/Restart)
+        headerHtml += `<span id="js-header-controls-${esc(serverId)}"></span>`;
+
+        // 3. Reinstall / Update (Linux + SSH)
+        if ((!server.os_type || server.os_type === 'linux') && server.ssh_initialized) {
+            const btnColor = server.hasUpdate ? '#4caf50' : '#888';
+            const btnTitle = server.hasUpdate ? 'Update Available - Click to Install' : 'Reinstall Server';
+            const btnIcon = server.hasUpdate ? 'fa-cloud-arrow-down' : 'fa-wrench';
+
+            headerHtml += `
+                <button class="admin-action-btn" style="color:${btnColor}; border-color:${btnColor};" title="${btnTitle}" onclick="openUpdateModal('${esc(server.id)}')">
+                    <i class="fa-solid ${btnIcon}"></i>
+                </button>
+            `;
+        }
+
+        // 4. Check Updates
+        headerHtml += `
+            <button class="admin-action-btn" title="Check for Updates" onclick="checkServerUpdate('${esc(server.id)}', this)">
+                <i class="fa-solid fa-rotate"></i>
+            </button>
+        `;
+
+        // 5. Edit
+        headerHtml += `
+            <button class="admin-action-btn" title="Edit Server" onclick="openEditServerModal('${esc(server.id)}')">
+                <i class="fa-solid fa-pen-to-square"></i>
+            </button>
+        `;
+
+        // 6. Delete
+        headerHtml += `
+            <button class="admin-action-btn danger" title="Delete Server" onclick="deleteServer('${esc(server.id)}', '${esc(server.name)}')">
+                <i class="fa-solid fa-trash"></i>
+            </button>
+        `;
+    } else {
+        // Placeholder if not admin or server not found, though header should probably be empty then
+        headerHtml += `<span id="js-header-controls-${esc(serverId)}"></span>`;
     }
 
-    // SSH Controls Container
-    headerHtml += `<span id="js-header-controls-${esc(serverId)}"></span></div>`;
+    headerHtml += `</div>`;
 
     titleElement.innerHTML = headerHtml;
     titleElement.className = `server-header-enhanced ${serverType}`;
@@ -1863,76 +2057,71 @@ async function start(){
 
 
 
-// Edit server button (admin only)
-if (IS_ADMIN) {
-    document.getElementById('edit-server-btn').addEventListener('click', function() {
-        const server = SERVERS.find(s => s.id === selectedServerId);
-        if (!server) return;
+// Edit Server Logic
+function openEditServerModal(serverId) {
+    const server = SERVERS.find(s => s.id === serverId);
+    if (!server) return;
 
-        // Open modal in edit mode
-        openServerModal(true);
+    // Open modal in edit mode
+    openServerModal(true);
 
-        // Populate form with existing data
-        const form = document.getElementById('add-server-form');
-        form.querySelector('[name="name"]').value = server.name;
-        form.querySelector('[name="type"]').value = server.type;
+    // Populate form with existing data
+    const form = document.getElementById('add-server-form');
+    form.querySelector('[name="name"]').value = server.name;
+    form.querySelector('[name="type"]').value = server.type;
 
-        // Parse URL into protocol and path
-        let fullUrl = server.url;
-        let protocol = 'http://';
-        let urlPath = fullUrl;
+    // Parse URL into protocol and path
+    let fullUrl = server.url;
+    let protocol = 'http://';
+    let urlPath = fullUrl;
 
-        if (fullUrl.startsWith('https://')) {
-            protocol = 'https://';
-            urlPath = fullUrl.substring(8);
-        } else if (fullUrl.startsWith('http://')) {
-            protocol = 'http://';
-            urlPath = fullUrl.substring(7);
+    if (fullUrl.startsWith('https://')) {
+        protocol = 'https://';
+        urlPath = fullUrl.substring(8);
+    } else if (fullUrl.startsWith('http://')) {
+        protocol = 'http://';
+        urlPath = fullUrl.substring(7);
+    }
+
+    form.querySelector('[name="protocol"]').value = protocol;
+    form.querySelector('[name="url_path"]').value = urlPath;
+
+    form.querySelector('[name="apiKey"]').value = server.apiKey || '';
+    form.querySelector('[name="token"]').value = server.token || '';
+
+    form.querySelector('[name="os_type"]').value = server.os_type || 'linux';
+    form.querySelector('[name="ssh_port"]').value = server.ssh_port || '22';
+
+    // Store server ID for update
+    form.dataset.originalName = server.id;
+
+    // Update field visibility based on loaded type
+    updateServerFormFields();
+}
+
+// Delete Server Logic
+async function deleteServer(serverId, serverName) {
+    if (!await showModalConfirm(`Are you sure you want to delete "${esc(serverName)}"?`)) return;
+
+    try {
+        const res = await fetch('delete_server.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({id: serverId})
+        });
+        const result = await res.json();
+
+        if (result.success) {
+            showModalAlert(`Deleted server: ${esc(serverName)}`);
+            showServerView();
+            start();
+        } else {
+            showModalAlert(`Error: ${esc(result.error)}`);
         }
-
-        form.querySelector('[name="protocol"]').value = protocol;
-        form.querySelector('[name="url_path"]').value = urlPath;
-
-        form.querySelector('[name="apiKey"]').value = server.apiKey || '';
-        form.querySelector('[name="token"]').value = server.token || '';
-
-        form.querySelector('[name="os_type"]').value = server.os_type || 'linux';
-        form.querySelector('[name="ssh_port"]').value = server.ssh_port || '22';
-
-        // Store server ID for update
-        form.dataset.originalName = server.id;
-
-        // Update field visibility based on loaded type
-        updateServerFormFields();
-    });
-
-    // Delete server button (admin only)
-    document.getElementById('delete-server-btn').addEventListener('click', async function() {
-        const server = SERVERS.find(s => s.id === selectedServerId);
-        if (!server) return;
-
-        if (!await showModalConfirm(`Are you sure you want to delete "${esc(server.name)}"?`)) return;
-
-        try {
-            const res = await fetch('delete_server.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({id: selectedServerId})
-            });
-            const result = await res.json();
-
-            if (result.success) {
-                showModalAlert(`Deleted server: ${esc(server.name)}`);
-                showServerView();
-                start();
-            } else {
-                showModalAlert(`Error: ${esc(result.error)}`);
-            }
-        } catch(err) {
-            showModalAlert('Failed to delete server');
-            console.error(err);
-        }
-    });
+    } catch(err) {
+        showModalAlert('Failed to delete server');
+        console.error(err);
+    }
 }
 
 // Modify add server form to handle edits
