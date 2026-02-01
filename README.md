@@ -10,10 +10,11 @@ A lightweight, self-hosted dashboard for monitoring multiple Plex, Emby, and Jel
 *   **Search & Filter:** Instantly filter servers and users. Matching user sessions are displayed directly on the server card with visual icons.
 *   **Real-time Updates:** Auto-refreshing status for "Now Watching" and dashboard users.
 *   **Dynamic Server Management:** Easily add and edit servers using a modal interface with protocol selection and validation.
-*   **Server Administration:** Check for updates and remotely restart servers via SSH (Linux) or API (Emby/Jellyfin).
+*   **Server Administration:** Check for updates, install updates, and remotely restart servers via SSH (Linux) or API (Emby/Jellyfin).
 *   **Library Management:** List and trigger scans for media libraries on connected Plex, Emby, and Jellyfin servers.
 *   **User Management:** Built-in authentication with Admin and Viewer roles.
 *   **Logging System:** Comprehensive system logging with a built-in "tailable" log viewer.
+*   **Detailed Media Info:** View technical details (Codecs, Resolution, Bitrate) and file paths for active sessions.
 *   **Mobile Friendly:** Responsive dark-mode UI ("MultiDash") that adapts to any screen size.
 *   **Secure:** Encrypted storage for API keys and tokens.
 
@@ -31,6 +32,23 @@ Filter servers by name or currently active user. Matches are highlighted directl
 Easily add, edit, and reorder your media servers via a user-friendly modal.
 ![Add Server](screenshots/add_server.png)
 
+### Enhanced Server View
+View detailed server status, SSH connection state, and perform administration tasks.
+![Server View](screenshots/server_view.png)
+
+### Server Updates
+Check for and install server updates directly from the dashboard (Linux/SSH only).
+![Update Modal](screenshots/update_modal.png)
+![Update Process](screenshots/update_process.png)
+
+### Technical Details
+View rich metadata, technical badges (resolution, codecs), and file paths for active streams.
+![Tech Badges](screenshots/tech_badges.png)
+
+### SSH Key Management
+Generate and manage SSH keys for secure server administration.
+![SSH Keys](screenshots/ssh_keys.png)
+
 ### User Administration
 Manage dashboard users directly from the interface.
 ![User Management](screenshots/users.png)
@@ -41,10 +59,7 @@ View detailed system and error logs with a live tail view.
 
 ## Installation
 
-### Docker (Recommended)
-MultiDash includes built-in support for Docker and unRAID. See **[DOCKER.md](DOCKER.md)** for detailed setup instructions.
-
-### Prerequisites (Manual Install)
+### Prerequisites
 *   Web server (Apache/Nginx) with PHP 7.4+
 *   Write permissions for the installation directory (for JSON databases and logs)
 *   `php-curl` and `php-openssl` extensions enabled
@@ -75,10 +90,10 @@ MultiDash includes built-in support for Docker and unRAID. See **[DOCKER.md](DOC
 
 ## SSH Remote Control Setup (Linux Only)
 
-To enable the "Restart Server" feature via SSH, you must configure your media servers to accept SSH commands from the dashboard. This feature is designed to be secure by using a restricted user and key-based authentication. **This feature is supported on Linux media servers only.**
+To enable the "Restart Server" and "Update Server" features via SSH, you must configure your media servers to accept SSH commands from the dashboard. This feature is designed to be secure by using a restricted user and key-based authentication. **This feature is supported on Linux media servers only.**
 
 ### 1. Generate Keys
-Go to **Admin > Server Administration > SSH Keys** in the dashboard and click "Generate New Key Pair". Copy the generated Public Key.
+Click the **SSH Keys** button in the top menu (under "Menu") to open the key manager. Click "Generate New Key Pair" and copy the generated Public Key.
 
 ### 2. Configure Remote Media Server (Automated Method)
 We provide a helper script to automate the secure setup process.
@@ -140,7 +155,8 @@ mediasvc ALL=(ALL) NOPASSWD: \
   /bin/systemctl restart emby-server, \
   /bin/systemctl start jellyfin, \
   /bin/systemctl stop jellyfin, \
-  /bin/systemctl restart jellyfin
+  /bin/systemctl restart jellyfin, \
+  /usr/bin/dpkg -i /home/mediasvc/multidash_update.deb
 EOF
 
 sudo chmod 440 /etc/sudoers.d/mediasvc
@@ -165,7 +181,7 @@ sudo systemctl reload ssh
 #### Security Analysis: Why is this secure?
 The above instructions adhere to the **Principle of Least Privilege**:
 *   **Restricted User:** The `mediasvc` user has no password and cannot be logged into interactively via password.
-*   **Limited Sudo:** The `sudoers` file explicitly whitelists *only* the `systemctl start/stop/restart` commands for specific media services. This user cannot modify files, install software, or access other parts of the system as root.
+*   **Limited Sudo:** The `sudoers` file explicitly whitelists *only* the `systemctl start/stop/restart` commands and `dpkg` for specific updates. This user cannot modify files (except via dpkg), install other software, or access other parts of the system as root.
 *   **SSH Lockdown:** The `sshd_config` settings prevent port forwarding (tunneling), X11 forwarding, and TTY allocation. This means even if an attacker gains access to the private key, they cannot get an interactive shell or use your server as a pivot point to attack your network. They can *only* execute the whitelisted commands.
 
 ### 4. Configure Dashboard
