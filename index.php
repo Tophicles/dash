@@ -254,9 +254,10 @@ $isAdmin = isAdmin();
 <div id="update-modal" class="modal">
   <div class="modal-content" style="max-width: 700px;">
     <span class="modal-close" onclick="closeUpdateModal()">&times;</span>
-    <h2 style="margin-bottom: 20px;">Update Server</h2>
 
-    <div id="update-modal-body">
+    <div id="update-modal-body" style="padding: 20px;">
+        <h2 style="margin-bottom: 20px;">Update Server</h2>
+
         <div class="server-form-group">
             <label>Update Branch</label>
             <div class="branch-selector">
