@@ -140,7 +140,7 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
             "echo \"Starting update for $service...\" > \"$2\"; " .
             "echo \"Architecture: $4\" >> \"$2\"; " .
             "echo \"Downloading from: $1\" >> \"$2\"; " .
-            "curl -L -A \"Mozilla/5.0\" \"$1\" -o \"$3\" >> \"$2\" 2>&1; " .
+            "curl -L -s -S -A \"Mozilla/5.0\" \"$1\" -o \"$3\" >> \"$2\" 2>&1; " .
             "if [ $? -eq 0 ]; then " .
             "  echo \"Download complete. Installing...\" >> \"$2\"; " .
             "  sudo dpkg -i \"$3\" >> \"$2\" 2>&1; " .
