@@ -663,18 +663,9 @@ async function deployServerKey(serverId) {
         } else {
             // Failed
             showModalAlert('Connection Failed: ' + esc(data.error) + '\n\nPlease ensure you have run the "linux_setup.sh" script on the target server.');
-            // Revert button
-            const server = SERVERS.find(s => s.id === serverId);
+            // Revert button (Clear spinner)
             const containers = document.querySelectorAll(`[id^="js-header-controls-${serverId}"]`);
-            if (server) {
-                containers.forEach(c => {
-                    c.innerHTML = `
-                        <button class="admin-action-btn" title="Check SSH Connection" onclick="deployServerKey('${esc(server.id)}')">
-                            <i class="fa-solid fa-key"></i> Check SSH
-                        </button>
-                    `;
-                });
-            }
+            containers.forEach(c => c.innerHTML = '');
         }
     } catch (e) {
         showModalAlert('Request failed: ' + esc(e.message));
@@ -1266,9 +1257,9 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
     headerHtml += `<div class="header-center" style="display:flex;">`;
     if (server && (!server.os_type || server.os_type === 'linux')) {
         if (server.ssh_initialized) {
-            headerHtml += `<span class="badge" style="background:rgba(255,255,255,0.1); color:#81c784; font-size:0.75rem; border:1px solid rgba(76,175,80,0.3);"><i class="fa-solid fa-check"></i> SSH KEYS</span>`;
+            headerHtml += `<span class="badge" style="background:rgba(255,255,255,0.1); color:#81c784; font-size:0.75rem; border:1px solid rgba(76,175,80,0.3);"><i class="fa-solid fa-check"></i> SSH</span>`;
         } else {
-            headerHtml += `<span class="badge" style="background:rgba(255,255,255,0.1); color:#e57373; font-size:0.75rem; border:1px solid rgba(229,115,115,0.3); cursor:pointer;" onclick="deployServerKey('${esc(server.id)}')"><i class="fa-solid fa-key"></i> Check SSH</span>`;
+            headerHtml += `<span class="badge" style="background:rgba(255,255,255,0.1); color:#e57373; font-size:0.75rem; border:1px solid rgba(229,115,115,0.3); cursor:pointer;" onclick="deployServerKey('${esc(server.id)}')"><i class="fa-solid fa-xmark"></i> SSH</span>`;
         }
     }
     headerHtml += `</div>`;
@@ -1323,12 +1314,6 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
                  container.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
                  fetchServerStatus(serverId);
                  if (typeof fetchServerStats === 'function') fetchServerStats(serverId);
-             } else {
-                 container.innerHTML = `
-                    <button class="admin-action-btn" title="Check SSH Connection" onclick="deployServerKey('${esc(server.id)}')">
-                        <i class="fa-solid fa-key"></i> Check SSH
-                    </button>
-                `;
              }
         }
     }
