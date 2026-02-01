@@ -89,7 +89,6 @@ let refreshTimer = null;
 let currentView = 'servers'; // 'servers', 'sessions', or 'all'
 let selectedServerId = null;
 let reorderMode = false;
-let showActiveOnly = false;
 // const IS_ADMIN = ... (This is defined in index.php)
 
 // Server Modal Logic (admin only)
@@ -353,43 +352,6 @@ if (IS_ADMIN) {
     });
 }
 
-// Show All button (toggleable)
-document.getElementById('showall-btn').addEventListener('click', function() {
-    if (currentView === 'all') {
-        // Currently showing all, go back to server grid
-        showServerView();
-        this.textContent = 'Show All';
-        this.classList.remove('hideall');
-        window.scrollTo(0, 0);
-    } else {
-        // Show all sessions
-        showAllSessions();
-        this.textContent = 'Hide All';
-        this.classList.add('hideall');
-    }
-});
-
-// Active Only button (toggleable)
-document.getElementById('activeonly-btn').addEventListener('click', function() {
-    showActiveOnly = !showActiveOnly;
-    this.classList.toggle('active');
-
-    // Change button text
-    this.textContent = showActiveOnly ? 'All Servers' : 'Active Only';
-
-    // Hide/Show "Show All" button
-    const showAllBtn = document.getElementById('showall-btn');
-    if (showActiveOnly) {
-        showAllBtn.style.display = 'none';
-    } else {
-        showAllBtn.style.display = '';
-    }
-
-    // Re-render server grid with filter applied
-    if (currentView === 'servers') {
-        renderServerGrid();
-    }
-});
 
 // Back button
 document.getElementById('back-btn').addEventListener('click', function() {
@@ -1110,11 +1072,6 @@ function renderServerGrid() {
         const sessions = ALL_SESSIONS[server.name] || [];
         const isActive = sessions.length > 0;
 
-        // Filter: if showActiveOnly is true, only show active servers
-        if (showActiveOnly && !isActive) {
-            return;
-        }
-
         // Apply Search Filter: Match user, title, or server name
         let matchPreview = null;
         if (query) {
@@ -1229,13 +1186,6 @@ function renderServerGrid() {
         container.appendChild(wrapper);
     });
 
-    // Show message if no active servers in active-only mode
-    if (showActiveOnly && !hasActiveServers) {
-        const empty = document.createElement('div');
-        empty.className = 'empty';
-        empty.textContent = 'No active servers';
-        container.appendChild(empty);
-    }
 }
 
 // Render sessions for a specific server or all servers
@@ -1361,10 +1311,6 @@ function showServerView() {
         document.getElementById('reorder-btn').style.display = '';
         document.getElementById('users-btn').style.display = '';
     }
-    document.getElementById('activeonly-btn').style.display = '';
-    document.getElementById('showall-btn').textContent = 'Show All';
-    document.getElementById('showall-btn').classList.remove('hideall');
-    document.getElementById('showall-btn').style.display = showActiveOnly ? 'none' : '';
 
     document.getElementById('server-actions').classList.remove('visible');
     selectedServerId = null;
@@ -1517,13 +1463,11 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
         fetchAndRenderInlineLibraries(server.name);
     }
 
-    // Hide Reorder, Active Only, Show All, and Users buttons when viewing single server
+    // Hide Reorder and Users buttons when viewing single server
     if (IS_ADMIN) {
         document.getElementById('reorder-btn').style.display = 'none';
         document.getElementById('users-btn').style.display = 'none';
     }
-    document.getElementById('activeonly-btn').style.display = 'none';
-    document.getElementById('showall-btn').style.display = 'none';
 
     document.getElementById('server-actions').classList.add('visible');
     window.scrollTo(0, 0);
@@ -1552,29 +1496,7 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
     }
 }
 
-// Show all sessions from all servers
-function showAllSessions() {
-    currentView = 'all';
-    selectedServerId = null;
-    document.getElementById('server-view').classList.remove('visible');
-    document.getElementById('sessions-view').classList.add('visible');
-
-    // Update title with neutral styling for "All Servers"
-    const titleElement = document.getElementById('server-title');
-    titleElement.textContent = 'All Servers';
-    titleElement.className = 'section-divider';
-
-    // Hide Reorder, Active Only, and Users buttons when viewing all sessions
-    if (IS_ADMIN) {
-        document.getElementById('reorder-btn').style.display = 'none';
-        document.getElementById('users-btn').style.display = 'none';
-    }
-    document.getElementById('activeonly-btn').style.display = 'none';
-
-    document.getElementById('server-actions').classList.remove('visible');
-    window.scrollTo(0, 0);
-    renderSessions(null); // null = show all
-}
+// Show all sessions function removed
 
 // Session Filter
 const sessionSearch = document.getElementById('session-search');
