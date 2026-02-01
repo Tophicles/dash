@@ -537,12 +537,21 @@ async function fetchServerStatus(serverId) {
                 const isStopped = ['inactive', 'failed', 'dead'].includes(status);
                 const isDeactivating = status === 'deactivating';
 
+                const server = SERVERS.find(s => s.id === serverId);
+                const serverName = server ? server.name : 'Server';
+
                 // Handle Pending State Transitions
-                const transition = SERVER_TRANSITIONS[serverId];
-                if (transition) {
+                const transitionObj = SERVER_TRANSITIONS[serverId];
+                if (transitionObj) {
+                    const transition = transitionObj.action;
                     if (transition === 'ssh_restart' || transition === 'ssh_start') {
                         if (isActive) {
-                            delete SERVER_TRANSITIONS[serverId]; // Action complete
+                            // Action complete
+                            const duration = ((Date.now() - transitionObj.startTime) / 1000).toFixed(1);
+                            const actionName = transition === 'ssh_restart' ? 'Restart' : 'Start';
+                            logSystemEvent(`Action '${actionName}' for '${serverName}' completed in ${duration}s`, 'INFO');
+
+                            delete SERVER_TRANSITIONS[serverId];
                         } else {
                             const label = transition === 'ssh_restart' ? 'Restarting' : 'Starting';
                             container.innerHTML = `<span style="color:#e5a00d;"><i class="fa-solid fa-spinner fa-spin"></i> ${label}...</span>`;
@@ -552,7 +561,11 @@ async function fetchServerStatus(serverId) {
                         // Wait until fully stopped (inactive/dead)
                         // If failed, continue polling as it might be transient or user prefers waiting
                         if (['inactive', 'dead'].includes(status)) {
-                            delete SERVER_TRANSITIONS[serverId]; // Action complete
+                            // Action complete
+                            const duration = ((Date.now() - transitionObj.startTime) / 1000).toFixed(1);
+                            logSystemEvent(`Action 'Stop' for '${serverName}' completed in ${duration}s`, 'INFO');
+
+                            delete SERVER_TRANSITIONS[serverId];
                         } else {
                             // Still deactivating, active, or failed
                             container.innerHTML = `<span style="color:#e5a00d;"><i class="fa-solid fa-spinner fa-spin"></i> Stopping...</span>`;
@@ -560,9 +573,6 @@ async function fetchServerStatus(serverId) {
                         }
                     }
                 }
-
-                const server = SERVERS.find(s => s.id === serverId);
-                const serverName = server ? server.name : 'Server';
 
                 // Render buttons
                 if (isDeactivating) {
@@ -615,7 +625,7 @@ async function controlServerSSH(serverId, serverName, action) {
 
         if (data.success) {
             // Register transition and start polling for ALL actions
-            SERVER_TRANSITIONS[serverId] = action;
+            SERVER_TRANSITIONS[serverId] = { action: action, startTime: Date.now() };
             pollServerStatus(serverId);
         } else {
              alert(`SSH Command Failed: ${data.error}`);
