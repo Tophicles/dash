@@ -27,7 +27,7 @@ $server = array_values($server)[0];
 $action = $_GET['action'] ?? 'sessions';
 
 // Handle SSH Actions globally (for any server type)
-if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ssh_system_stats'])) {
+if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ssh_system_stats', 'ssh_update', 'ssh_update_log'])) {
     if (!isAdmin()) {
         http_response_code(403);
         echo json_encode(['success' => false, 'error' => 'Unauthorized']);
@@ -90,6 +90,67 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
                "sleep 1; echo '---'; " .
                "cat /proc/net/dev; echo '---'; " .
                "grep 'cpu ' /proc/stat";
+    } elseif ($action === 'ssh_update') {
+        $logFile = "/tmp/multidash_update_{$server['id']}.log";
+        $tmpDeb = "/tmp/multidash_update.deb";
+
+        // 1. Detect Architecture (via SSH sync)
+        $archCmd = "uname -m";
+        $archRes = executeSSHCommand($host, $port, $user, $archCmd);
+        $arch = $archRes['success'] ? trim($archRes['output']) : 'x86_64';
+
+        // Normalize Arch
+        if ($arch === 'x86_64') $arch = 'amd64';
+        if ($arch === 'aarch64') $arch = 'arm64';
+
+        // 2. Resolve URL
+        $downloadUrl = '';
+        $branch = $_GET['branch'] ?? 'stable';
+
+        if ($server['type'] === 'plex') {
+            $downloadUrl = getPlexDownloadUrl($server, $token, $arch, $branch);
+        } elseif ($server['type'] === 'emby') {
+            $downloadUrl = getEmbyDownloadUrl($arch, $branch);
+        } elseif ($server['type'] === 'jellyfin') {
+            $downloadUrl = getJellyfinDownloadUrl($arch, $branch);
+        }
+
+        if (!$downloadUrl) {
+            echo json_encode(['success' => false, 'error' => 'Could not resolve download URL']);
+            exit;
+        }
+
+        // 3. Construct Command
+        // We use curl -L to follow redirects, -o to save.
+        // Then sudo dpkg -i
+        // Then rm
+
+        $escapedUrl = escapeshellarg($downloadUrl);
+        // $service is defined earlier in the script based on server type (e.g. plexmediaserver, emby-server)
+
+        $cmd = "nohup bash -c 'echo \"Starting update for $service...\" > $logFile; " .
+               "echo \"Architecture: $arch\" >> $logFile; " .
+               "echo \"Downloading from: $downloadUrl\" >> $logFile; " .
+               "curl -L $escapedUrl -o $tmpDeb >> $logFile 2>&1; " .
+               "if [ $? -eq 0 ]; then " .
+               "  echo \"Download complete. Installing...\" >> $logFile; " .
+               "  sudo dpkg -i $tmpDeb >> $logFile 2>&1; " .
+               "  if [ $? -eq 0 ]; then " .
+               "    echo \"UPDATE_COMPLETE\" >> $logFile; " .
+               "    rm $tmpDeb; " .
+               "  else " .
+               "    echo \"Install failed.\" >> $logFile; " .
+               "    echo \"UPDATE_FAILED\" >> $logFile; " .
+               "  fi; " .
+               "else " .
+               "  echo \"Download failed.\" >> $logFile; " .
+               "  echo \"UPDATE_FAILED\" >> $logFile; " .
+               "fi' > /dev/null 2>&1 &";
+
+    } elseif ($action === 'ssh_update_log') {
+        $logFile = "/tmp/multidash_update_{$server['id']}.log";
+        // Check if file exists first to avoid error spam
+        $cmd = "if [ -f $logFile ]; then cat $logFile; else echo \"Waiting for log...\"; fi";
     }
 
     if (!$cmd) {
@@ -394,5 +455,112 @@ function logWatchers($serverName, $type, $jsonResponse) {
         file_put_contents($stateFile, json_encode($state));
         @chmod($stateFile, 0666);
     }
+}
+
+// Update URL Resolvers
+
+function getPlexDownloadUrl($server, $token, $arch, $branch) {
+    // Plex API for updates
+    // GET /updater/status?channel=plexpass (or generic)
+    // We already have logic in 'info' action, but let's reuse/refine
+    $baseUrl = ensureProtocol($server['url']);
+    $channel = ($branch === 'beta') ? 'plexpass' : 'public'; // 'plexpass' often used for beta
+    $url = rtrim($baseUrl, '/') . "/updater/status?channel=$channel";
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ["X-Plex-Token: $token", "Accept: application/json"]);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+    $res = curl_exec($ch);
+    curl_close($ch);
+
+    $data = json_decode($res, true);
+    // Check downloadURL in releases
+    // Structure: MediaContainer -> Release -> [list]
+    // We need to match 'distro' => 'ubuntu' (or debian) and 'build' => 'linux-x86_64' etc?
+    // Actually Plex usually provides a direct 'downloadURL' in the top object if valid for THIS server.
+
+    if (isset($data['MediaContainer']['downloadURL'])) {
+        return $data['MediaContainer']['downloadURL'];
+    }
+
+    return null;
+}
+
+function getEmbyDownloadUrl($arch, $branch) {
+    // Emby GitHub Releases
+    $url = "https://api.github.com/repos/MediaBrowser/Emby.Releases/releases";
+    $opts = [
+        "http" => [
+            "method" => "GET",
+            "header" => "User-Agent: MultiDash-Updater\r\n"
+        ]
+    ];
+    $context = stream_context_create($opts);
+    $res = @file_get_contents($url, false, $context);
+
+    if (!$res) return null;
+    $releases = json_decode($res, true);
+
+    if (!is_array($releases)) return null;
+
+    foreach ($releases as $release) {
+        // Filter by branch
+        // If stable requested, skip prereleases
+        if ($branch === 'stable' && !empty($release['prerelease'])) {
+            continue;
+        }
+
+        // Found a matching release (list is sorted by date desc)
+        if (isset($release['assets'])) {
+            foreach ($release['assets'] as $asset) {
+                $name = $asset['name'];
+                // Match .deb and arch
+                if (strpos($name, '.deb') !== false) {
+                    if ($arch === 'amd64' && strpos($name, 'amd64') !== false) return $asset['browser_download_url'];
+                    if ($arch === 'arm64' && strpos($name, 'arm64') !== false) return $asset['browser_download_url'];
+                }
+            }
+        }
+    }
+
+    return null;
+}
+
+function getJellyfinDownloadUrl($arch, $branch) {
+    // Jellyfin GitHub Releases
+    $url = "https://api.github.com/repos/jellyfin/jellyfin/releases";
+     $opts = [
+        "http" => [
+            "method" => "GET",
+            "header" => "User-Agent: MultiDash-Updater\r\n"
+        ]
+    ];
+    $context = stream_context_create($opts);
+    $res = @file_get_contents($url, false, $context);
+
+    if (!$res) return null;
+    $releases = json_decode($res, true);
+
+    if (!is_array($releases)) return null;
+
+    foreach ($releases as $release) {
+        if ($branch === 'stable' && !empty($release['prerelease'])) {
+            continue;
+        }
+
+        if (isset($release['assets'])) {
+            foreach ($release['assets'] as $asset) {
+                $name = $asset['name'];
+                // Look for 'jellyfin_..._amd64.deb' which is usually the meta-package or combined
+                if (strpos($name, '.deb') !== false && strpos($name, 'jellyfin_') === 0) {
+                    if ($arch === 'amd64' && strpos($name, 'amd64') !== false) return $asset['browser_download_url'];
+                    if ($arch === 'arm64' && strpos($name, 'arm64') !== false) return $asset['browser_download_url'];
+                }
+            }
+        }
+    }
+
+    return null;
 }
 ?>
