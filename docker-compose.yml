@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  multidash:
+    build: .
+    container_name: multidash
+    ports:
+      - "8088:80"
+    volumes:
+      - ./config:/config
+    environment:
+      - PUID=1000 # User ID for file permissions (adjust as needed)
+      - PGID=1000 # Group ID for file permissions
+    restart: unless-stopped

@@ -41,7 +41,10 @@ View detailed system and error logs with a live tail view.
 
 ## Installation
 
-### Prerequisites
+### Docker (Recommended)
+MultiDash includes built-in support for Docker and unRAID. See **[DOCKER.md](DOCKER.md)** for detailed setup instructions.
+
+### Prerequisites (Manual Install)
 *   Web server (Apache/Nginx) with PHP 7.4+
 *   Write permissions for the installation directory (for JSON databases and logs)
 *   `php-curl` and `php-openssl` extensions enabled
