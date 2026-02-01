@@ -139,6 +139,7 @@ $isAdmin = isAdmin();
   <button class="back-btn" id="back-btn">← Back to Servers</button>
   <div id="server-title"></div>
   <div id="server-stats" style="text-align:center; color:var(--muted); font-size:0.9rem; margin-bottom:10px; display:none; font-family: monospace;"></div>
+  <div id="server-libraries-container" style="margin-bottom:16px; display:none;"></div>
   <div class="search-container">
     <input type="text" id="session-search" placeholder="Filter sessions...">
   </div>

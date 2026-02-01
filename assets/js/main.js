@@ -1373,6 +1373,13 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
         statsEl.innerHTML = '';
     }
 
+    // Clear Libraries Container
+    const libsEl = document.getElementById('server-libraries-container');
+    if (libsEl) {
+        libsEl.style.display = 'none';
+        libsEl.innerHTML = '';
+    }
+
     // Trigger async load of controls if admin and linux
     if (IS_ADMIN && server && (!server.os_type || server.os_type === 'linux')) {
         // Initial render
@@ -1390,6 +1397,11 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
                 `;
              }
         }
+    }
+
+    // Fetch and render libraries if admin
+    if (IS_ADMIN && server) {
+        fetchAndRenderInlineLibraries(server.name);
     }
 
     // Hide Reorder, Active Only, Show All, and Users buttons when viewing single server
@@ -2437,6 +2449,73 @@ const parseCpu = (str) => {
     const total = vals.reduce((a, b) => a + b, 0);
     return { total, idle };
 };
+
+async function fetchAndRenderInlineLibraries(serverName) {
+    const container = document.getElementById('server-libraries-container');
+    if (!container) return;
+
+    try {
+        const response = await fetch(`library_actions.php?action=list&server=${encodeURIComponent(serverName)}`);
+        const data = await response.json();
+
+        if (data.success && data.libraries.length > 0) {
+            let html = '<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">';
+
+            // Scan All Button
+            html += `
+                <button class="btn" style="padding:4px 10px; font-size:0.8rem; background:#37474f; border:1px solid var(--border);" onclick="scanAllInlineLibraries(this)" title="Scan All Libraries">
+                    <i class="fa-solid fa-layer-group"></i> Scan All
+                </button>
+                <div style="width:1px; height:20px; background:var(--border); margin:0 4px;"></div>
+            `;
+
+            data.libraries.forEach(lib => {
+                html += `
+                    <div class="inline-library-item" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:4px 8px; display:flex; align-items:center; gap:6px; font-size:0.85rem;">
+                        <span style="color:#eee;">${esc(lib.name)}</span>
+                        <button class="btn primary scan-lib-btn" style="padding:2px 6px; font-size:0.7rem; min-height:auto;" onclick="scanLibrary('${esc(serverName)}', '${esc(lib.id)}', '${esc(lib.name)}', this)" title="Scan Library">
+                            <i class="fa-solid fa-arrows-rotate"></i>
+                        </button>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+            container.style.display = 'block';
+        }
+    } catch (e) {
+        console.error('Failed to fetch inline libraries', e);
+    }
+}
+
+async function scanAllInlineLibraries(btn) {
+    if (!await showModalConfirm('Are you sure you want to scan ALL libraries? This may put high load on the server.')) return;
+
+    const container = document.getElementById('server-libraries-container');
+    const scanButtons = container.querySelectorAll('.scan-lib-btn');
+
+    // Disable main button
+    const originalContent = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Queuing...';
+
+    let count = 0;
+    for (const scanBtn of scanButtons) {
+        if (!scanBtn.disabled) {
+            scanBtn.click();
+            count++;
+            // Small delay to prevent overwhelming the browser/network
+            await new Promise(r => setTimeout(r, 200));
+        }
+    }
+
+    setTimeout(() => {
+        btn.disabled = false;
+        btn.innerHTML = originalContent;
+    }, 2000);
+
+    showModalAlert(`Triggered scan for ${count} libraries.`);
+}
 
 async function fetchServerStats(serverId) {
     const statsEl = document.getElementById('server-stats');
