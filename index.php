@@ -119,7 +119,7 @@ $isAdmin = isAdmin();
 
 <!-- Sessions View -->
 <div id="sessions-view" class="view-container">
-  <button class="back-btn" id="back-btn">← Back to Servers</button>
+  <button class="back-btn" id="back-btn"><i class="fa-solid fa-arrow-left"></i> Back to Servers</button>
   <div id="server-title"></div>
   <div id="server-stats" style="text-align:center; color:var(--muted); font-size:0.9rem; margin-bottom:10px; display:none; font-family: monospace;"></div>
   <div id="server-libraries-container" style="margin-bottom:16px; display:none;"></div>

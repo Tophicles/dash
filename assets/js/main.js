@@ -1347,7 +1347,7 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
     }
 
     headerHtml += `
-            ${esc(serverName)}
+            <span class="server-name-text">${esc(serverName)}</span>
             ${server && server.version ? `<span class="server-title-version">[v${esc(server.version)}]</span>` : ''}
     `;
 
@@ -1808,7 +1808,7 @@ async function showItemDetails(serverName, itemId, serverType) {
             // Play method badge
             if (sessionData.playMethod) {
                 const isDirectPlay = sessionData.playMethod.toLowerCase().includes('direct');
-                const methodIcon = isDirectPlay ? '⚡' : '🔄';
+                const methodIcon = isDirectPlay ? '<i class="fa-solid fa-bolt"></i>' : '<i class="fa-solid fa-arrows-rotate"></i>';
                 const methodClass = isDirectPlay ? 'direct-play' : 'transcoding';
                 const methodText = isDirectPlay ? 'Direct Play' : 'Transcoding';
                 topBadges += `<span class="playmethod-badge-fixed ${methodClass}">${methodIcon} ${methodText}</span>`;
@@ -1834,7 +1834,7 @@ async function showItemDetails(serverName, itemId, serverType) {
                 html += `<div class="progress-bar"><div class="progress" style="width:${percent}%"></div></div>`;
                 html += '</div>';
             } else {
-                html += '<div class="modal-playback-live">🔴 Live</div>';
+                html += '<div class="modal-playback-live"><i class="fa-solid fa-circle" style="color:#ff5252;"></i> Live</div>';
             }
 
             html += '</div>';
@@ -2577,7 +2577,7 @@ async function fetchServerStats(serverId) {
                         </div>
                         <div class="stats-item">
                             <span class="stats-label">Net</span>
-                            <span class="stats-value">↓${rxStr} ↑${txStr}</span>
+                            <span class="stats-value"><i class="fa-solid fa-arrow-down"></i> ${rxStr} <i class="fa-solid fa-arrow-up"></i> ${txStr}</span>
                         </div>
                         <div class="stats-item" style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 10px; margin-left: 6px;">
                             <span class="stats-value" style="color:var(--accent); font-weight:600;">${procStr}</span>
