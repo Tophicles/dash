@@ -261,8 +261,7 @@ $isAdmin = isAdmin();
             <label>Update Branch</label>
             <select id="update-branch-select">
                 <option value="stable">Stable (Default)</option>
-                <!-- Beta support can be expanded later if logic allows -->
-                <!-- <option value="beta">Beta</option> -->
+                <option value="beta">Beta</option>
             </select>
             <div style="font-size: 0.85rem; color: #888; margin-top: 5px;">
                 Using system package manager (<code>apt-get</code>). Ensure your server repositories are configured correctly.

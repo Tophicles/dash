@@ -489,10 +489,7 @@ function getPlexDownloadUrl($server, $token, $arch, $branch) {
 
 function getEmbyDownloadUrl($arch, $branch) {
     // Emby GitHub Releases
-    // https://api.github.com/repos/MediaBrowser/Emby.Releases/releases/latest
-    // Note: This requires internet access on the DASHBOARD server
-
-    $url = "https://api.github.com/repos/MediaBrowser/Emby.Releases/releases/latest";
+    $url = "https://api.github.com/repos/MediaBrowser/Emby.Releases/releases";
     $opts = [
         "http" => [
             "method" => "GET",
@@ -503,14 +500,27 @@ function getEmbyDownloadUrl($arch, $branch) {
     $res = @file_get_contents($url, false, $context);
 
     if (!$res) return null;
-    $data = json_decode($res, true);
+    $releases = json_decode($res, true);
 
-    foreach ($data['assets'] as $asset) {
-        $name = $asset['name'];
-        // Match .deb and arch
-        if (strpos($name, '.deb') !== false) {
-            if ($arch === 'amd64' && strpos($name, 'amd64') !== false) return $asset['browser_download_url'];
-            if ($arch === 'arm64' && strpos($name, 'arm64') !== false) return $asset['browser_download_url'];
+    if (!is_array($releases)) return null;
+
+    foreach ($releases as $release) {
+        // Filter by branch
+        // If stable requested, skip prereleases
+        if ($branch === 'stable' && !empty($release['prerelease'])) {
+            continue;
+        }
+
+        // Found a matching release (list is sorted by date desc)
+        if (isset($release['assets'])) {
+            foreach ($release['assets'] as $asset) {
+                $name = $asset['name'];
+                // Match .deb and arch
+                if (strpos($name, '.deb') !== false) {
+                    if ($arch === 'amd64' && strpos($name, 'amd64') !== false) return $asset['browser_download_url'];
+                    if ($arch === 'arm64' && strpos($name, 'arm64') !== false) return $asset['browser_download_url'];
+                }
+            }
         }
     }
 
@@ -519,15 +529,7 @@ function getEmbyDownloadUrl($arch, $branch) {
 
 function getJellyfinDownloadUrl($arch, $branch) {
     // Jellyfin GitHub Releases
-    // https://api.github.com/repos/jellyfin/jellyfin/releases/latest
-    // Jellyfin debs are often split (server, web). This is complex.
-    // Usually they recommend the repo.
-    // For single .deb install, we need 'jellyfin-server' and 'jellyfin-web' and 'jellyfin-ffmpeg'...
-    // Combined .deb?
-    // Older versions had combined. Newer might not.
-    // Let's try to find a combined or just fail if not found.
-
-    $url = "https://api.github.com/repos/jellyfin/jellyfin/releases/latest";
+    $url = "https://api.github.com/repos/jellyfin/jellyfin/releases";
      $opts = [
         "http" => [
             "method" => "GET",
@@ -538,14 +540,24 @@ function getJellyfinDownloadUrl($arch, $branch) {
     $res = @file_get_contents($url, false, $context);
 
     if (!$res) return null;
-    $data = json_decode($res, true);
+    $releases = json_decode($res, true);
 
-     foreach ($data['assets'] as $asset) {
-        $name = $asset['name'];
-        // Look for 'jellyfin_..._amd64.deb' which is usually the meta-package or combined
-        if (strpos($name, '.deb') !== false && strpos($name, 'jellyfin_') === 0) {
-            if ($arch === 'amd64' && strpos($name, 'amd64') !== false) return $asset['browser_download_url'];
-            if ($arch === 'arm64' && strpos($name, 'arm64') !== false) return $asset['browser_download_url'];
+    if (!is_array($releases)) return null;
+
+    foreach ($releases as $release) {
+        if ($branch === 'stable' && !empty($release['prerelease'])) {
+            continue;
+        }
+
+        if (isset($release['assets'])) {
+            foreach ($release['assets'] as $asset) {
+                $name = $asset['name'];
+                // Look for 'jellyfin_..._amd64.deb' which is usually the meta-package or combined
+                if (strpos($name, '.deb') !== false && strpos($name, 'jellyfin_') === 0) {
+                    if ($arch === 'amd64' && strpos($name, 'amd64') !== false) return $asset['browser_download_url'];
+                    if ($arch === 'arm64' && strpos($name, 'arm64') !== false) return $asset['browser_download_url'];
+                }
+            }
         }
     }
 
