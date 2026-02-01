@@ -139,6 +139,7 @@ $isAdmin = isAdmin();
   <button class="back-btn" id="back-btn">← Back to Servers</button>
   <div id="server-title"></div>
   <div id="server-stats" style="text-align:center; color:var(--muted); font-size:0.9rem; margin-bottom:10px; display:none; font-family: monospace;"></div>
+  <div id="server-libraries-container" style="margin-bottom:16px; display:none;"></div>
   <div class="search-container">
     <input type="text" id="session-search" placeholder="Filter sessions...">
   </div>
@@ -287,6 +288,17 @@ $isAdmin = isAdmin();
   </div>
 </div>
 
+<!-- Custom Alert/Confirm Modal -->
+<div id="custom-modal" class="modal" style="z-index: 10000;">
+  <div class="modal-content" style="max-width: 400px; text-align: center;">
+    <div id="custom-modal-title" style="font-size: 1.2rem; font-weight: bold; margin-bottom: 10px;">Title</div>
+    <div id="custom-modal-message" style="margin-bottom: 20px; color: #ccc; line-height: 1.5;">Message</div>
+    <div id="custom-modal-actions" style="display: flex; justify-content: center; gap: 10px;">
+      <button id="custom-modal-cancel" class="btn">Cancel</button>
+      <button id="custom-modal-confirm" class="btn primary">Confirm</button>
+    </div>
+  </div>
+</div>
 
 <script>
     const IS_ADMIN = <?php echo $isAdmin ? 'true' : 'false'; ?>;
