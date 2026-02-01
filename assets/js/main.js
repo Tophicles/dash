@@ -386,7 +386,7 @@ async function testServerUpdate(serverId) {
                     server.hasUpdate = true;
                     renderServerGrid();
                     openServerAdminModal(); // Refresh modal
-                    showModalAlert(`Update simulation triggered for ${server.name}`);
+                    showModalAlert(`Update simulation triggered for ${esc(server.name)}`);
                 }
             }
         }
@@ -687,7 +687,7 @@ async function controlServerSSH(serverId, serverName, action) {
     };
     const actionName = actionMap[action] || action;
 
-    if (!await showModalConfirm(`${actionName} "${serverName}" via SSH?`)) return;
+    if (!await showModalConfirm(`${esc(actionName)} "${esc(serverName)}" via SSH?`)) return;
 
     // Log
     logSystemEvent(`SSH ${actionName} command issued for ${serverName}`);
@@ -705,12 +705,12 @@ async function controlServerSSH(serverId, serverName, action) {
             SERVER_TRANSITIONS[serverId] = { action: action, startTime: Date.now() };
             pollServerStatus(serverId);
         } else {
-             showModalAlert(`SSH Command Failed: ${data.error}`);
+             showModalAlert(`SSH Command Failed: ${esc(data.error)}`);
              logSystemEvent(`SSH ${actionName} Failed for ${serverName}: ${data.error}`, 'ERROR');
              fetchServerStatus(serverId); // Restore buttons
         }
     } catch (e) {
-        showModalAlert('Request failed: ' + e.message);
+        showModalAlert('Request failed: ' + esc(e.message));
         fetchServerStatus(serverId);
     }
 }
@@ -759,7 +759,7 @@ async function deployServerKey(serverId) {
             showModalAlert('SSH Connection Verified! Controls enabled.');
         } else {
             // Failed
-            showModalAlert('Connection Failed: ' + data.error + '\n\nPlease ensure you have run the "linux_setup.sh" script on the target server.');
+            showModalAlert('Connection Failed: ' + esc(data.error) + '\n\nPlease ensure you have run the "linux_setup.sh" script on the target server.');
             // Revert button
             const server = SERVERS.find(s => s.id === serverId);
             const containers = document.querySelectorAll(`[id^="ssh-controls-${serverId}"], [id^="js-header-controls-${serverId}"]`);
@@ -774,7 +774,7 @@ async function deployServerKey(serverId) {
             }
         }
     } catch (e) {
-        showModalAlert('Request failed: ' + e.message);
+        showModalAlert('Request failed: ' + esc(e.message));
     }
 }
 
@@ -813,11 +813,11 @@ async function logSystemEvent(message, level = 'INFO') {
 async function restartServer(serverId, serverName) {
     const sessions = ALL_SESSIONS[serverName] || [];
     if (sessions.length > 0) {
-        if (!await showModalConfirm(`WARNING: There are ${sessions.length} active sessions on "${serverName}".<br>Restarting will disconnect these users.<br><br>Are you sure you want to proceed?`)) {
+        if (!await showModalConfirm(`WARNING: There are ${sessions.length} active sessions on "${esc(serverName)}".<br>Restarting will disconnect these users.<br><br>Are you sure you want to proceed?`)) {
             return;
         }
     } else {
-        if (!await showModalConfirm(`Restart server "${serverName}"?`)) return;
+        if (!await showModalConfirm(`Restart server "${esc(serverName)}"?`)) return;
     }
 
     try {
@@ -825,7 +825,7 @@ async function restartServer(serverId, serverName) {
         const data = await res.json();
 
         if (data.success) {
-            showModalAlert(`Restart command sent to ${serverName}. Monitoring restart process...`);
+            showModalAlert(`Restart command sent to ${esc(serverName)}. Monitoring restart process...`);
 
             // Log initial request
             logSystemEvent(`Restart command issued for ${serverName}`);
@@ -854,7 +854,7 @@ async function restartServer(serverId, serverName) {
             }, 1000); // Check every second
 
         } else {
-            showModalAlert(`Failed to restart: ${data.error || 'Unknown error'}`);
+            showModalAlert(`Failed to restart: ${esc(data.error || 'Unknown error')}`);
             logSystemEvent(`Restart failed for ${serverName}: ${data.error}`, 'ERROR');
         }
     } catch (e) {
@@ -1992,7 +1992,7 @@ if (IS_ADMIN) {
         const server = SERVERS.find(s => s.id === selectedServerId);
         if (!server) return;
 
-        if (!await showModalConfirm(`Are you sure you want to delete "${server.name}"?`)) return;
+        if (!await showModalConfirm(`Are you sure you want to delete "${esc(server.name)}"?`)) return;
 
         try {
             const res = await fetch('delete_server.php', {
@@ -2003,11 +2003,11 @@ if (IS_ADMIN) {
             const result = await res.json();
 
             if (result.success) {
-                showModalAlert(`Deleted server: ${server.name}`);
+                showModalAlert(`Deleted server: ${esc(server.name)}`);
                 showServerView();
                 start();
             } else {
-                showModalAlert(`Error: ${result.error}`);
+                showModalAlert(`Error: ${esc(result.error)}`);
             }
         } catch(err) {
             showModalAlert('Failed to delete server');
@@ -2081,7 +2081,7 @@ document.getElementById('add-server-form').addEventListener('submit', async e=>{
 
         if(result.success){
             const action = isEdit ? 'Updated' : 'Added';
-            showModalAlert(`${action} server: ${result.server.name}`);
+            showModalAlert(`${action} server: ${esc(result.server.name)}`);
             closeServerModal();
             // Reload server data to refresh the SERVERS array
             await start();
@@ -2092,7 +2092,7 @@ document.getElementById('add-server-form').addEventListener('submit', async e=>{
                     showSessionsView(server.id, server.name);
                 }
             }
-        } else showModalAlert(`Error: ${result.error}`);
+        } else showModalAlert(`Error: ${esc(result.error)}`);
     } catch(err){ showModalAlert('Failed to save server'); console.error(err); }
 });
 
@@ -2175,7 +2175,7 @@ document.getElementById('add-user-form').addEventListener('submit', async functi
             e.target.reset();
             loadUsersList();
         } else {
-            showModalAlert('Error: ' + result.error);
+            showModalAlert('Error: ' + esc(result.error));
         }
     } catch (error) {
         console.error('Error adding user:', error);
@@ -2208,7 +2208,7 @@ async function changeUserPassword(username) {
         if (result.success) {
             showModalAlert('Password changed successfully');
         } else {
-            showModalAlert('Error: ' + result.error);
+            showModalAlert('Error: ' + esc(result.error));
         }
     } catch (error) {
         console.error('Error changing password:', error);
@@ -2220,7 +2220,7 @@ async function toggleUserRole(username, currentRole) {
     const newRole = currentRole === 'admin' ? 'viewer' : 'admin';
     const action = newRole === 'admin' ? 'promote to Admin' : 'demote to Viewer';
 
-    if (!await showModalConfirm(`Are you sure you want to ${action} user "${username}"?`)) return;
+    if (!await showModalConfirm(`Are you sure you want to ${action} user "${esc(username)}"?`)) return;
 
     try {
         const response = await fetch('manage_users.php', {
@@ -2238,7 +2238,7 @@ async function toggleUserRole(username, currentRole) {
             showModalAlert('User role updated successfully');
             loadUsersList();
         } else {
-            showModalAlert('Error: ' + result.error);
+            showModalAlert('Error: ' + esc(result.error));
         }
     } catch (error) {
         console.error('Error updating role:', error);
@@ -2247,7 +2247,7 @@ async function toggleUserRole(username, currentRole) {
 }
 
 async function deleteUser(username) {
-    if (!await showModalConfirm(`Are you sure you want to delete user "${username}"?<br><br>This action cannot be undone.`)) return;
+    if (!await showModalConfirm(`Are you sure you want to delete user "${esc(username)}"?<br><br>This action cannot be undone.`)) return;
 
     try {
         const response = await fetch('manage_users.php', {
@@ -2264,7 +2264,7 @@ async function deleteUser(username) {
             showModalAlert('User deleted successfully');
             loadUsersList();
         } else {
-            showModalAlert('Error: ' + result.error);
+            showModalAlert('Error: ' + esc(result.error));
         }
     } catch (error) {
         console.error('Error deleting user:', error);
@@ -2403,7 +2403,7 @@ async function scanLibrary(serverName, libraryId, libraryName, btn) {
                 }
             }, 3000);
         } else {
-            showModalAlert('Error: ' + data.error);
+            showModalAlert('Error: ' + esc(data.error));
             if (btn) {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fa-solid fa-times"></i> Failed';
@@ -2459,7 +2459,10 @@ async function fetchAndRenderInlineLibraries(serverName) {
         const data = await response.json();
 
         if (data.success && data.libraries.length > 0) {
-            let html = '<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">';
+            let html = '<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:center;">';
+
+            // Header
+            html += '<div style="font-size:0.8rem; font-weight:700; color:var(--muted); margin-right:8px; letter-spacing:0.05em;">LIBRARIES</div>';
 
             // Scan All Button
             html += `
@@ -2470,9 +2473,10 @@ async function fetchAndRenderInlineLibraries(serverName) {
             `;
 
             data.libraries.forEach(lib => {
+                const countBadge = lib.count !== undefined ? `<span style="color:#aaa; font-size:0.75rem;">(${lib.count})</span>` : '';
                 html += `
                     <div class="inline-library-item" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:4px 8px; display:flex; align-items:center; gap:6px; font-size:0.85rem;">
-                        <span style="color:#eee;">${esc(lib.name)}</span>
+                        <span style="color:#eee;">${esc(lib.name)} ${countBadge}</span>
                         <button class="btn primary scan-lib-btn" style="padding:2px 6px; font-size:0.7rem; min-height:auto;" onclick="scanLibrary('${esc(serverName)}', '${esc(lib.id)}', '${esc(lib.name)}', this)" title="Scan Library">
                             <i class="fa-solid fa-arrows-rotate"></i>
                         </button>

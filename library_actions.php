@@ -97,10 +97,33 @@ if ($type === 'plex') {
 
         if (isset($data['MediaContainer']['Directory'])) {
             foreach ($data['MediaContainer']['Directory'] as $dir) {
+                // Fetch count for this library
+                $libId = $dir['key'];
+                $countUrl = rtrim($baseUrl, '/') . "/library/sections/$libId/all?X-Plex-Container-Start=0&X-Plex-Container-Size=0";
+
+                $chCount = curl_init();
+                curl_setopt($chCount, CURLOPT_URL, $countUrl);
+                curl_setopt($chCount, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($chCount, CURLOPT_CONNECTTIMEOUT, 2);
+                curl_setopt($chCount, CURLOPT_TIMEOUT, 3);
+                curl_setopt($chCount, CURLOPT_HTTPHEADER, [
+                    "X-Plex-Token: $token",
+                    "Accept: application/json"
+                ]);
+                $resCount = curl_exec($chCount);
+                curl_close($chCount);
+
+                $count = 0;
+                if ($resCount) {
+                    $dataCount = json_decode($resCount, true);
+                    $count = $dataCount['MediaContainer']['totalSize'] ?? 0;
+                }
+
                 $libraries[] = [
                     'id' => $dir['key'],
                     'name' => $dir['title'],
-                    'type' => $dir['type']
+                    'type' => $dir['type'],
+                    'count' => $count
                 ];
             }
         }
@@ -181,10 +204,29 @@ if ($type === 'emby' || $type === 'jellyfin') {
             // Emby uses ItemId, Jellyfin uses Id
             $id = $item['ItemId'] ?? $item['Id'] ?? '';
             if ($id) {
+                // Fetch count
+                $countUrl = rtrim($baseUrl, '/') . "/Items?ParentId=$id&Recursive=true&Limit=0";
+
+                $chCount = curl_init();
+                curl_setopt($chCount, CURLOPT_URL, $countUrl);
+                curl_setopt($chCount, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($chCount, CURLOPT_CONNECTTIMEOUT, 2);
+                curl_setopt($chCount, CURLOPT_TIMEOUT, 3);
+                curl_setopt($chCount, CURLOPT_HTTPHEADER, $headers);
+                $resCount = curl_exec($chCount);
+                curl_close($chCount);
+
+                $count = 0;
+                if ($resCount) {
+                    $dataCount = json_decode($resCount, true);
+                    $count = $dataCount['TotalRecordCount'] ?? 0;
+                }
+
                 $libraries[] = [
                     'id' => $id,
                     'name' => $item['Name'],
-                    'type' => $item['CollectionType'] ?? 'library'
+                    'type' => $item['CollectionType'] ?? 'library',
+                    'count' => $count
                 ];
             }
         }
