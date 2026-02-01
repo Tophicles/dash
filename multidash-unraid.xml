@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <Container version="2">
   <Name>MultiDash</Name>
-  <Repository>yourusername/multidash</Repository>
+  <Repository>ghcr.io/tophicles/dash</Repository>
   <Registry/>
   <Network>bridge</Network>
   <MyIP/>
