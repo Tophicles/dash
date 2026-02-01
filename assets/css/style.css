@@ -1345,3 +1345,40 @@ form button:hover { background:#45a049; }
         padding: 10px;
     }
 }
+
+/* Branch Selector */
+.branch-selector {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 5px;
+}
+.branch-btn {
+  flex: 1;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  color: #aaa;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.branch-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.branch-btn.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+.branch-btn.active[data-branch="beta"] {
+  background: #ff9800; /* Orange for Beta */
+  border-color: #ff9800;
+  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
+}

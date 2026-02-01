@@ -53,8 +53,6 @@ $isAdmin = isAdmin();
       <button class="btn" id="ssh-keys-nav-btn" title="SSH Key Manager">SSH Keys</button>
       <button class="btn" id="logs-btn" title="View System Logs" onclick="window.open('view_logs.php', 'SystemLogs')">Logs</button>
       <?php endif; ?>
-      <button class="btn" id="activeonly-btn" title="Show Only Active Servers">Active Only</button>
-      <button class="btn" id="showall-btn" title="Toggle All Sessions">Show All</button>
       <button class="btn danger" onclick="window.location.href='logout.php'">Logout</button>
     </div>
   </div>
@@ -246,6 +244,42 @@ $isAdmin = isAdmin();
         <h3>Existing Users</h3>
         <div id="users-list"></div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Update Server Modal -->
+<div id="update-modal" class="modal">
+  <div class="modal-content" style="max-width: 700px;">
+    <span class="modal-close" onclick="closeUpdateModal()">&times;</span>
+
+    <div id="update-modal-body" style="padding: 20px;">
+        <h2 style="margin-bottom: 20px;">Update Server</h2>
+
+        <div class="server-form-group">
+            <label>Update Branch</label>
+            <div class="branch-selector">
+                <input type="hidden" id="update-branch-select" value="stable">
+                <button type="button" class="branch-btn active" data-branch="stable">
+                    <i class="fa-solid fa-box"></i> Stable
+                </button>
+                <button type="button" class="branch-btn" data-branch="beta">
+                    <i class="fa-solid fa-flask"></i> Beta
+                </button>
+            </div>
+            <div style="font-size: 0.85rem; color: #888; margin-top: 10px;">
+                Downloading package directly and installing via <code>dpkg</code>.
+            </div>
+        </div>
+
+        <div class="log-container" style="background: #111; color: #0f0; padding: 10px; padding-bottom: 20px; border-radius: 4px; font-family: monospace; height: 300px; overflow-y: auto; margin: 20px 0; border: 1px solid #333; scroll-behavior: smooth;">
+            <pre id="update-log-output" style="margin: 0; white-space: pre-wrap; font-size: 0.85rem;">Ready to update...</pre>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+            <button class="btn" onclick="closeUpdateModal()">Close</button>
+            <button class="btn primary" id="start-update-btn">Start Update</button>
+        </div>
     </div>
   </div>
 </div>
