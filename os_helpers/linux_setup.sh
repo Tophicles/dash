@@ -34,6 +34,7 @@ fi
 SYSTEMCTL=$(command -v systemctl)
 UPTIME=$(command -v uptime)
 FREE=$(command -v free)
+DPKG=$(command -v dpkg)
 
 ########################################
 # User creation
@@ -72,6 +73,7 @@ generate_sudoers() {
       echo "  $SYSTEMCTL restart jellyfin, \\"
       echo "  $SYSTEMCTL is-active jellyfin, \\"
       echo "  $SYSTEMCTL show jellyfin -p MemoryCurrent -p CPUUsageNSec, \\"
+      echo "  $DPKG -i /tmp/multidash_update.deb, \\"
       echo "  $UPTIME, \\"
       echo "  $FREE -m"
     } > "$SUDOERS_FILE"
