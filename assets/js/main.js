@@ -6,6 +6,83 @@ function esc(str) {
     return temp.innerHTML.replace(/'/g, '&#39;').replace(/"/g, '&quot;');
 }
 
+// Custom Modal Helpers
+let modalAlertTimer = null;
+
+function showModalAlert(message, title = 'Notice') {
+    const modal = document.getElementById('custom-modal');
+    const titleEl = document.getElementById('custom-modal-title');
+    const msgEl = document.getElementById('custom-modal-message');
+    const actionsEl = document.getElementById('custom-modal-actions');
+
+    if (!modal) {
+        alert(message); // Fallback
+        return;
+    }
+
+    // Clear existing timer to prevent premature closing
+    if (modalAlertTimer) {
+        clearTimeout(modalAlertTimer);
+        modalAlertTimer = null;
+    }
+
+    titleEl.textContent = title;
+    // Replace newlines with <br> for HTML rendering
+    msgEl.innerHTML = message.replace(/\n/g, '<br>');
+    actionsEl.style.display = 'none';
+
+    modal.classList.add('visible');
+
+    modalAlertTimer = setTimeout(() => {
+        modal.classList.remove('visible');
+        modalAlertTimer = null;
+    }, 3000);
+}
+
+function showModalConfirm(message, title = 'Confirm Action') {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('custom-modal');
+        const titleEl = document.getElementById('custom-modal-title');
+        const msgEl = document.getElementById('custom-modal-message');
+        const actionsEl = document.getElementById('custom-modal-actions');
+        const confirmBtn = document.getElementById('custom-modal-confirm');
+        const cancelBtn = document.getElementById('custom-modal-cancel');
+
+        if (!modal) {
+            resolve(confirm(message)); // Fallback
+            return;
+        }
+
+        // Clear alert timer if active to prevent it from closing this confirm modal
+        if (modalAlertTimer) {
+            clearTimeout(modalAlertTimer);
+            modalAlertTimer = null;
+        }
+
+        titleEl.textContent = title;
+        msgEl.innerHTML = message; // Use innerHTML to support <br> tags
+        actionsEl.style.display = 'flex';
+
+        // Clean up previous listeners
+        const newConfirm = confirmBtn.cloneNode(true);
+        const newCancel = cancelBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newConfirm, confirmBtn);
+        cancelBtn.parentNode.replaceChild(newCancel, cancelBtn);
+
+        newConfirm.addEventListener('click', () => {
+            modal.classList.remove('visible');
+            resolve(true);
+        });
+
+        newCancel.addEventListener('click', () => {
+            modal.classList.remove('visible');
+            resolve(false);
+        });
+
+        modal.classList.add('visible');
+    });
+}
+
 let SERVERS = [];
 let ALL_SESSIONS = {};
 let refreshTimer = null;
@@ -309,7 +386,7 @@ async function testServerUpdate(serverId) {
                     server.hasUpdate = true;
                     renderServerGrid();
                     openServerAdminModal(); // Refresh modal
-                    alert(`Update simulation triggered for ${server.name}`);
+                    showModalAlert(`Update simulation triggered for ${server.name}`);
                 }
             }
         }
@@ -400,7 +477,7 @@ if (sshAgreeChk) {
 const sshGenBtn = document.getElementById('ssh-generate-btn');
 if (sshGenBtn) {
     sshGenBtn.addEventListener('click', async function() {
-        if (!confirm('Are you sure you want to generate a new key pair? This will invalidate existing connections.')) return;
+        if (!await showModalConfirm('Are you sure you want to generate a new key pair? This will invalidate existing connections.')) return;
 
         this.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
         this.disabled = true;
@@ -415,12 +492,12 @@ if (sshGenBtn) {
 
             if (data.success) {
                 document.getElementById('ssh-public-key').value = data.key;
-                alert('New SSH Key Pair Generated Successfully!');
+                showModalAlert('New SSH Key Pair Generated Successfully!');
             } else {
-                alert('Error: ' + (data.error || 'Unknown error'));
+                showModalAlert('Error: ' + (data.error || 'Unknown error'));
             }
         } catch (e) {
-            alert('Failed to generate key: ' + e.message);
+            showModalAlert('Failed to generate key: ' + e.message);
         }
 
         this.innerHTML = 'Generate New Key Pair';
@@ -610,7 +687,7 @@ async function controlServerSSH(serverId, serverName, action) {
     };
     const actionName = actionMap[action] || action;
 
-    if (!confirm(`${actionName} "${serverName}" via SSH?`)) return;
+    if (!await showModalConfirm(`${actionName} "${serverName}" via SSH?`)) return;
 
     // Log
     logSystemEvent(`SSH ${actionName} command issued for ${serverName}`);
@@ -628,12 +705,12 @@ async function controlServerSSH(serverId, serverName, action) {
             SERVER_TRANSITIONS[serverId] = { action: action, startTime: Date.now() };
             pollServerStatus(serverId);
         } else {
-             alert(`SSH Command Failed: ${data.error}`);
+             showModalAlert(`SSH Command Failed: ${data.error}`);
              logSystemEvent(`SSH ${actionName} Failed for ${serverName}: ${data.error}`, 'ERROR');
              fetchServerStatus(serverId); // Restore buttons
         }
     } catch (e) {
-        alert('Request failed: ' + e.message);
+        showModalAlert('Request failed: ' + e.message);
         fetchServerStatus(serverId);
     }
 }
@@ -679,10 +756,10 @@ async function deployServerKey(serverId) {
 
             // Refresh
             fetchServerStatus(serverId);
-            alert('SSH Connection Verified! Controls enabled.');
+            showModalAlert('SSH Connection Verified! Controls enabled.');
         } else {
             // Failed
-            alert('Connection Failed: ' + data.error + '\n\nPlease ensure you have run the "linux_setup.sh" script on the target server.');
+            showModalAlert('Connection Failed: ' + data.error + '\n\nPlease ensure you have run the "linux_setup.sh" script on the target server.');
             // Revert button
             const server = SERVERS.find(s => s.id === serverId);
             const containers = document.querySelectorAll(`[id^="ssh-controls-${serverId}"], [id^="js-header-controls-${serverId}"]`);
@@ -697,7 +774,7 @@ async function deployServerKey(serverId) {
             }
         }
     } catch (e) {
-        alert('Request failed: ' + e.message);
+        showModalAlert('Request failed: ' + e.message);
     }
 }
 
@@ -717,7 +794,7 @@ async function checkServerUpdate(serverId, btn) {
         renderServerGrid();
         renderServerAdminList(); // Refresh list to show new version/status if changed
     } else {
-        alert('Failed to fetch server info');
+        showModalAlert('Failed to fetch server info');
     }
 }
 
@@ -736,11 +813,11 @@ async function logSystemEvent(message, level = 'INFO') {
 async function restartServer(serverId, serverName) {
     const sessions = ALL_SESSIONS[serverName] || [];
     if (sessions.length > 0) {
-        if (!confirm(`WARNING: There are ${sessions.length} active sessions on "${serverName}".\nRestarting will disconnect these users.\n\nAre you sure you want to proceed?`)) {
+        if (!await showModalConfirm(`WARNING: There are ${sessions.length} active sessions on "${serverName}".<br>Restarting will disconnect these users.<br><br>Are you sure you want to proceed?`)) {
             return;
         }
     } else {
-        if (!confirm(`Restart server "${serverName}"?`)) return;
+        if (!await showModalConfirm(`Restart server "${serverName}"?`)) return;
     }
 
     try {
@@ -748,7 +825,7 @@ async function restartServer(serverId, serverName) {
         const data = await res.json();
 
         if (data.success) {
-            alert(`Restart command sent to ${serverName}. Monitoring restart process...`);
+            showModalAlert(`Restart command sent to ${serverName}. Monitoring restart process...`);
 
             // Log initial request
             logSystemEvent(`Restart command issued for ${serverName}`);
@@ -768,7 +845,7 @@ async function restartServer(serverId, serverName) {
 
                     server.version = info.version;
                     renderServerAdminList(); // Update UI
-                    // alert(`Server ${serverName} is back online!`);
+                    // showModalAlert(`Server ${serverName} is back online!`);
                 } else {
                     // Server is offline
                     logSystemEvent(`Server ${serverName} unreachable. Retrying connection...`, 'WARN');
@@ -777,12 +854,12 @@ async function restartServer(serverId, serverName) {
             }, 1000); // Check every second
 
         } else {
-            alert(`Failed to restart: ${data.error || 'Unknown error'}`);
+            showModalAlert(`Failed to restart: ${data.error || 'Unknown error'}`);
             logSystemEvent(`Restart failed for ${serverName}: ${data.error}`, 'ERROR');
         }
     } catch (e) {
         console.error('Restart failed', e);
-        alert('Failed to communicate with server');
+        showModalAlert('Failed to communicate with server');
         logSystemEvent(`Restart communication failed for ${serverName}: ${e.message}`, 'ERROR');
     }
 }
@@ -1903,7 +1980,7 @@ if (IS_ADMIN) {
         const server = SERVERS.find(s => s.id === selectedServerId);
         if (!server) return;
 
-        if (!confirm(`Are you sure you want to delete "${server.name}"?`)) return;
+        if (!await showModalConfirm(`Are you sure you want to delete "${server.name}"?`)) return;
 
         try {
             const res = await fetch('delete_server.php', {
@@ -1914,14 +1991,14 @@ if (IS_ADMIN) {
             const result = await res.json();
 
             if (result.success) {
-                alert(`Deleted server: ${server.name}`);
+                showModalAlert(`Deleted server: ${server.name}`);
                 showServerView();
                 start();
             } else {
-                alert(`Error: ${result.error}`);
+                showModalAlert(`Error: ${result.error}`);
             }
         } catch(err) {
-            alert('Failed to delete server');
+            showModalAlert('Failed to delete server');
             console.error(err);
         }
     });
@@ -1933,7 +2010,7 @@ document.getElementById('add-server-form').addEventListener('submit', async e=>{
 
     // Check if user is admin
     if (!IS_ADMIN) {
-        alert('Only administrators can add or edit servers');
+        showModalAlert('Only administrators can add or edit servers');
         return;
     }
 
@@ -1992,7 +2069,7 @@ document.getElementById('add-server-form').addEventListener('submit', async e=>{
 
         if(result.success){
             const action = isEdit ? 'Updated' : 'Added';
-            alert(`${action} server: ${result.server.name}`);
+            showModalAlert(`${action} server: ${result.server.name}`);
             closeServerModal();
             // Reload server data to refresh the SERVERS array
             await start();
@@ -2003,8 +2080,8 @@ document.getElementById('add-server-form').addEventListener('submit', async e=>{
                     showSessionsView(server.id, server.name);
                 }
             }
-        } else alert(`Error: ${result.error}`);
-    } catch(err){ alert('Failed to save server'); console.error(err); }
+        } else showModalAlert(`Error: ${result.error}`);
+    } catch(err){ showModalAlert('Failed to save server'); console.error(err); }
 });
 
 start();
@@ -2057,7 +2134,7 @@ async function loadUsersList() {
         }
     } catch (error) {
         console.error('Error loading users:', error);
-        alert('Failed to load users');
+        showModalAlert('Failed to load users');
     }
 }
 
@@ -2082,15 +2159,15 @@ document.getElementById('add-user-form').addEventListener('submit', async functi
         const result = await response.json();
 
         if (result.success) {
-            alert('User added successfully');
+            showModalAlert('User added successfully');
             e.target.reset();
             loadUsersList();
         } else {
-            alert('Error: ' + result.error);
+            showModalAlert('Error: ' + result.error);
         }
     } catch (error) {
         console.error('Error adding user:', error);
-        alert('Failed to add user');
+        showModalAlert('Failed to add user');
     }
 });
 
@@ -2100,7 +2177,7 @@ async function changeUserPassword(username) {
     if (!newPassword) return;
 
     if (newPassword.length < 6) {
-        alert('Password must be at least 6 characters');
+        showModalAlert('Password must be at least 6 characters');
         return;
     }
 
@@ -2117,13 +2194,13 @@ async function changeUserPassword(username) {
         const result = await response.json();
 
         if (result.success) {
-            alert('Password changed successfully');
+            showModalAlert('Password changed successfully');
         } else {
-            alert('Error: ' + result.error);
+            showModalAlert('Error: ' + result.error);
         }
     } catch (error) {
         console.error('Error changing password:', error);
-        alert('Failed to change password');
+        showModalAlert('Failed to change password');
     }
 }
 
@@ -2131,7 +2208,7 @@ async function toggleUserRole(username, currentRole) {
     const newRole = currentRole === 'admin' ? 'viewer' : 'admin';
     const action = newRole === 'admin' ? 'promote to Admin' : 'demote to Viewer';
 
-    if (!confirm(`Are you sure you want to ${action} user "${username}"?`)) return;
+    if (!await showModalConfirm(`Are you sure you want to ${action} user "${username}"?`)) return;
 
     try {
         const response = await fetch('manage_users.php', {
@@ -2146,19 +2223,19 @@ async function toggleUserRole(username, currentRole) {
         const result = await response.json();
 
         if (result.success) {
-            alert('User role updated successfully');
+            showModalAlert('User role updated successfully');
             loadUsersList();
         } else {
-            alert('Error: ' + result.error);
+            showModalAlert('Error: ' + result.error);
         }
     } catch (error) {
         console.error('Error updating role:', error);
-        alert('Failed to update role');
+        showModalAlert('Failed to update role');
     }
 }
 
 async function deleteUser(username) {
-    if (!confirm(`Are you sure you want to delete user "${username}"?\n\nThis action cannot be undone.`)) return;
+    if (!await showModalConfirm(`Are you sure you want to delete user "${username}"?<br><br>This action cannot be undone.`)) return;
 
     try {
         const response = await fetch('manage_users.php', {
@@ -2172,14 +2249,14 @@ async function deleteUser(username) {
         const result = await response.json();
 
         if (result.success) {
-            alert('User deleted successfully');
+            showModalAlert('User deleted successfully');
             loadUsersList();
         } else {
-            alert('Error: ' + result.error);
+            showModalAlert('Error: ' + result.error);
         }
     } catch (error) {
         console.error('Error deleting user:', error);
-        alert('Failed to delete user');
+        showModalAlert('Failed to delete user');
     }
 }
 
@@ -2314,7 +2391,7 @@ async function scanLibrary(serverName, libraryId, libraryName, btn) {
                 }
             }, 3000);
         } else {
-            alert('Error: ' + data.error);
+            showModalAlert('Error: ' + data.error);
             if (btn) {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fa-solid fa-times"></i> Failed';
@@ -2322,7 +2399,7 @@ async function scanLibrary(serverName, libraryId, libraryName, btn) {
         }
     } catch (error) {
         console.error('Error scanning library:', error);
-        alert('Failed to start scan');
+        showModalAlert('Failed to start scan');
         if (btn) {
             btn.disabled = false;
             btn.innerHTML = '<i class="fa-solid fa-times"></i> Error';
