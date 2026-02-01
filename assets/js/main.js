@@ -210,6 +210,10 @@ function openUpdateModal(serverId) {
     const btn = document.getElementById('start-update-btn');
     btn.disabled = false;
     btn.textContent = 'Start Update';
+
+    // Ensure close button is visible
+    const closeBtn = document.querySelector('#update-modal .btn:not(.primary)');
+    if (closeBtn) closeBtn.style.display = '';
 }
 
 function closeUpdateModal() {
@@ -240,6 +244,10 @@ document.getElementById('start-update-btn').addEventListener('click', async func
     const logOutput = document.getElementById('update-log-output');
 
     if (!await showModalConfirm('Start update process? The server service will be restarted.')) return;
+
+    // Hide standard close button during update to prevent premature exit
+    const closeBtn = document.querySelector('#update-modal .btn:not(.primary)');
+    if (closeBtn) closeBtn.style.display = 'none';
 
     btn.disabled = true;
     btn.textContent = 'Updating...';
@@ -1395,7 +1403,8 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
         if ((!server.os_type || server.os_type === 'linux') && server.ssh_initialized) {
             const btnColor = server.hasUpdate ? '#4caf50' : '#888';
             const btnTitle = server.hasUpdate ? 'Update Available - Click to Install' : 'Reinstall Server';
-            const btnIcon = server.hasUpdate ? 'fa-download' : 'fa-rotate';
+            // Use fa-cloud-arrow-down for updates, fa-wrench for reinstall (maintenance) to avoid confusion with restart
+            const btnIcon = server.hasUpdate ? 'fa-cloud-arrow-down' : 'fa-wrench';
 
             headerHtml += `
                 <button class="admin-action-btn" style="color:${btnColor}; border-color:${btnColor};" title="${btnTitle}" onclick="openUpdateModal('${esc(server.id)}')">

@@ -476,16 +476,16 @@ function logWatchers($serverName, $type, $jsonResponse) {
 // Update URL Resolvers
 
 function getPlexDownloadUrl($server, $token, $arch, $branch) {
-    // Use user-provided patterns
-    if ($branch === 'stable') {
-        return "https://downloads.plex.tv/plex-media-server-new/latest/debian/plexmediaserver_latest_{$arch}.deb";
-    } else {
-        // Beta: Requires mapping internal arch (amd64/arm64) to Plex build names (linux-x86_64/linux-aarch64)
-        $build = 'linux-x86_64';
-        if ($arch === 'arm64') $build = 'linux-aarch64';
+    // Always use API to ensure correct version resolution (especially for Plex Pass)
+    // Channel 8 = Plex Pass (Beta), Channel 16 = Public (Stable)
 
-        return "https://plex.tv/downloads/latest/5?channel=8&build=$build&distro=debian&X-Plex-Token=$token";
-    }
+    $channel = ($branch === 'stable') ? '16' : '8';
+
+    // Map Arch
+    $build = 'linux-x86_64';
+    if ($arch === 'arm64') $build = 'linux-aarch64';
+
+    return "https://plex.tv/downloads/latest/5?channel=$channel&build=$build&distro=debian&X-Plex-Token=$token";
 }
 
 function getEmbyDownloadUrl($arch, $branch) {
