@@ -713,9 +713,6 @@ body {
   font-size: 0.95rem;
   color: var(--text);
 }
-.back-btn {
-  display: none !important;
-}
 
 /* User Management Modal */
 .user-form-container {
