@@ -919,8 +919,24 @@ body {
     justify-content: center;
     width: 100%;
   }
+  .header-left {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .server-name-text {
+    width: 100%;
+    order: 1;
+    font-size: 1.3rem;
+    margin-bottom: 4px;
+  }
+  .header-os-badge, .server-title-version, .server-link-btn, .header-left .badge {
+    order: 2;
+  }
   .header-right {
     flex-wrap: wrap;
+    gap: 12px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255,255,255,0.05);
   }
   .top-bar-header {
     padding: 10px 12px;

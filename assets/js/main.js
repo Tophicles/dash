@@ -1347,7 +1347,7 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
     }
 
     headerHtml += `
-            ${esc(serverName)}
+            <span class="server-name-text">${esc(serverName)}</span>
             ${server && server.version ? `<span class="server-title-version">[v${esc(server.version)}]</span>` : ''}
     `;
 
