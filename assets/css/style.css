@@ -1309,18 +1309,29 @@ form button:hover { background:#45a049; }
     top: 10px;
     right: 10px;
     background: transparent;
-    border: none;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
     color: var(--muted);
     cursor: pointer;
-    font-size: 0.9rem;
-    transition: color 0.2s, transform 0.2s;
-    padding: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    padding: 4px 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 }
 .stats-refresh-btn:hover {
     color: var(--accent);
+    border-color: var(--accent);
+    background: rgba(76, 175, 80, 0.1);
 }
-.stats-refresh-btn:active {
+.stats-refresh-btn:active i {
     transform: rotate(180deg);
+}
+.stats-refresh-btn i {
+    transition: transform 0.3s;
 }
 
 /* Mobile Tweak for Stats */
