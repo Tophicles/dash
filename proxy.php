@@ -504,19 +504,26 @@ function getEmbyDownloadUrl($arch, $branch) {
     $releases = json_decode($res, true);
     if (!is_array($releases)) return null;
 
-    $version = '';
+    $downloadUrl = '';
     foreach ($releases as $release) {
         if ($branch === 'stable' && !empty($release['prerelease'])) continue;
 
-        // Emby releases often have tag_name like '4.8.10.0'
-        $version = $release['tag_name'];
-        break;
+        // Find asset in this release
+        if (!empty($release['assets']) && is_array($release['assets'])) {
+            foreach ($release['assets'] as $asset) {
+                // Match pattern: emby-server-deb_4.9.3.0_amd64.deb
+                // Note: Arch can be amd64 or arm64
+                if (preg_match("/emby-server-deb_.*_{$arch}\.deb$/i", $asset['name'])) {
+                    $downloadUrl = $asset['browser_download_url'];
+                    break 2; // Found it, break both loops
+                }
+            }
+        }
     }
 
-    if (!$version) return null;
+    if (!$downloadUrl) return null;
 
-    // 2. Construct Package URL
-    return "https://pkg.emby.media/pool/main/e/emby-server/emby-server_{$version}_{$arch}.deb";
+    return $downloadUrl;
 }
 
 function getJellyfinDownloadUrl($arch, $branch) {
