@@ -250,6 +250,37 @@ $isAdmin = isAdmin();
   </div>
 </div>
 
+<!-- Update Server Modal -->
+<div id="update-modal" class="modal">
+  <div class="modal-content" style="max-width: 700px;">
+    <span class="modal-close" onclick="closeUpdateModal()">&times;</span>
+    <h2 style="margin-bottom: 20px;">Update Server</h2>
+
+    <div id="update-modal-body">
+        <div class="server-form-group">
+            <label>Update Branch</label>
+            <select id="update-branch-select">
+                <option value="stable">Stable (Default)</option>
+                <!-- Beta support can be expanded later if logic allows -->
+                <!-- <option value="beta">Beta</option> -->
+            </select>
+            <div style="font-size: 0.85rem; color: #888; margin-top: 5px;">
+                Using system package manager (<code>apt-get</code>). Ensure your server repositories are configured correctly.
+            </div>
+        </div>
+
+        <div class="log-container" style="background: #111; color: #0f0; padding: 10px; border-radius: 4px; font-family: monospace; height: 300px; overflow-y: auto; margin: 20px 0; border: 1px solid #333;">
+            <pre id="update-log-output" style="margin: 0; white-space: pre-wrap; font-size: 0.85rem;">Ready to update...</pre>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+            <button class="btn" onclick="closeUpdateModal()">Close</button>
+            <button class="btn primary" id="start-update-btn">Start Update</button>
+        </div>
+    </div>
+  </div>
+</div>
+
 <!-- Custom Alert/Confirm Modal -->
 <div id="custom-modal" class="modal" style="z-index: 10000;">
   <div class="modal-content" style="max-width: 400px; text-align: center;">
