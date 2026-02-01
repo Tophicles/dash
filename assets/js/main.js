@@ -185,6 +185,103 @@ document.getElementById('server-modal').addEventListener('click', function(e) {
     }
 });
 
+// Update Modal Logic
+let updatePollInterval = null;
+let currentUpdateServerId = null;
+
+function openUpdateModal(serverId) {
+    const modal = document.getElementById('update-modal');
+    modal.classList.add('visible');
+    currentUpdateServerId = serverId;
+
+    const logOutput = document.getElementById('update-log-output');
+    logOutput.textContent = 'Ready to start update...';
+
+    // Enable/Disable button
+    const btn = document.getElementById('start-update-btn');
+    btn.disabled = false;
+    btn.textContent = 'Start Update';
+}
+
+function closeUpdateModal() {
+    const modal = document.getElementById('update-modal');
+    modal.classList.remove('visible');
+    if (updatePollInterval) {
+        clearInterval(updatePollInterval);
+        updatePollInterval = null;
+    }
+    currentUpdateServerId = null;
+}
+
+document.getElementById('update-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeUpdateModal();
+});
+
+document.getElementById('start-update-btn').addEventListener('click', async function() {
+    if (!currentUpdateServerId) return;
+
+    const branch = document.getElementById('update-branch-select').value;
+    const btn = this;
+    const logOutput = document.getElementById('update-log-output');
+
+    if (!await showModalConfirm('Start update process? The server service will be restarted.')) return;
+
+    btn.disabled = true;
+    btn.textContent = 'Updating...';
+    logOutput.textContent = 'Initializing update sequence...\n';
+
+    try {
+        const res = await fetch(`proxy.php?id=${encodeURIComponent(currentUpdateServerId)}&action=ssh_update&branch=${encodeURIComponent(branch)}`);
+        const data = await res.json();
+
+        if (data.success) {
+            logOutput.textContent += 'Update command sent successfully.\nMonitoring progress...\n';
+            startUpdatePolling(currentUpdateServerId);
+        } else {
+            logOutput.textContent += 'Error: ' + (data.error || 'Unknown error') + '\n';
+            btn.disabled = false;
+            btn.textContent = 'Retry Update';
+        }
+    } catch (e) {
+        logOutput.textContent += 'Request failed: ' + e.message + '\n';
+        btn.disabled = false;
+        btn.textContent = 'Retry Update';
+    }
+});
+
+function startUpdatePolling(serverId) {
+    if (updatePollInterval) clearInterval(updatePollInterval);
+
+    updatePollInterval = setInterval(async () => {
+        try {
+            const res = await fetch(`proxy.php?id=${encodeURIComponent(serverId)}&action=ssh_update_log`);
+            const data = await res.json();
+
+            if (data.success && data.output) {
+                const logEl = document.getElementById('update-log-output');
+                logEl.textContent = data.output;
+                logEl.scrollTop = logEl.scrollHeight; // Auto-scroll
+
+                if (data.output.includes('UPDATE_COMPLETE')) {
+                    clearInterval(updatePollInterval);
+                    updatePollInterval = null;
+                    document.getElementById('start-update-btn').textContent = 'Update Complete';
+                    showModalAlert('Update Completed Successfully!');
+                    fetchServerStatus(serverId); // Refresh status (it might be restarting)
+                } else if (data.output.includes('UPDATE_FAILED')) {
+                    clearInterval(updatePollInterval);
+                    updatePollInterval = null;
+                    document.getElementById('start-update-btn').disabled = false;
+                    document.getElementById('start-update-btn').textContent = 'Retry Update';
+                    showModalAlert('Update Failed. Check logs.');
+                }
+            }
+        } catch (e) {
+            console.error('Update polling error', e);
+        }
+    }, 1000);
+}
+
 if (IS_ADMIN) {
     document.getElementById('toggle-form').addEventListener('click', function() {
         openServerModal(false);
@@ -1274,6 +1371,17 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
                 <i class="fa-solid fa-rotate"></i>
             </button>
         `;
+
+        // SSH Update Button (Linux Only)
+        if ((!server.os_type || server.os_type === 'linux') && server.ssh_initialized) {
+            const btnColor = server.hasUpdate ? '#4caf50' : '';
+            const btnTitle = server.hasUpdate ? 'Update Available - Click to Install' : 'Update Server';
+            headerHtml += `
+                <button class="admin-action-btn" style="color:${btnColor}; border-color:${btnColor};" title="${btnTitle}" onclick="openUpdateModal('${esc(server.id)}')">
+                    <i class="fa-solid fa-download"></i>
+                </button>
+            `;
+        }
 
         // API Restart Button (non-Plex)
         if (server.type !== 'plex') {
