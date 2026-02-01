@@ -97,7 +97,11 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
         // 1. Detect Architecture (via SSH sync)
         $archCmd = "uname -m";
         $archRes = executeSSHCommand($host, $port, $user, $archCmd);
-        $arch = $archRes['success'] ? trim($archRes['output']) : 'x86_64';
+
+        // Sanitize output (remove SSH banners)
+        $archRaw = $archRes['success'] ? trim($archRes['output']) : 'x86_64';
+        $lines = explode("\n", $archRaw);
+        $arch = trim(end($lines));
 
         // Normalize Arch
         if ($arch === 'x86_64') $arch = 'amd64';
