@@ -533,37 +533,51 @@ async function fetchServerStatus(serverId) {
                 // Parse detailed status
                 const status = (data.status || '').trim();
                 const isActive = ['active', 'activating', 'reloading'].includes(status);
-                // "Stopped" includes inactive, failed, dead, or unknown. Deactivating is NOT stopped.
+                // "Stopped" includes inactive, failed, dead, or unknown.
                 const isStopped = ['inactive', 'failed', 'dead'].includes(status);
+                const isDeactivating = status === 'deactivating';
+
+                const server = SERVERS.find(s => s.id === serverId);
+                const serverName = server ? server.name : 'Server';
 
                 // Handle Pending State Transitions
-                const transition = SERVER_TRANSITIONS[serverId];
-                if (transition) {
+                const transitionObj = SERVER_TRANSITIONS[serverId];
+                if (transitionObj) {
+                    const transition = transitionObj.action;
                     if (transition === 'ssh_restart' || transition === 'ssh_start') {
                         if (isActive) {
-                            delete SERVER_TRANSITIONS[serverId]; // Action complete
+                            // Action complete
+                            const duration = ((Date.now() - transitionObj.startTime) / 1000).toFixed(1);
+                            const actionName = transition === 'ssh_restart' ? 'Restart' : 'Start';
+                            logSystemEvent(`Action '${actionName}' for '${serverName}' completed in ${duration}s`, 'INFO');
+
+                            delete SERVER_TRANSITIONS[serverId];
                         } else {
                             const label = transition === 'ssh_restart' ? 'Restarting' : 'Starting';
                             container.innerHTML = `<span style="color:#e5a00d;"><i class="fa-solid fa-spinner fa-spin"></i> ${label}...</span>`;
                             return;
                         }
                     } else if (transition === 'ssh_stop') {
-                        // Wait until fully stopped (inactive/failed)
-                        if (isStopped) {
-                            delete SERVER_TRANSITIONS[serverId]; // Action complete
+                        // Wait until fully stopped (inactive/dead)
+                        // If failed, continue polling as it might be transient or user prefers waiting
+                        if (['inactive', 'dead'].includes(status)) {
+                            // Action complete
+                            const duration = ((Date.now() - transitionObj.startTime) / 1000).toFixed(1);
+                            logSystemEvent(`Action 'Stop' for '${serverName}' completed in ${duration}s`, 'INFO');
+
+                            delete SERVER_TRANSITIONS[serverId];
                         } else {
-                            // Still deactivating or active
+                            // Still deactivating, active, or failed
                             container.innerHTML = `<span style="color:#e5a00d;"><i class="fa-solid fa-spinner fa-spin"></i> Stopping...</span>`;
                             return;
                         }
                     }
                 }
 
-                const server = SERVERS.find(s => s.id === serverId);
-                const serverName = server ? server.name : 'Server';
-
-                // Render buttons: If NOT stopped (Active/Deactivating), show Stop/Restart.
-                if (!isStopped) {
+                // Render buttons
+                if (isDeactivating) {
+                    container.innerHTML = `<span style="color:#e5a00d;"><i class="fa-solid fa-spinner fa-spin"></i> Stopping...</span>`;
+                } else if (!isStopped) {
                     container.innerHTML = `
                         <button class="admin-action-btn danger" title="Stop Service" onclick="controlServerSSH('${esc(serverId)}', '${esc(serverName)}', 'ssh_stop')">
                             <i class="fa-solid fa-stop"></i>
@@ -611,7 +625,7 @@ async function controlServerSSH(serverId, serverName, action) {
 
         if (data.success) {
             // Register transition and start polling for ALL actions
-            SERVER_TRANSITIONS[serverId] = action;
+            SERVER_TRANSITIONS[serverId] = { action: action, startTime: Date.now() };
             pollServerStatus(serverId);
         } else {
              alert(`SSH Command Failed: ${data.error}`);
