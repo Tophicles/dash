@@ -5,41 +5,77 @@ from playwright.sync_api import sync_playwright
 
 def run(playwright):
     browser = playwright.chromium.launch(headless=True)
-    page = browser.new_page(viewport={"width": 1200, "height": 800})
+    page = browser.new_page(viewport={"width": 1280, "height": 900})
 
     # --- Mocks ---
-    # Mock get_config.php with mixed servers
+
+    # 1. get_config.php
     page.route("**/get_config.php*", lambda route: route.fulfill(
         status=200,
         content_type="application/json",
         body='{"servers": ['
-             '{"id": "1", "name": "Main Plex", "type": "plex", "url": "http://plex:32400", "enabled": true, "order": 1},'
-             '{"id": "2", "name": "Emby Server", "type": "emby", "url": "http://emby:8096", "enabled": true, "order": 2}'
+             '{"id": "1", "name": "Main Plex", "type": "plex", "url": "http://plex:32400", "enabled": true, "order": 1, "os_type": "linux", "ssh_initialized": true},'
+             '{"id": "2", "name": "Emby Server", "type": "emby", "url": "http://emby:8096", "enabled": true, "order": 2, "os_type": "linux", "ssh_initialized": true}'
              '], "refreshSeconds": 5}'
     ))
 
-    # Mock proxy.php for Plex (Active Session)
-    page.route("**/proxy.php?server=Main%20Plex", lambda route: route.fulfill(
-        status=200,
-        content_type="application/json",
-        body='{"MediaContainer": {"Metadata": [{"User": {"title": "Alice"}, "title": "Inception", "grandparentTitle": "", "viewOffset": 1000, "duration": 5000, "Player": {"state": "playing"}, "ratingKey": "100"}]}}'
-    ))
+    # 2. proxy.php (General Dispatch)
+    def handle_proxy(route, request):
+        url = request.url
 
-    # Mock proxy.php for Emby (Idle)
-    page.route("**/proxy.php?server=Emby%20Server", lambda route: route.fulfill(
-        status=200,
-        content_type="application/json",
-        body='[]'
-    ))
+        # Server Status / Sessions
+        if "server=Main%20Plex" in url and "action=info" not in url:
+            # Plex with Active Session
+            route.fulfill(
+                status=200,
+                content_type="application/json",
+                body='{"MediaContainer": {"Metadata": [{'
+                     '"User": {"title": "Alice"}, "title": "Inception", "grandparentTitle": "", "viewOffset": 3500000, "duration": 8000000, '
+                     '"Player": {"state": "playing", "title": "Apple TV", "product": "Plex for tvOS"}, '
+                     '"ratingKey": "100", "Media": [{"width": 3840, "height": 2160, "selected": "directplay"}]'
+                     '}]}}'
+            )
+            return
 
-    # Mock get_active_users.php
+        if "server=Emby%20Server" in url and "action=info" not in url:
+            # Emby Idle
+            route.fulfill(status=200, content_type="application/json", body='[]')
+            return
+
+        # Server Info (Update Check)
+        if "action=info" in url:
+            if "Emby" in url or "id=2" in url:
+                # Emby has update
+                route.fulfill(
+                    status=200,
+                    content_type="application/json",
+                    body='{"version": "4.7.0.0", "updateAvailable": true}'
+                )
+            else:
+                # Plex no update
+                route.fulfill(
+                    status=200,
+                    content_type="application/json",
+                    body='{"version": "1.32.0.6950", "updateAvailable": false}'
+                )
+            return
+
+        # SSH Status
+        if "action=ssh_status" in url:
+            route.fulfill(status=200, content_type="application/json", body='{"success": true, "status": "active"}')
+            return
+
+        # Default empty
+        route.fulfill(status=200, content_type="application/json", body='[]')
+
+    page.route("**/proxy.php*", handle_proxy)
+
+    # 3. get_active_users.php
     page.route("**/get_active_users.php*", lambda route: route.fulfill(
-        status=200,
-        content_type="application/json",
-        body='{"users": ["Admin", "Viewer"]}'
+        status=200, content_type="application/json", body='{"users": ["Admin", "Viewer"]}'
     ))
 
-    # Mock manage_users.php for User List
+    # 4. manage_users.php
     page.route("**/manage_users.php*", lambda route: route.fulfill(
         status=200,
         content_type="application/json",
@@ -49,60 +85,166 @@ def run(playwright):
              ']}'
     ))
 
-    # --- 1. Login Screenshot ---
-    # Navigate to login (force logout essentially by hitting login.php directly or ensuring no session)
-    # Since we are mocking, we can just hit login.php
-    page.goto("http://localhost:8080/login.php")
-    page.screenshot(path="screenshots/login.png")
-    print(" captured login.png")
+    # 5. ssh_manager.php
+    page.route("**/ssh_manager.php*", lambda route: route.fulfill(
+        status=200,
+        content_type="application/json",
+        body='{"success": true, "key": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQ... (Public Key Content) ..."}'
+    ))
 
-    # --- Login Flow ---
+    # 6. get_item_details.php (Rich Metadata for Tech Badges)
+    page.route("**/get_item_details.php*", lambda route: route.fulfill(
+        status=200,
+        content_type="application/json",
+        body='{"success": true, "item": {'
+             '"title": "Inception", "year": 2010, "rating": "PG-13", "runtime": "2h 28m", '
+             '"resolution": "3840x2160", "container": "mkv", "audioCodec": "TrueHD", "audioChannels": "7.1", '
+             '"poster": "", "overview": "A thief who steals corporate secrets through the use of dream-sharing technology...", '
+             '"genres": "Action, Sci-Fi", "director": "Christopher Nolan", '
+             '"path": "/data/media/movies/Inception (2010)/Inception.2010.2160p.mkv"'
+             '}}'
+    ))
+
+    # --- Execution ---
+
+    # 1. Login
+    print("Navigating to login...")
+    page.goto("http://localhost:8080/login.php")
+    page.wait_for_selector("input[name='username']")
+    page.screenshot(path="screenshots/login.png")
+    print("Captured login.png")
+
+    # Login Flow
     page.fill("input[name='username']", "admin")
     page.fill("input[name='password']", "password")
     page.click("button[type='submit']")
     page.wait_for_url("**/index.php")
 
-    # --- 2. Dashboard Screenshot ---
+    # 2. Dashboard
+    print("Loading dashboard...")
     page.wait_for_selector(".server-card")
-    # Wait for loading to settle
-    time.sleep(1)
+    time.sleep(2) # Wait for async fetches (versions, users)
     page.screenshot(path="screenshots/dashboard.png")
-    print(" captured dashboard.png")
+    print("Captured dashboard.png")
 
-    # --- 3. Add Server Modal Screenshot ---
+    # 3. Search Preview
+    page.fill("#server-search", "Alice")
+    time.sleep(1) # Wait for debounce
+    page.screenshot(path="screenshots/search_preview.png")
+    print("Captured search_preview.png")
+
+    # Clear search
+    page.fill("#server-search", "")
+    time.sleep(0.5)
+
+    # 4. Add Server Modal
     page.click("#menu-header") # Open Menu
     page.wait_for_selector("#toggle-form", state="visible")
     page.click("#toggle-form")
     page.wait_for_selector("#server-modal.visible")
     time.sleep(0.5)
     page.screenshot(path="screenshots/add_server.png")
-    print(" captured add_server.png")
-
-    # Close modal
+    print("Captured add_server.png")
     page.click("#server-modal .modal-close")
     time.sleep(0.5)
 
-    # --- 4. User Management Screenshot ---
+    # 5. User Management
     page.click("#users-btn")
     page.wait_for_selector("#users-modal.visible")
-    page.wait_for_selector(".user-item") # Wait for list to load
     time.sleep(0.5)
     page.screenshot(path="screenshots/users.png")
-    print(" captured users.png")
-
-    # Close modal
+    print("Captured users.png")
     page.click("#users-modal .modal-close")
+    page.click("#menu-header") # Close Menu
     time.sleep(0.5)
 
-    # --- 5. Search Preview Screenshot ---
-    # Close menu first to clean up UI
+    # 6. SSH Keys Management
+    # Navigate to it via top bar button
+    page.click("#menu-header") # Open Menu again
+    time.sleep(0.5)
+    page.click("#ssh-keys-nav-btn")
+    page.wait_for_selector("#ssh-modal.visible")
+    time.sleep(0.5)
+    page.screenshot(path="screenshots/ssh_keys.png")
+    print("Captured ssh_keys.png")
+    # Close modal by clicking outside or mock close
+    page.evaluate("document.getElementById('ssh-modal').classList.remove('visible')")
+    time.sleep(0.5)
+
+    # 7. Server View (with Update Available)
+    # Click on Emby server card (ID 2)
+    page.click(".server-card[data-server-id='2']")
+    page.wait_for_selector("#sessions-view.visible")
+    time.sleep(1) # Wait for controls to render
+    page.screenshot(path="screenshots/server_view.png")
+    print("Captured server_view.png")
+
+    # 8. Update Modal (Initial)
+    page.click("button[title*='Update Available']")
+    page.wait_for_selector("#update-modal.visible")
+    time.sleep(0.5)
+    page.screenshot(path="screenshots/update_modal.png")
+    print("Captured update_modal.png")
+
+    # 9. Update Process Mock (Log Output)
+    # Inject text into log output
+    log_text = (
+        "Initializing update sequence...\\n"
+        "Architecture: amd64\\n"
+        "Branch: Stable\\n"
+        "Downloading update from https://github.com/MediaBrowser/Emby.Releases/...\\n"
+        "Download complete (85MB).\\n"
+        "Stopping EmbyServer service...\\n"
+        "Installing package (dpkg -i)...\\n"
+        "(Reading database ... 45032 files and directories currently installed.)\\n"
+        "Preparing to unpack .../multidash_update.deb ...\\n"
+        "Unpacking emby-server (4.8.0.56) over (4.7.0.0) ...\\n"
+        "Setting up emby-server (4.8.0.56) ...\\n"
+        "Processing triggers for libc-bin (2.35-0ubuntu3.1) ...\\n"
+        "Starting EmbyServer service...\\n"
+        "UPDATE_COMPLETE"
+    )
+    page.evaluate(f"document.getElementById('update-log-output').textContent = `{log_text}`")
+    page.evaluate("document.getElementById('start-update-btn').textContent = 'Close'")
+    page.evaluate("document.getElementById('start-update-btn').disabled = false")
+    time.sleep(0.5)
+    page.screenshot(path="screenshots/update_process.png")
+    print("Captured update_process.png")
+
+    page.click("#update-modal .btn:not(.primary)") # Click Close
+    time.sleep(0.5)
+
+    # 10. Tech Badges (Item Details)
+    # Go back to dashboard to click the active session
+    page.click("#header-reload-btn")
+    page.wait_for_selector(".server-card")
+
+    # Active session is on "Main Plex" (ID 1).
+    page.click(".server-card[data-server-id='1']")
+    page.wait_for_selector("#sessions-view.visible")
+    time.sleep(0.5)
+
+    # Click the session card
+    page.click(".session")
+    page.wait_for_selector("#item-modal.visible")
+    time.sleep(1) # Wait for mock data load
+    page.screenshot(path="screenshots/tech_badges.png")
+    print("Captured tech_badges.png")
+
+    page.click("#item-modal .modal-close")
+    time.sleep(0.5)
+
+    # 11. Logs
+    # Access logs via menu (visual only, we navigate directly for stability)
     page.click("#menu-header")
     time.sleep(0.5)
 
-    page.fill("#server-search", "Alice")
-    time.sleep(0.5) # Wait for debounce/filter
-    page.screenshot(path="screenshots/search_preview.png")
-    print(" captured search_preview.png")
+    print("Navigating to logs...")
+    page.goto("http://localhost:8080/view_logs.php")
+    page.wait_for_selector("#log-container", timeout=10000)
+    time.sleep(1)
+    page.screenshot(path="screenshots/logs.png")
+    print("Captured logs.png")
 
     browser.close()
 
