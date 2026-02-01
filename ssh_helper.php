@@ -53,7 +53,7 @@ function executeSSHCommand($host, $port, $user, $command) {
     // -o BatchMode=yes: Don't ask for passwords
 
     $sshCmd = sprintf(
-        "ssh -i %s -p %d -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 -o BatchMode=yes %s@%s %s 2>&1",
+        "ssh -i %s -p %d -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ConnectTimeout=5 -o BatchMode=yes %s@%s %s 2>&1",
         escapeshellarg(SSH_PRIVATE_KEY_PATH),
         (int)$port,
         escapeshellarg($user),

@@ -57,6 +57,7 @@ generate_sudoers() {
     rm -f "$SUDOERS_FILE"
 
     {
+      echo "Defaults:$USER_NAME !authenticate"
       echo "$USER_NAME ALL=(ALL) NOPASSWD: \\"
       echo "  $SYSTEMCTL start plexmediaserver, \\"
       echo "  $SYSTEMCTL stop plexmediaserver, \\"
