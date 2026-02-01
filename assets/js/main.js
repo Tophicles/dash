@@ -2544,7 +2544,7 @@ async function fetchServerStats(serverId) {
             const html = `
                 <div class="server-stats-container">
                     <button class="stats-refresh-btn" onclick="fetchServerStats('${esc(serverId)}')" title="Refresh Stats">
-                        <i class="fa-solid fa-rotate-right"></i>
+                        <i class="fa-solid fa-rotate-right"></i> Refresh Stats
                     </button>
                     <div class="stats-row">
                         <div class="stats-item">
