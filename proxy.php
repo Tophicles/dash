@@ -126,27 +126,34 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
         // Then sudo dpkg -i
         // Then rm
 
-        $escapedUrl = escapeshellarg($downloadUrl);
-        // $service is defined earlier in the script based on server type (e.g. plexmediaserver, emby-server)
+        // Use bash -c with arguments to avoid quoting issues
+        // $1 = Download URL, $2 = Log File, $3 = Temp Deb
 
-        $cmd = "nohup bash -c 'echo \"Starting update for $service...\" > $logFile; " .
-               "echo \"Architecture: $arch\" >> $logFile; " .
-               "echo \"Downloading from: $downloadUrl\" >> $logFile; " .
-               "curl -L -A \"Mozilla/5.0\" $escapedUrl -o $tmpDeb >> $logFile 2>&1; " .
-               "if [ $? -eq 0 ]; then " .
-               "  echo \"Download complete. Installing...\" >> $logFile; " .
-               "  sudo dpkg -i $tmpDeb >> $logFile 2>&1; " .
-               "  if [ $? -eq 0 ]; then " .
-               "    echo \"UPDATE_COMPLETE\" >> $logFile; " .
-               "    rm $tmpDeb; " .
-               "  else " .
-               "    echo \"Install failed.\" >> $logFile; " .
-               "    echo \"UPDATE_FAILED\" >> $logFile; " .
-               "  fi; " .
-               "else " .
-               "  echo \"Download failed.\" >> $logFile; " .
-               "  echo \"UPDATE_FAILED\" >> $logFile; " .
-               "fi' > /dev/null 2>&1 &";
+        $script =
+            "echo \"Starting update for $service...\" > \"$2\"; " .
+            "echo \"Architecture: $arch\" >> \"$2\"; " .
+            "echo \"Downloading from: $1\" >> \"$2\"; " .
+            "curl -L -A \"Mozilla/5.0\" \"$1\" -o \"$3\" >> \"$2\" 2>&1; " .
+            "if [ $? -eq 0 ]; then " .
+            "  echo \"Download complete. Installing...\" >> \"$2\"; " .
+            "  sudo dpkg -i \"$3\" >> \"$2\" 2>&1; " .
+            "  if [ $? -eq 0 ]; then " .
+            "    echo \"UPDATE_COMPLETE\" >> \"$2\"; " .
+            "    rm \"$3\"; " .
+            "  else " .
+            "    echo \"Install failed.\" >> \"$2\"; " .
+            "    echo \"UPDATE_FAILED\" >> \"$2\"; " .
+            "  fi; " .
+            "else " .
+            "  echo \"Download failed.\" >> \"$2\"; " .
+            "  echo \"UPDATE_FAILED\" >> \"$2\"; " .
+            "fi";
+
+        $cmd = "nohup bash -c " . escapeshellarg($script) . " -- " .
+               escapeshellarg($downloadUrl) . " " .
+               escapeshellarg($logFile) . " " .
+               escapeshellarg($tmpDeb) .
+               " > /dev/null 2>&1 &";
 
     } elseif ($action === 'ssh_update_log') {
         $logFile = "/tmp/multidash_update_{$server['id']}.log";
