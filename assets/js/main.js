@@ -199,12 +199,21 @@ function openUpdateModal(serverId) {
 
     // Infer branch from version
     const server = SERVERS.find(s => s.id === serverId);
+    let initialBranch = 'stable';
     if (server && server.version) {
         const isBeta = server.version.toLowerCase().includes('beta');
-        document.getElementById('update-branch-select').value = isBeta ? 'beta' : 'stable';
-    } else {
-        document.getElementById('update-branch-select').value = 'stable';
+        initialBranch = isBeta ? 'beta' : 'stable';
     }
+
+    // Set active button
+    document.getElementById('update-branch-select').value = initialBranch;
+    document.querySelectorAll('.branch-btn').forEach(btn => {
+        if (btn.dataset.branch === initialBranch) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
 
     // Enable/Disable button
     const btn = document.getElementById('start-update-btn');
@@ -228,6 +237,18 @@ function closeUpdateModal() {
 
 document.getElementById('update-modal').addEventListener('click', function(e) {
     if (e.target === this) closeUpdateModal();
+});
+
+// Branch selection logic
+document.querySelectorAll('.branch-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const branch = this.dataset.branch;
+        document.getElementById('update-branch-select').value = branch;
+
+        // Update UI
+        document.querySelectorAll('.branch-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+    });
 });
 
 document.getElementById('start-update-btn').addEventListener('click', async function() {

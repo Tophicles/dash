@@ -259,11 +259,16 @@ $isAdmin = isAdmin();
     <div id="update-modal-body">
         <div class="server-form-group">
             <label>Update Branch</label>
-            <select id="update-branch-select">
-                <option value="stable">Stable (Default)</option>
-                <option value="beta">Beta</option>
-            </select>
-            <div style="font-size: 0.85rem; color: #888; margin-top: 5px;">
+            <div class="branch-selector">
+                <input type="hidden" id="update-branch-select" value="stable">
+                <button type="button" class="branch-btn active" data-branch="stable">
+                    <i class="fa-solid fa-box"></i> Stable
+                </button>
+                <button type="button" class="branch-btn" data-branch="beta">
+                    <i class="fa-solid fa-flask"></i> Beta
+                </button>
+            </div>
+            <div style="font-size: 0.85rem; color: #888; margin-top: 10px;">
                 Downloading package directly and installing via <code>dpkg</code>.
             </div>
         </div>
