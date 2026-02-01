@@ -37,6 +37,7 @@ This guide outlines the files required and the steps needed to deploy the MultiD
     *   `assets/css/` - Stylesheets.
     *   `assets/js/` - JavaScript logic.
     *   `assets/img/` - Logos and favicons.
+*   `os_helpers/` - Directory containing Linux setup scripts.
 *   `screenshots/` - Directory containing UI images (optional, for README).
 *   `README.md` - Documentation.
 
@@ -85,7 +86,7 @@ location /dash {
     # Deny access to sensitive files
     location ~ \.(json|log|php)$ {
         # Allow specific PHP entry points
-        location ~ ^/dash/(index|login|setup|logout|proxy|get_|add_|update_|delete_|manage_|view_logs|library_actions)\.php$ {
+        location ~ ^/dash/(index|login|setup|logout|proxy|get_|add_|update_|delete_|manage_|view_logs|library_actions|ssh_manager|log_event)\.php$ {
             include snippets/fastcgi-php.conf;
             fastcgi_pass unix:/var/run/php/php-fpm.sock;
         }

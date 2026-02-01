@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>MultiDash</Name>
+  <Repository>ghcr.io/tophicles/dash</Repository>
+  <Registry/>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>bash</Shell>
+  <Privileged>false</Privileged>
+  <Support/>
+  <Project/>
+  <Overview>MultiDash is a lightweight, self-hosted dashboard for monitoring multiple Plex, Emby, and Jellyfin media servers in a unified interface.&#xD;
+&#xD;
+**Note:** The default repository is 'ghcr.io/tophicles/dash'. Ensure this package is set to PUBLIC in GitHub Package settings, otherwise unRAID will fail to pull it. Alternatively, build locally.</Overview>
+  <Category>Tools:Utilities</Category>
+  <WebUI>http://[IP]:[PORT:80]</WebUI>
+  <TemplateURL/>
+  <Icon>https://raw.githubusercontent.com/linuxserver/docker-templates/master/linuxserver.io/img/linuxserver-logo.png</Icon>
+  <ExtraParams/>
+  <PostArgs/>
+  <CPUset/>
+  <DateInstalled/>
+  <DonateText/>
+  <DonateLink/>
+  <Description>MultiDash is a lightweight, self-hosted dashboard for monitoring multiple Plex, Emby, and Jellyfin media servers.</Description>
+  <Networking>
+    <Mode>bridge</Mode>
+    <Publish>
+      <Port>
+        <HostPort>8088</HostPort>
+        <ContainerPort>80</ContainerPort>
+        <Protocol>tcp</Protocol>
+      </Port>
+    </Publish>
+  </Networking>
+  <Data>
+    <Volume>
+      <HostDir>/mnt/user/appdata/multidash</HostDir>
+      <ContainerDir>/config</ContainerDir>
+      <Mode>rw</Mode>
+    </Volume>
+  </Data>
+  <Environment>
+    <Variable>
+      <Name>PUID</Name>
+      <Value>99</Value>
+    </Variable>
+    <Variable>
+      <Name>PGID</Name>
+      <Value>100</Value>
+    </Variable>
+  </Environment>
+  <Config Name="Web Port" Target="80" Default="8088" Mode="tcp" Description="Port for the dashboard" Type="Port" Display="always" Required="true" Mask="false">8088</Config>
+  <Config Name="Config Directory" Target="/config" Default="/mnt/user/appdata/multidash" Mode="rw" Description="Persistent storage for settings and logs" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/multidash</Config>
+  <Config Name="PUID" Target="PUID" Default="99" Mode="" Description="User ID to run as (99 = nobody/users on Unraid)" Type="Variable" Display="advanced" Required="false" Mask="false">99</Config>
+  <Config Name="PGID" Target="PGID" Default="100" Mode="" Description="Group ID to run as (100 = users on Unraid)" Type="Variable" Display="advanced" Required="false" Mask="false">100</Config>
+</Container>
