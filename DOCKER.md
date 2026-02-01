@@ -76,3 +76,21 @@ The container uses a **volume** mapped to `/config` to store all persistent data
 |----------|---------|-------------|
 | `PUID`   | `33`    | User ID. Set to `99` for unRAID or `1000` for standard Linux to match host permissions. |
 | `PGID`   | `33`    | Group ID. Set to `100` for unRAID or `1000` for standard Linux. |
+
+---
+
+## Troubleshooting
+
+### Error: "denied" or "Unable to find image" (GHCR)
+If you see an error like `Head "https://ghcr.io/v2/.../manifests/latest": denied` when pulling from GitHub Container Registry:
+
+1.  **Check Visibility:** By default, new packages pushed to GHCR are **Private**. unRAID cannot pull them without authentication.
+    *   Go to your GitHub Profile > **Packages**.
+    *   Click on your `dash` package.
+    *   Go to **Package Settings** (sidebar).
+    *   Scroll to **Danger Zone** > **Change visibility**.
+    *   Set it to **Public**.
+
+2.  **Authenticate (Alternative):** If you want to keep it private, you must log in to Docker on your unRAID server:
+    *   Generate a GitHub Personal Access Token (Classic) with `read:packages` scope.
+    *   Run `docker login ghcr.io -u YOUR_GITHUB_USERNAME` in the unRAID terminal and paste the token as the password.

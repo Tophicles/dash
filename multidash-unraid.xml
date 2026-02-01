@@ -11,7 +11,7 @@
   <Project/>
   <Overview>MultiDash is a lightweight, self-hosted dashboard for monitoring multiple Plex, Emby, and Jellyfin media servers in a unified interface.&#xD;
 &#xD;
-**Note:** Update the Repository field to match your Docker Hub username or local image tag.</Overview>
+**Note:** The default repository is 'ghcr.io/tophicles/dash'. Ensure this package is set to PUBLIC in GitHub Package settings, otherwise unRAID will fail to pull it. Alternatively, build locally.</Overview>
   <Category>Tools:Utilities</Category>
   <WebUI>http://[IP]:[PORT:80]</WebUI>
   <TemplateURL/>
