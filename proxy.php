@@ -98,10 +98,13 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
         $archCmd = "uname -m";
         $archRes = executeSSHCommand($host, $port, $user, $archCmd);
 
-        // Sanitize output (remove SSH banners)
+        // Sanitize output (extract last valid arch from output)
         $archRaw = $archRes['success'] ? trim($archRes['output']) : 'x86_64';
-        $lines = explode("\n", $archRaw);
-        $arch = trim(end($lines));
+        $arch = 'amd64'; // Default fallback
+
+        if (preg_match('/(x86_64|aarch64|armv7l|i686|amd64|arm64)$/m', $archRaw, $matches)) {
+            $arch = $matches[1];
+        }
 
         // Normalize Arch
         if ($arch === 'x86_64') $arch = 'amd64';
@@ -131,11 +134,11 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
         // Then rm
 
         // Use bash -c with arguments to avoid quoting issues
-        // $1 = Download URL, $2 = Log File, $3 = Temp Deb
+        // $1 = Download URL, $2 = Log File, $3 = Temp Deb, $4 = Architecture
 
         $script =
             "echo \"Starting update for $service...\" > \"$2\"; " .
-            "echo \"Architecture: $arch\" >> \"$2\"; " .
+            "echo \"Architecture: $4\" >> \"$2\"; " .
             "echo \"Downloading from: $1\" >> \"$2\"; " .
             "curl -L -A \"Mozilla/5.0\" \"$1\" -o \"$3\" >> \"$2\" 2>&1; " .
             "if [ $? -eq 0 ]; then " .
@@ -156,7 +159,8 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
         $cmd = "nohup bash -c " . escapeshellarg($script) . " -- " .
                escapeshellarg($downloadUrl) . " " .
                escapeshellarg($logFile) . " " .
-               escapeshellarg($tmpDeb) .
+               escapeshellarg($tmpDeb) . " " .
+               escapeshellarg($arch) .
                " > /dev/null 2>&1 &";
 
     } elseif ($action === 'ssh_update_log') {
