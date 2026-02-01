@@ -397,40 +397,15 @@ async function testServerUpdate(serverId) {
 
 // Server Admin Logic
 if (IS_ADMIN) {
-    const adminBtn = document.getElementById('server-admin-btn');
-    if (adminBtn) {
-        adminBtn.addEventListener('click', openServerAdminModal);
-    }
-
-    // SSH Keys Button (inside Admin Modal)
-    const sshBtn = document.getElementById('ssh-keys-btn');
+    // SSH Keys Button (in top menu)
+    const sshBtn = document.getElementById('ssh-keys-nav-btn');
     if (sshBtn) {
         sshBtn.addEventListener('click', openSSHModal);
     }
 }
 
-function openServerAdminModal() {
-    const modal = document.getElementById('server-admin-modal');
-    modal.classList.add('visible');
-    renderServerAdminList();
-}
-
-function closeServerAdminModal() {
-    document.getElementById('server-admin-modal').classList.remove('visible');
-}
-
-// Close on click outside
-document.getElementById('server-admin-modal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        closeServerAdminModal();
-    }
-});
-
 // SSH Manager Logic
 async function openSSHModal() {
-    // Hide Admin Modal temporarily (or stack on top, but hiding is cleaner)
-    closeServerAdminModal();
-
     const modal = document.getElementById('ssh-modal');
     modal.classList.add('visible');
 
@@ -457,8 +432,6 @@ async function openSSHModal() {
 
 function closeSSHModal() {
     document.getElementById('ssh-modal').classList.remove('visible');
-    // Re-open Admin Modal
-    openServerAdminModal();
 }
 
 document.getElementById('ssh-modal').addEventListener('click', function(e) {
@@ -522,79 +495,6 @@ if (sshCopyBtn) {
     });
 }
 
-function renderServerAdminList() {
-    const container = document.getElementById('admin-server-list');
-    container.innerHTML = '';
-
-    SERVERS.forEach(async server => {
-        const item = document.createElement('div');
-        item.className = 'admin-server-item';
-
-        const sessions = ALL_SESSIONS[server.name] || [];
-        const isActive = sessions.length > 0;
-        const status = isActive ? `<span style="color:#4caf50;">Online (${sessions.length} active)</span>` : '<span style="color:#aaa;">Idle</span>';
-        const isLinux = !server.os_type || server.os_type === 'linux';
-
-        let actionsHtml = `
-            <button class="admin-action-btn" title="Check for Updates" onclick="checkServerUpdate('${esc(server.id)}', this)">
-                <i class="fa-solid fa-rotate"></i>
-            </button>
-            <button class="admin-action-btn" title="Simulate Update Available" onclick="testServerUpdate('${esc(server.id)}')">
-                <i class="fa-solid fa-flask"></i>
-            </button>
-        `;
-
-        if (isLinux) {
-            actionsHtml += `<span id="ssh-controls-${esc(server.id)}">`;
-            if (server.ssh_initialized) {
-                actionsHtml += `<i class="fa-solid fa-spinner fa-spin"></i>`;
-                // Fetch status asynchronously
-                fetchServerStatus(server.id);
-            } else {
-                actionsHtml += `
-                    <button class="admin-action-btn" title="Check SSH Connection" onclick="deployServerKey('${esc(server.id)}')">
-                        <i class="fa-solid fa-key"></i> Check SSH
-                    </button>
-                `;
-            }
-            actionsHtml += `</span>`;
-        }
-
-        if (server.type !== 'plex') {
-            actionsHtml += `
-                <button class="admin-action-btn danger" title="Restart Server (API)" onclick="restartServer('${esc(server.id)}', '${esc(server.name)}')">
-                    <i class="fa-solid fa-power-off"></i>
-                </button>
-            `;
-        }
-
-        let osIcon = 'fa-server';
-        if (!server.os_type || server.os_type === 'linux') osIcon = 'fa-linux';
-        else if (server.os_type === 'docker') osIcon = 'fa-docker';
-        else if (server.os_type === 'windows') osIcon = 'fa-windows';
-        else if (server.os_type === 'macos') osIcon = 'fa-apple';
-        else if (server.os_type === 'other') osIcon = 'fa-server';
-
-        item.innerHTML = `
-            <div style="display:flex; align-items:center; gap:12px;">
-                <div class="admin-os-badge" title="OS: ${esc(server.os_type || 'linux')}">
-                    <i class="fa-brands ${osIcon}"></i>
-                </div>
-                <div class="admin-server-info">
-                    <div class="admin-server-name">${esc(server.name)}</div>
-                    <div class="admin-server-details">
-                        Type: ${esc(server.type.toUpperCase())} • Version: ${esc(server.version || 'Unknown')} • ${status}
-                    </div>
-                </div>
-            </div>
-            <div class="admin-server-actions">
-                ${actionsHtml}
-            </div>
-        `;
-        container.appendChild(item);
-    });
-}
-
 const SERVER_TRANSITIONS = {}; // { serverId: 'ssh_start'|'ssh_stop'|'ssh_restart' }
 
 async function fetchServerStatus(serverId) {
@@ -602,8 +502,8 @@ async function fetchServerStatus(serverId) {
         const res = await fetch(`proxy.php?id=${encodeURIComponent(serverId)}&action=ssh_status`);
         const data = await res.json();
 
-        // Update both Admin Modal and Header controls
-        const containers = document.querySelectorAll(`[id^="ssh-controls-${serverId}"], [id^="js-header-controls-${serverId}"]`);
+        // Update Header controls
+        const containers = document.querySelectorAll(`[id^="js-header-controls-${serverId}"]`);
 
         containers.forEach(container => {
             if (data.success) {
@@ -731,7 +631,7 @@ function pollServerStatus(serverId) {
 }
 
 async function deployServerKey(serverId) {
-    const containers = document.querySelectorAll(`[id^="ssh-controls-${serverId}"], [id^="js-header-controls-${serverId}"]`);
+    const containers = document.querySelectorAll(`[id^="js-header-controls-${serverId}"]`);
     containers.forEach(c => c.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verifying...');
 
     try {
@@ -762,7 +662,7 @@ async function deployServerKey(serverId) {
             showModalAlert('Connection Failed: ' + esc(data.error) + '\n\nPlease ensure you have run the "linux_setup.sh" script on the target server.');
             // Revert button
             const server = SERVERS.find(s => s.id === serverId);
-            const containers = document.querySelectorAll(`[id^="ssh-controls-${serverId}"], [id^="js-header-controls-${serverId}"]`);
+            const containers = document.querySelectorAll(`[id^="js-header-controls-${serverId}"]`);
             if (server) {
                 containers.forEach(c => {
                     c.innerHTML = `
@@ -792,7 +692,13 @@ async function checkServerUpdate(serverId, btn) {
         server.version = info.version;
         server.hasUpdate = info.hasUpdate;
         renderServerGrid();
-        renderServerAdminList(); // Refresh list to show new version/status if changed
+
+        // Refresh single server view title/buttons
+        if (currentView === 'sessions' && selectedServerId === serverId) {
+            showSessionsView(serverId, server.name);
+        }
+
+        showModalAlert(`Version Checked: v${info.version}` + (info.hasUpdate ? ' (Update Available)' : ''));
     } else {
         showModalAlert('Failed to fetch server info');
     }
@@ -2279,110 +2185,7 @@ document.getElementById('users-modal').addEventListener('click', function(e) {
     }
 });
 
-// Libraries Management
-if (IS_ADMIN) {
-    const libBtn = document.getElementById('libraries-btn');
-    if (libBtn) {
-        libBtn.addEventListener('click', function() {
-            openLibrariesModal();
-        });
-    }
-}
-
-function openLibrariesModal() {
-    const modal = document.getElementById('libraries-modal');
-    modal.classList.add('visible');
-
-    // Populate Server Select
-    const select = document.getElementById('library-server-select');
-    select.innerHTML = '<option value="">-- Select a Server --</option>';
-
-    SERVERS.forEach(server => {
-        const option = document.createElement('option');
-        option.value = server.name;
-        option.textContent = `${server.name} (${server.type})`;
-        select.appendChild(option);
-    });
-
-    // Reset View
-    document.getElementById('libraries-list').innerHTML = '';
-    document.getElementById('libraries-empty').style.display = 'block';
-
-    // Event Listener for Select
-    select.onchange = function() {
-        if (this.value) {
-            fetchLibraries(this.value);
-        } else {
-            document.getElementById('libraries-list').innerHTML = '';
-            document.getElementById('libraries-empty').style.display = 'block';
-        }
-    };
-}
-
-function closeLibrariesModal() {
-    document.getElementById('libraries-modal').classList.remove('visible');
-}
-
-// Close libraries modal when clicking outside
-document.getElementById('libraries-modal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        closeLibrariesModal();
-    }
-});
-
-async function fetchLibraries(serverName) {
-    const list = document.getElementById('libraries-list');
-    const empty = document.getElementById('libraries-empty');
-    const loading = document.getElementById('libraries-loading');
-
-    list.innerHTML = '';
-    empty.style.display = 'none';
-    loading.style.display = 'block';
-
-    try {
-        const response = await fetch(`library_actions.php?action=list&server=${encodeURIComponent(serverName)}`);
-        const data = await response.json();
-
-        loading.style.display = 'none';
-
-        if (data.success) {
-            if (data.libraries.length === 0) {
-                empty.textContent = 'No libraries found.';
-                empty.style.display = 'block';
-                return;
-            }
-
-            // Render libraries
-            data.libraries.forEach(lib => {
-                const item = document.createElement('div');
-                item.className = 'user-item'; // Reuse existing style
-                item.style.background = 'rgba(0,0,0,0.3)';
-
-                item.innerHTML = `
-                    <div class="user-item-info">
-                        <div class="user-item-username">${esc(lib.name)}</div>
-                        <div class="user-item-meta">
-                            Type: ${esc(lib.type)}
-                        </div>
-                    </div>
-                    <div class="user-item-actions">
-                        <button class="btn primary" onclick="scanLibrary('${esc(serverName)}', '${esc(lib.id)}', '${esc(lib.name)}', this)"><i class="fa-solid fa-arrows-rotate"></i> Scan</button>
-                    </div>
-                `;
-                list.appendChild(item);
-            });
-
-        } else {
-            empty.textContent = 'Error: ' + (data.error || 'Unknown error');
-            empty.style.display = 'block';
-        }
-    } catch (error) {
-        console.error('Error fetching libraries:', error);
-        loading.style.display = 'none';
-        empty.textContent = 'Failed to fetch libraries';
-        empty.style.display = 'block';
-    }
-}
+// (Libraries Management Removed)
 
 async function scanLibrary(serverName, libraryId, libraryName, btn) {
     if (btn) {

@@ -10,7 +10,7 @@ A lightweight, self-hosted dashboard for monitoring multiple Plex, Emby, and Jel
 *   **Search & Filter:** Instantly filter servers and users. Matching user sessions are displayed directly on the server card with visual icons.
 *   **Real-time Updates:** Auto-refreshing status for "Now Watching" and dashboard users.
 *   **Dynamic Server Management:** Easily add and edit servers using a modal interface with protocol selection and validation.
-*   **Server Administration:** Check for updates and remotely restart servers via SSH or API.
+*   **Server Administration:** Check for updates and remotely restart servers via SSH (Linux) or API (Emby/Jellyfin).
 *   **Library Management:** List and trigger scans for media libraries on connected Plex, Emby, and Jellyfin servers.
 *   **User Management:** Built-in authentication with Admin and Viewer roles.
 *   **Logging System:** Comprehensive system logging with a built-in "tailable" log viewer.
@@ -34,6 +34,10 @@ Easily add, edit, and reorder your media servers via a user-friendly modal.
 ### User Administration
 Manage dashboard users directly from the interface.
 ![User Management](screenshots/users.png)
+
+### System Logs
+View detailed system and error logs with a live tail view.
+![System Logs](screenshots/logs.png)
 
 ## Installation
 
@@ -76,19 +80,31 @@ Go to **Admin > Server Administration > SSH Keys** in the dashboard and click "G
 ### 2. Configure Remote Media Server (Automated Method)
 We provide a helper script to automate the secure setup process.
 
-1.  Transfer the script to your media server:
-    ```bash
-    scp os_helpers/linux_setup.sh user@your-media-server:/tmp/
-    ```
-2.  SSH into your media server and run the script:
-    ```bash
-    ssh user@your-media-server
-    chmod +x /tmp/linux_setup.sh
-    sudo /tmp/linux_setup.sh
-    ```
-3.  Choose **Option 1 (Install)** and paste the Public Key when prompted.
+1.  **Download the script on your media server:**
+    SSH into your media server and download the helper script using `curl` or `wget`:
 
-To remove the configuration later, simply run the script again and choose **Option 2 (Uninstall)**.
+    ```bash
+    # Using curl
+    curl -O https://your-dashboard-url/dash/os_helpers/linux_setup.sh
+
+    # OR using wget
+    wget https://your-dashboard-url/dash/os_helpers/linux_setup.sh
+    ```
+    *Replace `https://your-dashboard-url/dash/` with the actual URL where you installed the dashboard.*
+
+2.  **Run the script:**
+    ```bash
+    chmod +x linux_setup.sh
+    sudo ./linux_setup.sh install
+    ```
+
+3.  **Paste Public Key:**
+    When prompted, paste the Public Key copied from the dashboard.
+
+To remove the configuration later, simply run the script again with the `uninstall` argument:
+```bash
+sudo ./linux_setup.sh uninstall
+```
 
 ### 3. Configure Remote Media Server (Manual Method)
 If you prefer to configure the server manually, follow these steps:
@@ -153,7 +169,7 @@ The above instructions adhere to the **Principle of Least Privilege**:
 In the **Add/Edit Server** modal for your server:
 *   Select **Linux** as the Operating System.
 *   If your server uses a standard SSH port (22), no further configuration is needed.
-*   The dashboard will automatically connect to the server's IP (derived from the Proxy URL) as the `mediasvc` user and execute the correct restart command for your server type.
+*   The dashboard will automatically connect to the server's IP (derived from the Proxy URL) as the `mediasvc` user. You can verify connectivity using the **Check SSH** button.
 
 ## Configuration
 

@@ -50,27 +50,12 @@ $isAdmin = isAdmin();
       </div>
       <button class="btn" id="reorder-btn" title="Toggle Reorder Mode">Reorder</button>
       <button class="btn" id="users-btn" title="Manage Users">Users</button>
-      <button class="btn" id="libraries-btn" title="Manage Libraries">Libraries</button>
-      <button class="btn" id="server-admin-btn" title="Server Administration">Admin</button>
+      <button class="btn" id="ssh-keys-nav-btn" title="SSH Key Manager">SSH Keys</button>
       <button class="btn" id="logs-btn" title="View System Logs" onclick="window.open('view_logs.php', 'SystemLogs')">Logs</button>
       <?php endif; ?>
       <button class="btn" id="activeonly-btn" title="Show Only Active Servers">Active Only</button>
       <button class="btn" id="showall-btn" title="Toggle All Sessions">Show All</button>
       <button class="btn danger" onclick="window.location.href='logout.php'">Logout</button>
-    </div>
-  </div>
-</div>
-
-<!-- Server Admin Modal -->
-<div id="server-admin-modal" class="modal">
-  <div class="modal-content" style="max-width: 900px;">
-    <span class="modal-close" onclick="closeServerAdminModal()">&times;</span>
-    <div id="server-admin-body" style="padding: 20px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; margin-right: 40px;">
-        <h2 style="margin-bottom:0;">Server Administration</h2>
-        <button class="btn" id="ssh-keys-btn" title="SSH Key Manager"><i class="fa-solid fa-key"></i> SSH Keys</button>
-      </div>
-      <div id="admin-server-list" class="admin-server-list"></div>
     </div>
   </div>
 </div>
@@ -260,29 +245,6 @@ $isAdmin = isAdmin();
       <div class="users-list-container">
         <h3>Existing Users</h3>
         <div id="users-list"></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Libraries Management Modal -->
-<div id="libraries-modal" class="modal">
-  <div class="modal-content">
-    <span class="modal-close" onclick="closeLibrariesModal()">&times;</span>
-    <div id="libraries-modal-body">
-      <h2 style="margin-bottom: 20px;">Manage Libraries</h2>
-
-      <div class="info-box" style="margin-bottom:20px; padding:15px; background:rgba(255,255,255,0.05); border-radius:6px;">
-        <label style="display:block; margin-bottom:10px;">Select Server:</label>
-        <select id="library-server-select" style="width:100%; max-width:300px; padding:10px; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:4px;">
-           <option value="">-- Select a Server --</option>
-        </select>
-      </div>
-
-      <div id="libraries-list-container" style="min-height:200px;">
-         <div class="empty" id="libraries-loading" style="display:none;">Loading libraries...</div>
-         <div class="empty" id="libraries-empty">Select a server to view libraries.</div>
-         <div id="libraries-list" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:12px;"></div>
       </div>
     </div>
   </div>
