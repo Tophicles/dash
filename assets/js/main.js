@@ -197,6 +197,15 @@ function openUpdateModal(serverId) {
     const logOutput = document.getElementById('update-log-output');
     logOutput.textContent = 'Ready to start update...';
 
+    // Infer branch from version
+    const server = SERVERS.find(s => s.id === serverId);
+    if (server && server.version) {
+        const isBeta = server.version.toLowerCase().includes('beta');
+        document.getElementById('update-branch-select').value = isBeta ? 'beta' : 'stable';
+    } else {
+        document.getElementById('update-branch-select').value = 'stable';
+    }
+
     // Enable/Disable button
     const btn = document.getElementById('start-update-btn');
     btn.disabled = false;
@@ -218,7 +227,13 @@ document.getElementById('update-modal').addEventListener('click', function(e) {
 });
 
 document.getElementById('start-update-btn').addEventListener('click', async function() {
-    if (!currentUpdateServerId) return;
+    if (!currentUpdateServerId && this.textContent !== 'Close') return;
+
+    // If button says Close, just close modal
+    if (this.textContent === 'Close') {
+        closeUpdateModal();
+        return;
+    }
 
     const branch = document.getElementById('update-branch-select').value;
     const btn = this;
@@ -265,7 +280,11 @@ function startUpdatePolling(serverId) {
                 if (data.output.includes('UPDATE_COMPLETE')) {
                     clearInterval(updatePollInterval);
                     updatePollInterval = null;
-                    document.getElementById('start-update-btn').textContent = 'Update Complete';
+
+                    const btn = document.getElementById('start-update-btn');
+                    btn.disabled = false;
+                    btn.textContent = 'Close';
+
                     showModalAlert('Update Completed Successfully!');
                     fetchServerStatus(serverId); // Refresh status (it might be restarting)
                 } else if (data.output.includes('UPDATE_FAILED')) {
@@ -1374,11 +1393,13 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
 
         // SSH Update Button (Linux Only)
         if ((!server.os_type || server.os_type === 'linux') && server.ssh_initialized) {
-            const btnColor = server.hasUpdate ? '#4caf50' : '';
-            const btnTitle = server.hasUpdate ? 'Update Available - Click to Install' : 'Update Server';
+            const btnColor = server.hasUpdate ? '#4caf50' : '#888';
+            const btnTitle = server.hasUpdate ? 'Update Available - Click to Install' : 'Reinstall Server';
+            const btnIcon = server.hasUpdate ? 'fa-download' : 'fa-rotate';
+
             headerHtml += `
                 <button class="admin-action-btn" style="color:${btnColor}; border-color:${btnColor};" title="${btnTitle}" onclick="openUpdateModal('${esc(server.id)}')">
-                    <i class="fa-solid fa-download"></i>
+                    <i class="fa-solid ${btnIcon}"></i>
                 </button>
             `;
         }

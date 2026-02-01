@@ -268,7 +268,7 @@ $isAdmin = isAdmin();
             </div>
         </div>
 
-        <div class="log-container" style="background: #111; color: #0f0; padding: 10px; border-radius: 4px; font-family: monospace; height: 300px; overflow-y: auto; margin: 20px 0; border: 1px solid #333;">
+        <div class="log-container" style="background: #111; color: #0f0; padding: 10px; padding-bottom: 20px; border-radius: 4px; font-family: monospace; height: 300px; overflow-y: auto; margin: 20px 0; border: 1px solid #333; scroll-behavior: smooth;">
             <pre id="update-log-output" style="margin: 0; white-space: pre-wrap; font-size: 0.85rem;">Ready to update...</pre>
         </div>
 
