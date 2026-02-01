@@ -909,6 +909,19 @@ body {
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
+  .server-header-enhanced {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+    text-align: center;
+  }
+  .header-left, .header-center, .header-right {
+    justify-content: center;
+    width: 100%;
+  }
+  .header-right {
+    flex-wrap: wrap;
+  }
   .top-bar-header {
     padding: 10px 12px;
   }
