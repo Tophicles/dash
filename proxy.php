@@ -108,6 +108,7 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
         $branch = $_GET['branch'] ?? 'stable';
 
         if ($server['type'] === 'plex') {
+            $token = isset($server['token']) ? decrypt($server['token']) : '';
             $downloadUrl = getPlexDownloadUrl($server, $token, $arch, $branch);
         } elseif ($server['type'] === 'emby') {
             $downloadUrl = getEmbyDownloadUrl($arch, $branch);
@@ -131,7 +132,7 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
         $cmd = "nohup bash -c 'echo \"Starting update for $service...\" > $logFile; " .
                "echo \"Architecture: $arch\" >> $logFile; " .
                "echo \"Downloading from: $downloadUrl\" >> $logFile; " .
-               "curl -L $escapedUrl -o $tmpDeb >> $logFile 2>&1; " .
+               "curl -L -A \"Mozilla/5.0\" $escapedUrl -o $tmpDeb >> $logFile 2>&1; " .
                "if [ $? -eq 0 ]; then " .
                "  echo \"Download complete. Installing...\" >> $logFile; " .
                "  sudo dpkg -i $tmpDeb >> $logFile 2>&1; " .
@@ -460,35 +461,20 @@ function logWatchers($serverName, $type, $jsonResponse) {
 // Update URL Resolvers
 
 function getPlexDownloadUrl($server, $token, $arch, $branch) {
-    // Plex API for updates
-    // GET /updater/status?channel=plexpass (or generic)
-    // We already have logic in 'info' action, but let's reuse/refine
-    $baseUrl = ensureProtocol($server['url']);
-    $channel = ($branch === 'beta') ? 'plexpass' : 'public'; // 'plexpass' often used for beta
-    $url = rtrim($baseUrl, '/') . "/updater/status?channel=$channel";
+    // Use user-provided patterns
+    if ($branch === 'stable') {
+        return "https://downloads.plex.tv/plex-media-server-new/latest/debian/plexmediaserver_latest_{$arch}.deb";
+    } else {
+        // Beta: Requires mapping internal arch (amd64/arm64) to Plex build names (linux-x86_64/linux-aarch64)
+        $build = 'linux-x86_64';
+        if ($arch === 'arm64') $build = 'linux-aarch64';
 
-    $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ["X-Plex-Token: $token", "Accept: application/json"]);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-    $res = curl_exec($ch);
-    curl_close($ch);
-
-    $data = json_decode($res, true);
-    // Check downloadURL in releases
-    // Structure: MediaContainer -> Release -> [list]
-    // We need to match 'distro' => 'ubuntu' (or debian) and 'build' => 'linux-x86_64' etc?
-    // Actually Plex usually provides a direct 'downloadURL' in the top object if valid for THIS server.
-
-    if (isset($data['MediaContainer']['downloadURL'])) {
-        return $data['MediaContainer']['downloadURL'];
+        return "https://plex.tv/downloads/latest/5?channel=8&build=$build&distro=debian&X-Plex-Token=$token";
     }
-
-    return null;
 }
 
 function getEmbyDownloadUrl($arch, $branch) {
-    // Emby GitHub Releases
+    // 1. Get version from GitHub API
     $url = "https://api.github.com/repos/MediaBrowser/Emby.Releases/releases";
     $opts = [
         "http" => [
@@ -501,64 +487,51 @@ function getEmbyDownloadUrl($arch, $branch) {
 
     if (!$res) return null;
     $releases = json_decode($res, true);
-
     if (!is_array($releases)) return null;
 
+    $version = '';
     foreach ($releases as $release) {
-        // Filter by branch
-        // If stable requested, skip prereleases
-        if ($branch === 'stable' && !empty($release['prerelease'])) {
-            continue;
-        }
+        if ($branch === 'stable' && !empty($release['prerelease'])) continue;
 
-        // Found a matching release (list is sorted by date desc)
-        if (isset($release['assets'])) {
-            foreach ($release['assets'] as $asset) {
-                $name = $asset['name'];
-                // Match .deb and arch
-                if (strpos($name, '.deb') !== false) {
-                    if ($arch === 'amd64' && (strpos($name, 'amd64') !== false || strpos($name, 'x86_64') !== false)) return $asset['browser_download_url'];
-                    if ($arch === 'arm64' && (strpos($name, 'arm64') !== false || strpos($name, 'aarch64') !== false)) return $asset['browser_download_url'];
-                }
-            }
-        }
+        // Emby releases often have tag_name like '4.8.10.0'
+        $version = $release['tag_name'];
+        break;
     }
 
-    return null;
+    if (!$version) return null;
+
+    // 2. Construct Package URL
+    return "https://pkg.emby.media/pool/main/e/emby-server/emby-server_{$version}_{$arch}.deb";
 }
 
 function getJellyfinDownloadUrl($arch, $branch) {
-    // Jellyfin GitHub Releases
-    $url = "https://api.github.com/repos/jellyfin/jellyfin/releases";
-     $opts = [
+    // Scrape Jellyfin Repo Directory
+    $repoType = ($branch === 'beta') ? 'unstable' : 'latest-stable';
+    $baseUrl = "https://repo.jellyfin.org/files/server/debian/$repoType/$arch/";
+
+    $opts = [
         "http" => [
             "method" => "GET",
             "header" => "User-Agent: MultiDash-Updater\r\n"
         ]
     ];
     $context = stream_context_create($opts);
-    $res = @file_get_contents($url, false, $context);
+    $html = @file_get_contents($baseUrl, false, $context);
 
-    if (!$res) return null;
-    $releases = json_decode($res, true);
+    if (!$html) return null;
 
-    if (!is_array($releases)) return null;
+    // Regex to find server package
+    // Looking for: jellyfin-server_10.11.6+deb12_amd64.deb
+    // We prefer higher versions. Since parsing versions is hard, we'll assume the list is sorted or we grab them all and sort.
+    // Simpler approach: Match all, pick the last one (apache/nginx directory listings usually sort by name/date).
 
-    foreach ($releases as $release) {
-        if ($branch === 'stable' && !empty($release['prerelease'])) {
-            continue;
-        }
+    preg_match_all('/href="(jellyfin-server_[^"]+_' . $arch . '\.deb)"/i', $html, $matches);
 
-        if (isset($release['assets'])) {
-            foreach ($release['assets'] as $asset) {
-                $name = $asset['name'];
-                // Look for 'jellyfin_..._amd64.deb' which is usually the meta-package or combined
-                if (strpos($name, '.deb') !== false && strpos($name, 'jellyfin_') === 0) {
-                    if ($arch === 'amd64' && (strpos($name, 'amd64') !== false || strpos($name, 'x86_64') !== false)) return $asset['browser_download_url'];
-                    if ($arch === 'arm64' && (strpos($name, 'arm64') !== false || strpos($name, 'aarch64') !== false)) return $asset['browser_download_url'];
-                }
-            }
-        }
+    if (!empty($matches[1])) {
+        // Sort natural to ensure higher versions are last
+        natsort($matches[1]);
+        $latest = end($matches[1]);
+        return $baseUrl . $latest;
     }
 
     return null;

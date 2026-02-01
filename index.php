@@ -264,7 +264,7 @@ $isAdmin = isAdmin();
                 <option value="beta">Beta</option>
             </select>
             <div style="font-size: 0.85rem; color: #888; margin-top: 5px;">
-                Using system package manager (<code>apt-get</code>). Ensure your server repositories are configured correctly.
+                Downloading package directly and installing via <code>dpkg</code>.
             </div>
         </div>
 
