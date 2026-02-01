@@ -91,8 +91,19 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
                "cat /proc/net/dev; echo '---'; " .
                "grep 'cpu ' /proc/stat";
     } elseif ($action === 'ssh_update') {
-        $logFile = "/tmp/multidash_update_{$server['id']}.log";
-        $tmpDeb = "/home/mediasvc/multidash_update.deb";
+        $logFile = "/home/mediasvc/multidash_update_{$server['id']}.log";
+
+        // Check allowed sudo paths for update file
+        $sudoCheckCmd = "sudo -l";
+        $sudoCheckRes = executeSSHCommand($host, $port, $user, $sudoCheckCmd);
+
+        $tmpDeb = "/home/mediasvc/multidash_update.deb"; // Default secure path
+
+        if ($sudoCheckRes['success']) {
+             if (strpos($sudoCheckRes['output'], '/tmp/multidash_update.deb') !== false) {
+                 $tmpDeb = "/tmp/multidash_update.deb";
+             }
+        }
 
         // 1. Detect Architecture (via SSH sync)
         $archCmd = "uname -m";
@@ -140,6 +151,7 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
             "echo \"Starting update for $service...\" > \"$2\"; " .
             "echo \"Architecture: $4\" >> \"$2\"; " .
             "echo \"Downloading from: $1\" >> \"$2\"; " .
+            "rm -f \"$3\"; " .
             "curl -L -s -S -A \"Mozilla/5.0\" \"$1\" -o \"$3\" >> \"$2\" 2>&1; " .
             "if [ $? -eq 0 ]; then " .
             "  echo \"Download complete. Installing...\" >> \"$2\"; " .
@@ -164,7 +176,7 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
                " > /dev/null 2>&1 &";
 
     } elseif ($action === 'ssh_update_log') {
-        $logFile = "/tmp/multidash_update_{$server['id']}.log";
+        $logFile = "/home/mediasvc/multidash_update_{$server['id']}.log";
         // Check if file exists first to avoid error spam
         $cmd = "if [ -f $logFile ]; then cat $logFile; else echo \"Waiting for log...\"; fi";
     }
