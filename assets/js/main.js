@@ -533,8 +533,9 @@ async function fetchServerStatus(serverId) {
                 // Parse detailed status
                 const status = (data.status || '').trim();
                 const isActive = ['active', 'activating', 'reloading'].includes(status);
-                // "Stopped" includes inactive, failed, dead, or unknown. Deactivating is NOT stopped.
+                // "Stopped" includes inactive, failed, dead, or unknown.
                 const isStopped = ['inactive', 'failed', 'dead'].includes(status);
+                const isDeactivating = status === 'deactivating';
 
                 // Handle Pending State Transitions
                 const transition = SERVER_TRANSITIONS[serverId];
@@ -548,11 +549,12 @@ async function fetchServerStatus(serverId) {
                             return;
                         }
                     } else if (transition === 'ssh_stop') {
-                        // Wait until fully stopped (inactive/failed)
-                        if (isStopped) {
+                        // Wait until fully stopped (inactive/dead)
+                        // If failed, continue polling as it might be transient or user prefers waiting
+                        if (['inactive', 'dead'].includes(status)) {
                             delete SERVER_TRANSITIONS[serverId]; // Action complete
                         } else {
-                            // Still deactivating or active
+                            // Still deactivating, active, or failed
                             container.innerHTML = `<span style="color:#e5a00d;"><i class="fa-solid fa-spinner fa-spin"></i> Stopping...</span>`;
                             return;
                         }
@@ -562,8 +564,10 @@ async function fetchServerStatus(serverId) {
                 const server = SERVERS.find(s => s.id === serverId);
                 const serverName = server ? server.name : 'Server';
 
-                // Render buttons: If NOT stopped (Active/Deactivating), show Stop/Restart.
-                if (!isStopped) {
+                // Render buttons
+                if (isDeactivating) {
+                    container.innerHTML = `<span style="color:#e5a00d;"><i class="fa-solid fa-spinner fa-spin"></i> Stopping...</span>`;
+                } else if (!isStopped) {
                     container.innerHTML = `
                         <button class="admin-action-btn danger" title="Stop Service" onclick="controlServerSSH('${esc(serverId)}', '${esc(serverName)}', 'ssh_stop')">
                             <i class="fa-solid fa-stop"></i>
