@@ -92,7 +92,7 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
                "grep 'cpu ' /proc/stat";
     } elseif ($action === 'ssh_update') {
         $logFile = "/tmp/multidash_update_{$server['id']}.log";
-        $tmpDeb = "/tmp/multidash_update.deb";
+        $tmpDeb = "/home/mediasvc/multidash_update.deb";
 
         // 1. Detect Architecture (via SSH sync)
         $archCmd = "uname -m";
