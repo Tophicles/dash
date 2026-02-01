@@ -250,6 +250,41 @@ $isAdmin = isAdmin();
   </div>
 </div>
 
+<!-- Update Server Modal -->
+<div id="update-modal" class="modal">
+  <div class="modal-content" style="max-width: 700px;">
+    <span class="modal-close" onclick="closeUpdateModal()">&times;</span>
+    <h2 style="margin-bottom: 20px;">Update Server</h2>
+
+    <div id="update-modal-body">
+        <div class="server-form-group">
+            <label>Update Branch</label>
+            <div class="branch-selector">
+                <input type="hidden" id="update-branch-select" value="stable">
+                <button type="button" class="branch-btn active" data-branch="stable">
+                    <i class="fa-solid fa-box"></i> Stable
+                </button>
+                <button type="button" class="branch-btn" data-branch="beta">
+                    <i class="fa-solid fa-flask"></i> Beta
+                </button>
+            </div>
+            <div style="font-size: 0.85rem; color: #888; margin-top: 10px;">
+                Downloading package directly and installing via <code>dpkg</code>.
+            </div>
+        </div>
+
+        <div class="log-container" style="background: #111; color: #0f0; padding: 10px; padding-bottom: 20px; border-radius: 4px; font-family: monospace; height: 300px; overflow-y: auto; margin: 20px 0; border: 1px solid #333; scroll-behavior: smooth;">
+            <pre id="update-log-output" style="margin: 0; white-space: pre-wrap; font-size: 0.85rem;">Ready to update...</pre>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+            <button class="btn" onclick="closeUpdateModal()">Close</button>
+            <button class="btn primary" id="start-update-btn">Start Update</button>
+        </div>
+    </div>
+  </div>
+</div>
+
 <!-- Custom Alert/Confirm Modal -->
 <div id="custom-modal" class="modal" style="z-index: 10000;">
   <div class="modal-content" style="max-width: 400px; text-align: center;">
