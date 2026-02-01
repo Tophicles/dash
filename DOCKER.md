@@ -1,8 +1,10 @@
 # MultiDash Docker Guide
 
-MultiDash is fully compatible with Docker and can be deployed on standard Linux servers, unRAID, Synology, or any system supporting Docker.
+MultiDash is designed to be **dual-purpose**, supporting both standard Docker environments (via Docker Compose) and unRAID (via XML templates) using the same codebase.
 
 ## Quick Start (Docker Compose)
+
+For standard Linux servers, Synology, or local development:
 
 1.  **Clone the repository:**
     ```bash
@@ -14,88 +16,65 @@ MultiDash is fully compatible with Docker and can be deployed on standard Linux 
     ```bash
     docker-compose up -d --build
     ```
-    *The `--build` flag ensures the image is created from the source code.*
 
 3.  **Access the dashboard:**
-    Open your browser to `http://localhost:8088`.
-
-## Persistence & Configuration
-
-The container uses a **volume** mapped to `/config` to store all persistent data. This includes:
-*   `users.json` (User accounts)
-*   `servers.json` (Server configuration)
-*   `dashboard.log` (System logs)
-*   `key.php` (Encryption key)
-*   `keys/` (Generated SSH keys)
-
-**Important:** Always ensure the `/config` volume is mapped to a persistent directory on your host. If you delete the container without this mapping, your configuration will be lost.
-
-## Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PUID`   | `33`    | User ID to run the application as. Set this to match your host user's UID (e.g., 1000 on Linux, 99 on unRAID) to prevent permission issues. |
-| `PGID`   | `33`    | Group ID to run the application as. |
+    Open `http://localhost:8088`.
 
 ---
 
 ## unRAID Setup
 
-Since this container is not yet hosted on Docker Hub, you will need to build the image locally on your unRAID server.
+You can install MultiDash on unRAID either by pulling a pre-built image from Docker Hub (easiest) or by building it locally.
 
-### Step 1: Build the Image
-1.  Open the unRAID Web Terminal.
-2.  Clone the repository to a temporary location:
+### Option 1: Docker Hub (Recommended)
+*Use this method if you have pushed the image to your Docker Hub account.*
+
+1.  **Push the image:**
+    Build and push the image to Docker Hub from your computer:
+    ```bash
+    docker build -t yourusername/multidash .
+    docker push yourusername/multidash
+    ```
+
+2.  **Install on unRAID:**
+    *   Go to the **Docker** tab and click **Add Container**.
+    *   **Name:** `MultiDash`
+    *   **Repository:** `yourusername/multidash` (or just the URL if using a private registry).
+    *   **WebUI:** `http://[IP]:[PORT:80]`
+    *   **Network Type:** `Bridge`
+    *   **Port Mapping:** Container `80` -> Host `8088`.
+    *   **Path Mapping:** Container `/config` -> Host `/mnt/user/appdata/multidash`.
+    *   **Variables:** Add `PUID` (99) and `PGID` (100).
+    *   Click **Apply**.
+
+### Option 2: Local Build (Development)
+*Use this method if you want to run the code directly on unRAID without using Docker Hub.*
+
+1.  **Build locally:**
+    Open the unRAID Web Terminal, clone the repo to a temp folder, and build:
     ```bash
     git clone https://github.com/yourusername/multidash.git /tmp/multidash
-    ```
-3.  Build the Docker image with the tag `multidash`:
-    ```bash
     docker build -t multidash /tmp/multidash
-    ```
-4.  (Optional) Clean up:
-    ```bash
     rm -rf /tmp/multidash
     ```
 
-### Step 2: Create the Container
-You can now create a container using this local image.
+2.  **Install:**
+    *   Go to **Add Container**.
+    *   **Repository:** `multidash` (Local image name).
+    *   Configure Ports, Paths, and Variables as shown in Option 1.
 
-**Option A: Manual Configuration**
-1.  Go to the **Docker** tab and click **Add Container**.
-2.  **Name:** `MultiDash`
-3.  **Repository:** `multidash` (matches the tag you built above)
-4.  **Network Type:** `Bridge`
-5.  **WebUI:** `http://[IP]:[PORT:80]`
-6.  Add a **Port** mapping:
-    *   Container Port: `80`
-    *   Host Port: `8088` (or your preferred port)
-7.  Add a **Path** mapping:
-    *   Container Path: `/config`
-    *   Host Path: `/mnt/user/appdata/multidash`
-8.  Add **Variables**:
-    *   Key: `PUID`, Value: `99` (Default unRAID user)
-    *   Key: `PGID`, Value: `100` (Default unRAID group)
-9.  Click **Apply**.
+### Option 3: XML Template
+If you prefer using a template, copy `multidash-unraid.xml` to `/boot/config/plugins/dockerMan/templates-user/my-multidash.xml` on your unRAID USB drive. It will then appear in the "Templates" dropdown when adding a container.
 
-**Option B: XML Template**
-If you have access to place files in your flash drive:
-1.  Copy the `multidash-unraid.xml` file from this repo to `/boot/config/plugins/dockerMan/templates-user/my-multidash.xml`.
-2.  In unRAID Docker tab, click **Add Container**.
-3.  Select **my-multidash** from the "Template" dropdown.
-4.  Ensure **Repository** is set to `multidash`.
-5.  Click **Apply**.
+---
 
-## FAQ
+## Configuration
 
-**Do I need a separate GitHub repository for unRAID?**
-No. You can keep the `Dockerfile` and unRAID XML template in this repository. If you decide to publish your application to the unRAID Community Applications (CA) store in the future, you will need to publish your image to Docker Hub (e.g., `youruser/multidash`) and may want a separate repository for your templates, but for personal use, this setup is sufficient.
+The container uses a **volume** mapped to `/config` to store all persistent data (`users.json`, `servers.json`, logs, and keys).
 
-**Can this Docker setup be used for development?**
-Yes. You can mount the source code directly for development:
-```yaml
-volumes:
-  - .:/var/www/html
-  - ./config:/config
-```
-*Note: If you mount the root directory, the `docker-entrypoint.sh` symlinking logic might behave differently (it won't overwrite your local source files), but it is generally safe.*
+**Environment Variables:**
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PUID`   | `33`    | User ID. Set to `99` for unRAID or `1000` for standard Linux to match host permissions. |
+| `PGID`   | `33`    | Group ID. Set to `100` for unRAID or `1000` for standard Linux. |

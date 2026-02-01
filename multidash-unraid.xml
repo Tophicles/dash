@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <Container version="2">
   <Name>MultiDash</Name>
-  <Repository>multidash</Repository>
+  <Repository>yourusername/multidash</Repository>
   <Registry/>
   <Network>bridge</Network>
   <MyIP/>
@@ -11,7 +11,7 @@
   <Project/>
   <Overview>MultiDash is a lightweight, self-hosted dashboard for monitoring multiple Plex, Emby, and Jellyfin media servers in a unified interface.&#xD;
 &#xD;
-**Note:** This template assumes you have built the image locally with the tag 'multidash' or it is available in your Docker registry.</Overview>
+**Note:** Update the Repository field to match your Docker Hub username or local image tag.</Overview>
   <Category>Tools:Utilities</Category>
   <WebUI>http://[IP]:[PORT:80]</WebUI>
   <TemplateURL/>
