@@ -213,6 +213,64 @@ body {
   box-sizing: border-box;
 }
 
+/* Dropdown Menu Styles */
+.menu-container {
+  position: relative;
+  display: inline-block;
+}
+.menu-dropdown {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 40px; /* Below button */
+  background-color: var(--card);
+  min-width: 220px;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  z-index: 2000;
+  padding: 8px 0;
+  animation: fadeIn 0.2s;
+}
+.menu-dropdown.visible {
+  display: block;
+}
+.menu-item {
+  padding: 10px 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text);
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+.menu-item:hover {
+  background-color: var(--bg-hover);
+}
+.menu-item i {
+  width: 20px;
+  text-align: center;
+  color: var(--muted);
+}
+.menu-item:hover i {
+  color: var(--text);
+}
+.menu-divider {
+  height: 1px;
+  background-color: var(--border);
+  margin: 6px 0;
+}
+.menu-item.danger {
+  color: #ef5350;
+}
+.menu-item.danger:hover {
+  background-color: rgba(211, 47, 47, 0.1);
+}
+.menu-item.danger i {
+  color: #ef5350;
+}
+
 .server-actions {
   display: none;
   gap: 8px;
@@ -952,6 +1010,16 @@ body {
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
+  /* Menu Dropdown Mobile */
+  .menu-dropdown {
+    width: 200px;
+    right: 0;
+    top: 45px;
+  }
+  .menu-item {
+    padding: 12px 16px; /* Larger touch target */
+  }
+
   .header-btn .btn-text {
     display: none;
   }

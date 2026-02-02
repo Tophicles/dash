@@ -2802,13 +2802,14 @@ function initTheme() {
 
     function updateThemeIcon(theme) {
         const icon = themeToggleBtn.querySelector('i');
+        const text = themeToggleBtn.querySelector('span');
         if (theme === 'light') {
             icon.className = 'fa-solid fa-sun';
-            themeToggleBtn.title = 'Switch to Dark Mode';
+            if (text) text.textContent = 'Light Mode';
             icon.style.color = '#ffa726'; // Orange-ish sun
         } else {
             icon.className = 'fa-solid fa-moon';
-            themeToggleBtn.title = 'Switch to Light Mode';
+            if (text) text.textContent = 'Dark Mode';
             icon.style.color = ''; // Reset
         }
     }
@@ -2825,6 +2826,73 @@ function initTheme() {
         localStorage.setItem('theme', newTheme);
         updateThemeIcon(newTheme);
     });
+}
+
+// Menu Dropdown Logic
+const menuBtn = document.getElementById('menu-toggle-btn');
+const menuDropdown = document.getElementById('menu-dropdown');
+
+if (menuBtn && menuDropdown) {
+    menuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        menuDropdown.classList.toggle('visible');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!menuDropdown.contains(e.target) && e.target !== menuBtn) {
+            menuDropdown.classList.remove('visible');
+        }
+    });
+}
+
+// Bind Menu Items to Functions
+// Re-bind IDs that were moved from buttons to divs
+if (IS_ADMIN) {
+    const toggleFormBtn = document.getElementById('toggle-form');
+    if (toggleFormBtn) {
+        toggleFormBtn.addEventListener('click', () => {
+            openServerModal(false);
+            menuDropdown.classList.remove('visible');
+        });
+    }
+
+    const reorderBtn = document.getElementById('reorder-btn');
+    if (reorderBtn) {
+        reorderBtn.addEventListener('click', function() {
+            reorderMode = !reorderMode;
+            // Update text/style if needed (though it's in a menu now)
+            const span = this.querySelector('span');
+            if (span) span.textContent = reorderMode ? 'Done Reordering' : 'Reorder Servers';
+            renderServerGrid();
+            // Don't auto-close menu so user can see state change? Or close it.
+            // Let's close it to be consistent
+            menuDropdown.classList.remove('visible');
+        });
+    }
+
+    const usersBtn = document.getElementById('users-btn');
+    if (usersBtn) {
+        usersBtn.addEventListener('click', () => {
+            openUsersModal();
+            menuDropdown.classList.remove('visible');
+        });
+    }
+
+    const sshBtn = document.getElementById('ssh-keys-nav-btn');
+    if (sshBtn) {
+        sshBtn.addEventListener('click', () => {
+            openSSHModal();
+            menuDropdown.classList.remove('visible');
+        });
+    }
+
+    const backupBtn = document.getElementById('backup-nav-btn');
+    if (backupBtn) {
+        backupBtn.addEventListener('click', () => {
+            openBackupModal();
+            menuDropdown.classList.remove('visible');
+        });
+    }
 }
 
 // Initialize Theme
