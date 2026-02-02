@@ -34,12 +34,14 @@ if (isset($_GET['fetch'])) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>System Logs - Media Dashboard</title>
+<link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
+<link rel="stylesheet" href="assets/css/style.css?v=<?= time() ?>">
 <style>
-    body { margin: 0; background: #0f0f0f; color: #eee; font-family: monospace; overflow: hidden; }
+    body { font-family: monospace; overflow: hidden; background: var(--bg); color: var(--text); }
     .header {
         padding: 10px 20px;
-        background: #1b1b1b;
-        border-bottom: 1px solid #333;
+        background: var(--card);
+        border-bottom: 1px solid var(--border);
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -48,26 +50,12 @@ if (isset($_GET['fetch'])) {
     }
     .title { font-weight: bold; font-size: 1.1rem; }
     .controls { display: flex; gap: 15px; align-items: center; }
-    .btn {
-        background: #333;
-        color: #eee;
-        border: 1px solid #555;
-        padding: 5px 12px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 0.85rem;
-    }
-    .btn:hover { background: #444; }
-    .btn.active { background: #4caf50; border-color: #4caf50; color: white; }
+
+    /* Override inputs for logs specifically if needed, but inheriting style.css is better */
     input[type="text"], select {
-        background: #333;
-        color: #eee;
-        border: 1px solid #555;
         padding: 5px 8px;
-        border-radius: 4px;
-        font-size: 0.85rem;
     }
-    input[type="text"]:focus, select:focus { outline: none; border-color: #4caf50; }
+
     #log-container {
         padding: 20px;
         height: calc(100vh - 50px);
@@ -77,17 +65,31 @@ if (isset($_GET['fetch'])) {
         word-wrap: break-word;
         font-size: 0.9rem;
         line-height: 1.4;
-        color: #a5d6a7; /* Terminal green */
+        color: var(--text);
     }
     .log-line { margin-bottom: 2px; }
-    .log-line:hover { background: rgba(255,255,255,0.05); }
-    /* Syntax highlighting */
+    .log-line:hover { background: var(--bg-hover); }
+
+    /* Syntax highlighting - Theme Aware */
     .level-INFO { color: #81c784; }
+    [data-theme="light"] .level-INFO { color: #2e7d32; }
+
     .level-WARN { color: #ffb74d; }
+    [data-theme="light"] .level-WARN { color: #ef6c00; }
+
     .level-ERROR { color: #e57373; font-weight: bold; }
+    [data-theme="light"] .level-ERROR { color: #c62828; }
+
     .level-AUTH { color: #64b5f6; }
-    .timestamp { color: #666; margin-right: 10px; }
+    [data-theme="light"] .level-AUTH { color: #1565c0; }
+
+    .timestamp { color: var(--muted); margin-right: 10px; }
 </style>
+<script>
+    // Apply theme immediately
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+</script>
 </head>
 <body>
 

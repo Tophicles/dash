@@ -1092,8 +1092,22 @@ form button:hover { background:#45a049; }
 
 .server-version {
   font-size: 0.7rem;
-  color: #ccc;
+  color: var(--muted);
   margin-top: 2px;
+}
+
+.inline-library-item {
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+}
+.inline-library-item span {
+  color: var(--text);
 }
 
 .server-title-version {
@@ -1308,6 +1322,7 @@ form button:hover { background:#45a049; }
     font-size: 0.85rem;
     background: var(--bg-transparent);
     border-color: var(--border);
+    color: var(--text); /* Ensure visible text */
 }
 .header-right .admin-action-btn:hover {
     background: var(--bg-hover);

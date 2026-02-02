@@ -2524,10 +2524,10 @@ async function fetchAndRenderInlineLibraries(serverName) {
             `;
 
             data.libraries.forEach(lib => {
-                const countBadge = lib.count !== undefined ? `<span style="color:#aaa; font-size:0.75rem;">(${lib.count})</span>` : '';
+                const countBadge = lib.count !== undefined ? `<span style="color:var(--muted); font-size:0.75rem;">(${lib.count})</span>` : '';
                 html += `
-                    <div class="inline-library-item" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:4px 8px; display:flex; align-items:center; gap:6px; font-size:0.85rem;">
-                        <span style="color:#eee;">${esc(lib.name)} ${countBadge}</span>
+                    <div class="inline-library-item">
+                        <span>${esc(lib.name)} ${countBadge}</span>
                         <button class="btn primary scan-lib-btn" style="padding:2px 6px; font-size:0.7rem; min-height:auto;" onclick="scanLibrary('${esc(serverName)}', '${esc(lib.id)}', '${esc(lib.name)}', this)" title="Scan Library">
                             <i class="fa-solid fa-arrows-rotate"></i>
                         </button>
