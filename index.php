@@ -33,7 +33,9 @@ $isAdmin = isAdmin();
       MENU +
     </div>
     <div class="header-section right" id="header-clock-btn">
+      <button class="btn header-btn" id="theme-toggle-btn" title="Toggle Theme"><i class="fa-solid fa-moon"></i></button>
       <?php if ($isAdmin): ?>
+      <button class="btn header-btn" id="ssh-keys-nav-btn" title="SSH Key Manager"><i class="fa-solid fa-key"></i> <span class="btn-text">Keys</span></button>
       <button class="btn header-btn" id="logs-btn" title="View System Logs" onclick="window.open('view_logs.php', 'SystemLogs')"><i class="fa-solid fa-file-lines"></i> <span class="btn-text">Logs</span></button>
       <?php endif; ?>
       <button class="btn danger header-btn" onclick="window.location.href='logout.php'"><i class="fa-solid fa-right-from-bracket"></i> <span class="btn-text">Logout</span></button>
@@ -48,13 +50,8 @@ $isAdmin = isAdmin();
     </div>
     <div class="top-bar-right">
       <?php if ($isAdmin): ?>
-      <div class="server-actions" id="server-actions">
-        <button class="btn" id="edit-server-btn">Edit</button>
-        <button class="btn danger" id="delete-server-btn">Delete</button>
-      </div>
       <button class="btn" id="reorder-btn" title="Toggle Reorder Mode">Reorder</button>
       <button class="btn" id="users-btn" title="Manage Users">Users</button>
-      <button class="btn" id="ssh-keys-nav-btn" title="SSH Key Manager">SSH Keys</button>
       <?php endif; ?>
     </div>
   </div>
@@ -66,10 +63,10 @@ $isAdmin = isAdmin();
     <span class="modal-close" onclick="closeServerSetupModal()">&times;</span>
     <h2 style="margin-bottom: 20px;">Connect Server via SSH</h2>
 
-    <div style="background: rgba(33, 150, 243, 0.1); border: 1px solid rgba(33, 150, 243, 0.3); padding: 15px; border-radius: 6px; margin-bottom: 20px;">
-      <label style="color: #64b5f6; font-weight: bold; margin-bottom: 8px; display: block;">Setup Command</label>
-      <div style="font-size: 0.85rem; color: #ccc; margin-bottom: 8px;">Run this unified command on your <strong>Linux</strong> media server to install the agent and authorized key:</div>
-      <div style="background: #111; padding: 10px; border-radius: 4px; border: 1px solid #333; font-family: monospace; font-size: 0.8rem; word-break: break-all; margin-bottom: 8px; color: #eee;" id="setup-command-display">
+    <div class="info-box">
+      <label class="info-label">Setup Command</label>
+      <div class="info-text">Run this unified command on your <strong>Linux</strong> media server to install the agent and authorized key:</div>
+      <div class="code-block" id="setup-command-display">
         Loading command...
       </div>
       <button class="btn" onclick="copyToClipboard('setup-command-display', this)">Copy Command</button>
@@ -88,19 +85,19 @@ $isAdmin = isAdmin();
     <span class="modal-close" onclick="closeSSHConnectedModal()">&times;</span>
     <h2 style="margin-bottom: 20px; color: #81c784;"><i class="fa-solid fa-shield-halved"></i> Secure Connection Active</h2>
 
-    <div style="margin-bottom: 20px; line-height: 1.6; color: #ccc;">
-      <p style="margin-bottom: 10px;">This server is connected using a dedicated SSH key pair (<code>mediasvc</code> user). This method is secure because:</p>
-      <ul style="list-style: disc; margin-left: 20px; color: #aaa; font-size: 0.9rem;">
+    <div class="modal-description">
+      <p>This server is connected using a dedicated SSH key pair (<code>mediasvc</code> user). This method is secure because:</p>
+      <ul>
         <li>No passwords are stored or transmitted.</li>
         <li>The connection is restricted to specific commands (updates, restarts, stats) via <code>sudoers</code>.</li>
         <li>Interactive login for this user is disabled.</li>
       </ul>
     </div>
 
-    <div style="background: rgba(211, 47, 47, 0.1); border: 1px solid rgba(211, 47, 47, 0.3); padding: 15px; border-radius: 6px; margin-bottom: 20px;">
-      <label style="color: #e57373; font-weight: bold; margin-bottom: 8px; display: block;">Uninstall / Disconnect</label>
-      <div style="font-size: 0.85rem; color: #ccc; margin-bottom: 8px;">To remove the dashboard agent and revoke access, run this command on your server:</div>
-      <div style="background: #111; padding: 10px; border-radius: 4px; border: 1px solid #333; font-family: monospace; font-size: 0.8rem; word-break: break-all; margin-bottom: 8px; color: #eee;" id="uninstall-command-display">
+    <div class="danger-box">
+      <label class="danger-label">Uninstall / Disconnect</label>
+      <div class="info-text">To remove the dashboard agent and revoke access, run this command on your server:</div>
+      <div class="code-block" id="uninstall-command-display">
         Loading command...
       </div>
       <button class="btn" onclick="copyToClipboard('uninstall-command-display', this)">Copy Command</button>
