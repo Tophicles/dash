@@ -2,6 +2,7 @@
 require_once 'auth.php';
 require_once 'logging.php';
 require_once 'path_helper.php';
+require_once 'restore_helper.php';
 
 requireLogin();
 requireAdmin();
@@ -107,65 +108,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $tmpName = $_FILES['backup_file']['tmp_name'];
-    $zip = new ZipArchive();
+    $user = getCurrentUser()['username'];
 
-    if ($zip->open($tmpName) === true) {
-        // Validation: Check for essential files
-        if ($zip->locateName('users.json') === false || $zip->locateName('key.php') === false) {
-            $zip->close();
-            echo json_encode(['success' => false, 'error' => 'Invalid backup: missing users.json or key.php']);
-            exit;
-        }
-
-        // Restore files
-        for ($i = 0; $i < $zip->numFiles; $i++) {
-            $filename = $zip->getNameIndex($i);
-
-            // Security check: Prevent directory traversal
-            if (strpos($filename, '../') !== false || strpos($filename, '..\\') !== false) {
-                continue;
-            }
-
-            // Only allow specific files and keys directory
-            $jsonFiles = ['users.json', 'servers.json', 'activity.json', 'watcher_state.json'];
-            $isKeyFile = ($filename === 'key.php');
-            $isKeyDir = (strpos($filename, 'keys/') === 0);
-
-            if (in_array($filename, $jsonFiles)) {
-                // Extract to DB_DIR
-                // ZipArchive::extractTo extracts preserving paths. If zip has no path, it goes to root.
-                // We want to force these into DB_DIR.
-                // Extract to temp then move? Or simple: extract to DATA_DIR (if zip structure is flat) then move?
-                // Plan: Extract to DATA_DIR. If it's a JSON, move to DB_DIR.
-                $zip->extractTo(DATA_DIR, $filename);
-                if (file_exists(DATA_DIR . $filename)) {
-                    rename(DATA_DIR . $filename, DB_DIR . $filename);
-                    @chmod(DB_DIR . $filename, 0666);
-                }
-            } elseif ($isKeyFile) {
-                $zip->extractTo(DATA_DIR, $filename);
-                if (file_exists(DATA_DIR . $filename)) @chmod(DATA_DIR . $filename, 0600);
-            } elseif ($isKeyDir) {
-                $zip->extractTo(DATA_DIR, $filename);
-            }
-        }
-
-        $zip->close();
-
-        // Protect keys dir permissions
-        if (is_dir(DATA_DIR . 'keys')) {
-             $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(DATA_DIR . 'keys'));
-             foreach ($iterator as $item) {
-                 if ($item->isFile()) chmod($item, 0600);
-             }
-        }
-
-        $user = getCurrentUser()['username'];
-        writeLog("System restored from backup by user: $user", "WARN");
-        echo json_encode(['success' => true]);
-    } else {
-        echo json_encode(['success' => false, 'error' => 'Failed to open zip file']);
-    }
+    $result = performRestore($tmpName, $user);
+    echo json_encode($result);
     exit;
 }
 ?>
