@@ -453,6 +453,10 @@ function logWatchers($serverName, $type, $jsonResponse) {
     $state = [];
     if (file_exists($stateFile)) {
         $state = json_decode(file_get_contents($stateFile), true) ?: [];
+    } else {
+        // Auto-recover if missing
+        file_put_contents($stateFile, '[]');
+        @chmod($stateFile, 0666);
     }
 
     // Check for changes
