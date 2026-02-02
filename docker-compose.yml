@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  dash:
+    build: .
+    ports:
+      - "8080:80"
+    volumes:
+      - dash-config:/config
+    restart: unless-stopped
+    container_name: multidash
+
+volumes:
+  dash-config:
