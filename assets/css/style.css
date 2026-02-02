@@ -1123,6 +1123,35 @@ body {
   .modal-playback-info {
     padding-right: 0;
   }
+
+  /* User Modal Mobile */
+  .form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .form-row .form-group {
+    width: 100%;
+  }
+  .form-row .btn {
+    width: 100%;
+    margin-top: 8px;
+  }
+  .user-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .user-item-info {
+    text-align: center;
+  }
+  .user-item-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .user-item-actions .btn {
+    width: 100%;
+  }
 }
 
 form input, form select, form button { padding:8px 12px; font-size:0.9rem; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:4px; }
