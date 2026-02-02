@@ -1900,15 +1900,15 @@ async function showItemDetails(serverName, itemId, serverType) {
             }
 
             html += `
-                <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; font-family: monospace; font-size: 0.85rem; word-break: break-all; color: #aaa;">
+                <div class="modal-file-info">
                     <div style="margin-bottom: 8px;">
-                        <div style="font-size: 0.7rem; text-transform: uppercase; margin-bottom: 2px; color: #666;">Root Path</div>
-                        ${esc(dir)}
+                        <div class="modal-file-label">Root Path</div>
+                        <span class="modal-file-value">${esc(dir)}</span>
                     </div>
                     ${file ? `
                     <div>
-                        <div style="font-size: 0.7rem; text-transform: uppercase; margin-bottom: 2px; color: #666;">Filename</div>
-                        <span style="color: #aaa;">${esc(file)}</span>
+                        <div class="modal-file-label">Filename</div>
+                        <span class="modal-file-value">${esc(file)}</span>
                     </div>` : ''}
                 </div>
             `;
@@ -2726,3 +2726,38 @@ async function fetchServerStats(serverId) {
         statsEl.innerHTML = `<div style="color:#d32f2f; font-size:0.8rem; padding:10px;">Connection Failed: ${esc(e.message)}</div>`;
     }
 }
+
+// Theme Toggle Logic
+function initTheme() {
+    const themeToggleBtn = document.getElementById('theme-toggle-btn');
+    if (!themeToggleBtn) return;
+
+    function updateThemeIcon(theme) {
+        const icon = themeToggleBtn.querySelector('i');
+        if (theme === 'light') {
+            icon.className = 'fa-solid fa-sun';
+            themeToggleBtn.title = 'Switch to Dark Mode';
+            icon.style.color = '#ffa726'; // Orange-ish sun
+        } else {
+            icon.className = 'fa-solid fa-moon';
+            themeToggleBtn.title = 'Switch to Light Mode';
+            icon.style.color = ''; // Reset
+        }
+    }
+
+    // Check saved theme or default
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateThemeIcon(savedTheme);
+
+    themeToggleBtn.addEventListener('click', () => {
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        updateThemeIcon(newTheme);
+    });
+}
+
+// Initialize Theme
+initTheme();
