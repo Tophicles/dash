@@ -2714,7 +2714,12 @@ async function fetchServerStats(serverId) {
             statsEl.style.display = 'block';
 
         } else {
-            statsEl.innerHTML = `<div style="color:#d32f2f; font-size:0.8rem; padding:10px;">Stats Error: ${esc(data.error || 'Unknown')}</div>`;
+            const errorMsg = data.error || 'Unknown';
+            if (errorMsg.includes('Permission denied') || errorMsg.includes('Exit Code 255')) {
+                 statsEl.innerHTML = '<div style="color:var(--muted); font-size:0.9rem; padding:15px; background:rgba(255,255,255,0.05); border-radius:6px; margin-top:10px;"><i class="fa-solid fa-triangle-exclamation" style="color:#e57373;"></i> Connection lost. Please verify SSH setup.</div>';
+            } else {
+                 statsEl.innerHTML = `<div style="color:#d32f2f; font-size:0.8rem; padding:10px;">Stats Error: ${esc(errorMsg)}</div>`;
+            }
         }
     } catch (e) {
         console.error('Failed to fetch stats', e);
