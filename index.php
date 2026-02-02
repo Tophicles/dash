@@ -24,7 +24,7 @@ $isAdmin = isAdmin();
       <div id="header-reload-btn" title="Reload Dashboard" style="cursor: pointer;">
         <span class="header-badge">Home</span>
       </div>
-      <span class="user-info">
+      <span class="user-info" id="user-info-btn" style="cursor: pointer;" title="Show Active Users">
         <span class="user-desktop"><i class="fa-solid fa-user"></i> <?php echo htmlspecialchars(ucwords($user['username'])); ?> (<?php echo htmlspecialchars($user['role']); ?>)</span>
         <span class="user-mobile">MENU</span>
       </span>
@@ -33,15 +33,43 @@ $isAdmin = isAdmin();
       <span class="header-badge" id="header-clock">--:--</span>
     </div>
     <div class="header-section right" id="header-clock-btn">
-      <button class="btn header-btn" id="theme-toggle-btn" title="Toggle Theme"><i class="fa-solid fa-moon"></i></button>
-      <?php if ($isAdmin): ?>
-      <button class="btn header-btn primary" id="toggle-form" title="Add Server"><i class="fa-solid fa-plus"></i> <span class="btn-text">Add</span></button>
-      <button class="btn header-btn" id="reorder-btn" title="Toggle Reorder Mode"><i class="fa-solid fa-sort"></i> <span class="btn-text">Reorder</span></button>
-      <button class="btn header-btn" id="users-btn" title="Manage Users"><i class="fa-solid fa-users"></i> <span class="btn-text">Users</span></button>
-      <button class="btn header-btn" id="ssh-keys-nav-btn" title="SSH Key Manager"><i class="fa-solid fa-key"></i> <span class="btn-text">Keys</span></button>
-      <button class="btn header-btn" id="logs-btn" title="View System Logs" onclick="window.open('view_logs.php', 'SystemLogs')"><i class="fa-solid fa-file-lines"></i> <span class="btn-text">Logs</span></button>
-      <?php endif; ?>
-      <button class="btn danger header-btn" onclick="window.location.href='logout.php'"><i class="fa-solid fa-right-from-bracket"></i> <span class="btn-text">Logout</span></button>
+      <div class="menu-container">
+        <button class="btn header-btn" id="menu-toggle-btn" title="Menu">
+          <i class="fa-solid fa-bars"></i> <span class="btn-text">MENU</span>
+        </button>
+        <div class="menu-dropdown" id="menu-dropdown">
+          <div class="menu-item" id="theme-toggle-btn">
+            <i class="fa-solid fa-moon"></i> <span>Toggle Theme</span>
+          </div>
+          <?php if ($isAdmin): ?>
+          <div class="menu-item" id="toggle-form">
+            <i class="fa-solid fa-plus"></i> <span>Add Server</span>
+          </div>
+          <div class="menu-item" id="reorder-btn">
+            <i class="fa-solid fa-sort"></i> <span>Reorder Servers</span>
+          </div>
+          <div class="menu-item" id="users-btn">
+            <i class="fa-solid fa-users"></i> <span>Manage Users</span>
+          </div>
+          <div class="menu-item" id="ssh-keys-nav-btn">
+            <i class="fa-solid fa-key"></i> <span>SSH Keys</span>
+          </div>
+          <div class="menu-item" id="logs-btn" onclick="window.open('view_logs.php', 'SystemLogs')">
+            <i class="fa-solid fa-file-lines"></i> <span>System Logs</span>
+          </div>
+          <div class="menu-item" id="backup-nav-btn">
+            <i class="fa-solid fa-floppy-disk"></i> <span>Backup & Restore</span>
+          </div>
+          <div class="menu-item danger" id="panic-btn">
+            <i class="fa-solid fa-radiation"></i> <span>Panic! (Reset)</span>
+          </div>
+          <?php endif; ?>
+          <div class="menu-divider"></div>
+          <div class="menu-item danger" onclick="window.location.href='logout.php'">
+            <i class="fa-solid fa-right-from-bracket"></i> <span>Logout</span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -147,12 +175,6 @@ $isAdmin = isAdmin();
         <span style="color:var(--muted);font-size:0.9rem;">No users online</span>
       </div>
     </div>
-    <div id="dashboard-users" class="online-users">
-      <div class="list-label" id="dashboard-users-label">Dashboard Users +</div>
-      <div class="user-list-content hidden">
-        <span style="color:var(--muted);font-size:0.9rem;">Loading...</span>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -167,6 +189,20 @@ $isAdmin = isAdmin();
     <input type="text" id="session-search" placeholder="Filter sessions...">
   </div>
   <div id="sessions" class="session-grid"></div>
+</div>
+
+<!-- Active Sessions Modal -->
+<div id="active-sessions-modal" class="modal">
+  <div class="modal-content" style="max-width: 400px;">
+    <span class="modal-close" onclick="closeActiveSessionsModal()">&times;</span>
+    <h2 style="margin-bottom: 20px;">Active Dashboard Users</h2>
+    <div id="active-sessions-list" style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="text-align:center; color: #888;">Loading...</div>
+    </div>
+    <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+        <button class="btn" onclick="closeActiveSessionsModal()">Close</button>
+    </div>
+  </div>
 </div>
 
 <!-- Modal for Add/Edit Server -->
@@ -241,6 +277,33 @@ $isAdmin = isAdmin();
   <div class="modal-content">
     <span class="modal-close">&times;</span>
     <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- Backup Modal -->
+<div id="backup-modal" class="modal">
+  <div class="modal-content" style="max-width: 500px;">
+    <span class="modal-close" onclick="closeBackupModal()">&times;</span>
+    <h2 style="margin-bottom: 20px;">Backup & Restore</h2>
+
+    <div class="info-box">
+        <h3><i class="fa-solid fa-download"></i> Create Backup</h3>
+        <p style="margin-bottom: 10px; font-size: 0.9rem; color: #ccc;">Download a ZIP archive containing all servers, users, and configuration keys.</p>
+        <button class="btn primary" id="download-backup-btn" style="width: 100%;">Download Backup</button>
+    </div>
+
+    <div class="danger-box">
+        <h3><i class="fa-solid fa-upload"></i> Restore Backup</h3>
+        <p style="margin-bottom: 10px; font-size: 0.9rem; color: #ccc;">Upload a backup file to restore settings. <strong>This will overwrite current configuration.</strong></p>
+
+        <input type="file" id="restore-file-input" accept=".zip" class="file-input">
+        <label for="restore-file-input" class="file-label">
+            <i class="fa-solid fa-file-zipper"></i> Choose Backup File
+        </label>
+        <div id="restore-file-name" class="file-name"></div>
+
+        <button class="btn danger" id="restore-backup-btn" style="width: 100%; margin-top: 10px;" disabled>Upload & Restore</button>
+    </div>
   </div>
 </div>
 
