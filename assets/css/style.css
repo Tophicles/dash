@@ -58,7 +58,9 @@ body {
   border: 1px solid var(--border);
   border-radius: 8px;
   margin-bottom: 20px;
-  overflow: hidden;
+  /* Removed overflow: hidden to allow dropdowns to spill out */
+  position: relative;
+  z-index: 100;
 }
 .top-bar-header {
   display: flex;
@@ -213,6 +215,65 @@ body {
   box-sizing: border-box;
 }
 
+/* Dropdown Menu Styles */
+.menu-container {
+  position: relative;
+  display: inline-block;
+}
+.menu-dropdown {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 100%; /* Below button */
+  margin-top: 8px;
+  background-color: var(--card);
+  min-width: 220px;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  z-index: 9999; /* Ensure it's on top of everything */
+  padding: 8px 0;
+  animation: fadeIn 0.2s;
+}
+.menu-dropdown.visible {
+  display: block !important; /* Force visibility */
+}
+.menu-item {
+  padding: 10px 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text);
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+.menu-item:hover {
+  background-color: var(--bg-hover);
+}
+.menu-item i {
+  width: 20px;
+  text-align: center;
+  color: var(--muted);
+}
+.menu-item:hover i {
+  color: var(--text);
+}
+.menu-divider {
+  height: 1px;
+  background-color: var(--border);
+  margin: 6px 0;
+}
+.menu-item.danger {
+  color: #ef5350;
+}
+.menu-item.danger:hover {
+  background-color: rgba(211, 47, 47, 0.1);
+}
+.menu-item.danger i {
+  color: #ef5350;
+}
+
 .server-actions {
   display: none;
   gap: 8px;
@@ -324,20 +385,22 @@ body {
   top: 4px;
   right: 4px;
   font-size: 14px;
-  color: rgba(255,255,255,0.5);
+  color: var(--muted);
   cursor: grab;
-  padding: 2px 4px;
+  padding: 4px;
   border-radius: 3px;
   transition: all 0.2s;
   user-select: none;
   display: none;
+  z-index: 10;
+  background: var(--bg-transparent);
 }
 .server-card.reorder-mode .drag-handle {
   display: block;
 }
 .drag-handle:hover {
-  color: rgba(255,255,255,0.9);
-  background: rgba(0,0,0,0.3);
+  color: var(--text);
+  background: var(--bg-hover);
 }
 .drag-handle:active {
   cursor: grabbing;
@@ -952,6 +1015,16 @@ body {
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
+  /* Menu Dropdown Mobile */
+  .menu-dropdown {
+    width: 200px;
+    right: 0;
+    top: 45px;
+  }
+  .menu-item {
+    padding: 12px 16px; /* Larger touch target */
+  }
+
   .header-btn .btn-text {
     display: none;
   }
@@ -988,7 +1061,7 @@ body {
     padding: 10px 12px;
   }
   .header-section.center {
-    display: none; /* Hide MENU text on mobile to save space */
+    display: flex; /* Restore clock container */
   }
   .menu-content {
     flex-direction: column;
@@ -1012,12 +1085,12 @@ body {
     flex: 1;
   }
   .user-info {
-    text-align: center;
+    display: none; /* Hide redundant user info/MENU text on mobile */
   }
   .user-desktop { display: none; }
-  .user-mobile { display: inline; font-weight: bold; cursor: pointer; }
+  .user-mobile { display: none; }
   .clock-full { display: none; }
-  .clock-short { display: inline; }
+  .clock-short { display: inline; font-size: 1rem; font-weight: 700; }
 
   /* Modal Responsive */
   .modal-header-new {
@@ -1051,6 +1124,35 @@ body {
   }
   .modal-playback-info {
     padding-right: 0;
+  }
+
+  /* User Modal Mobile */
+  .form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .form-row .form-group {
+    width: 100%;
+  }
+  .form-row .btn {
+    width: 100%;
+    margin-top: 8px;
+  }
+  .user-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .user-item-info {
+    text-align: center;
+  }
+  .user-item-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .user-item-actions .btn {
+    width: 100%;
   }
 }
 
@@ -1549,4 +1651,33 @@ form button:hover { background:#45a049; }
   display: flex;
   justify-content: center;
   gap: 10px;
+}
+
+/* File Input Styling */
+.file-input {
+    display: none;
+}
+.file-label {
+    display: block;
+    padding: 12px;
+    background: var(--bg-hover);
+    text-align: center;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px dashed var(--border);
+    transition: all 0.2s;
+    color: var(--text);
+    font-weight: 500;
+}
+.file-label:hover {
+    background: rgba(255,255,255,0.15);
+    border-color: var(--muted);
+}
+.file-name {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--accent);
+    text-align: center;
+    font-family: monospace;
+    min-height: 1em;
 }
