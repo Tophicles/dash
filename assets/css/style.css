@@ -1239,7 +1239,7 @@ form button:hover { background:#45a049; }
 }
 .ssh-agreement label {
   font-size: 0.9rem;
-  color: #ddd;
+  color: var(--text);
   line-height: 1.4;
   cursor: pointer;
 }
