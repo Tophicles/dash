@@ -2726,3 +2726,38 @@ async function fetchServerStats(serverId) {
         statsEl.innerHTML = `<div style="color:#d32f2f; font-size:0.8rem; padding:10px;">Connection Failed: ${esc(e.message)}</div>`;
     }
 }
+
+// Theme Toggle Logic
+function initTheme() {
+    const themeToggleBtn = document.getElementById('theme-toggle-btn');
+    if (!themeToggleBtn) return;
+
+    function updateThemeIcon(theme) {
+        const icon = themeToggleBtn.querySelector('i');
+        if (theme === 'light') {
+            icon.className = 'fa-solid fa-sun';
+            themeToggleBtn.title = 'Switch to Dark Mode';
+            icon.style.color = '#ffa726'; // Orange-ish sun
+        } else {
+            icon.className = 'fa-solid fa-moon';
+            themeToggleBtn.title = 'Switch to Light Mode';
+            icon.style.color = ''; // Reset
+        }
+    }
+
+    // Check saved theme or default
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateThemeIcon(savedTheme);
+
+    themeToggleBtn.addEventListener('click', () => {
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        updateThemeIcon(newTheme);
+    });
+}
+
+// Initialize Theme
+initTheme();
