@@ -58,6 +58,35 @@ $isAdmin = isAdmin();
   </div>
 </div>
 
+<!-- Server Setup Modal -->
+<div id="server-setup-modal" class="modal">
+  <div class="modal-content" style="max-width: 650px;">
+    <span class="modal-close" onclick="closeServerSetupModal()">&times;</span>
+    <h2 style="margin-bottom: 20px;">Connect Server via SSH</h2>
+
+    <div class="ssh-status-box">
+      <label style="color:var(--accent);">Step 1: Copy Dashboard Public Key</label>
+      <div style="font-size: 0.85rem; color: #aaa; margin-bottom: 8px;">You will need to paste this key when prompted by the setup script.</div>
+      <textarea id="setup-ssh-key" readonly class="ssh-key-display" style="height: 80px;" placeholder="Loading key..."></textarea>
+      <button class="btn" onclick="copyToClipboard('setup-ssh-key', this)" style="margin-top: 8px;">Copy Key</button>
+    </div>
+
+    <div style="background: rgba(33, 150, 243, 0.1); border: 1px solid rgba(33, 150, 243, 0.3); padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+      <label style="color: #64b5f6; font-weight: bold; margin-bottom: 8px; display: block;">Step 2: Run Setup Script</label>
+      <div style="font-size: 0.85rem; color: #ccc; margin-bottom: 8px;">Run this command on your <strong>Linux</strong> media server:</div>
+      <div style="background: #111; padding: 10px; border-radius: 4px; border: 1px solid #333; font-family: monospace; font-size: 0.8rem; word-break: break-all; margin-bottom: 8px; color: #eee;" id="setup-command-display">
+        Loading command...
+      </div>
+      <button class="btn" onclick="copyToClipboard('setup-command-display', this)">Copy Command</button>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+      <button class="btn" onclick="closeServerSetupModal()">Close</button>
+      <button class="btn primary" id="setup-verify-btn">Verify Connection</button>
+    </div>
+  </div>
+</div>
+
 <!-- SSH Manager Modal -->
 <div id="ssh-modal" class="modal">
   <div class="modal-content" style="max-width: 600px;">
