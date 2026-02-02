@@ -5,3 +5,10 @@ docker-compose.yml
 DEPLOYMENT.md
 screenshots
 generate_screenshots.py
+users.json
+servers.json
+activity.json
+watcher_state.json
+dashboard.log
+key.php
+keys/
