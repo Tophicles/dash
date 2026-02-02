@@ -1652,3 +1652,32 @@ form button:hover { background:#45a049; }
   justify-content: center;
   gap: 10px;
 }
+
+/* File Input Styling */
+.file-input {
+    display: none;
+}
+.file-label {
+    display: block;
+    padding: 12px;
+    background: var(--bg-hover);
+    text-align: center;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px dashed var(--border);
+    transition: all 0.2s;
+    color: var(--text);
+    font-weight: 500;
+}
+.file-label:hover {
+    background: rgba(255,255,255,0.15);
+    border-color: var(--muted);
+}
+.file-name {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--accent);
+    text-align: center;
+    font-family: monospace;
+    min-height: 1em;
+}

@@ -364,6 +364,8 @@ function openBackupModal() {
     document.getElementById('backup-modal').classList.add('visible');
     // Reset file input and button
     document.getElementById('restore-file-input').value = '';
+    const fileNameDisplay = document.getElementById('restore-file-name');
+    if (fileNameDisplay) fileNameDisplay.textContent = '';
     document.getElementById('restore-backup-btn').disabled = true;
 }
 
@@ -416,6 +418,8 @@ document.getElementById('download-backup-btn').addEventListener('click', async f
 const restoreInput = document.getElementById('restore-file-input');
 if (restoreInput) {
     restoreInput.addEventListener('change', function() {
+        const fileName = this.files[0] ? this.files[0].name : '';
+        document.getElementById('restore-file-name').textContent = fileName;
         document.getElementById('restore-backup-btn').disabled = !this.files.length;
     });
 }

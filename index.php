@@ -296,8 +296,13 @@ $isAdmin = isAdmin();
         <h3><i class="fa-solid fa-upload"></i> Restore Backup</h3>
         <p style="margin-bottom: 10px; font-size: 0.9rem; color: #ccc;">Upload a backup file to restore settings. <strong>This will overwrite current configuration.</strong></p>
 
-        <input type="file" id="restore-file-input" accept=".zip" style="margin-bottom: 10px; width: 100%;">
-        <button class="btn danger" id="restore-backup-btn" style="width: 100%;" disabled>Upload & Restore</button>
+        <input type="file" id="restore-file-input" accept=".zip" class="file-input">
+        <label for="restore-file-input" class="file-label">
+            <i class="fa-solid fa-file-zipper"></i> Choose Backup File
+        </label>
+        <div id="restore-file-name" class="file-name"></div>
+
+        <button class="btn danger" id="restore-backup-btn" style="width: 100%; margin-top: 10px;" disabled>Upload & Restore</button>
     </div>
   </div>
 </div>
