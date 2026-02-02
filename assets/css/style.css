@@ -87,9 +87,9 @@ body {
   border: var(--glass-border);
   border-radius: 12px;
   margin-bottom: 20px;
+  /* Removed overflow: hidden to allow dropdowns to spill out */
   position: relative;
   z-index: 100;
-  box-shadow: var(--card-shadow);
 }
 .top-bar-header {
   display: flex;
@@ -247,22 +247,16 @@ body {
   top: 100%; /* Below button */
   margin-top: 8px;
   background-color: var(--card);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   min-width: 220px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-  border: var(--glass-border);
-  border-radius: 12px;
-  z-index: 9999;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  z-index: 9999; /* Ensure it's on top of everything */
   padding: 8px 0;
-  animation: slideDown 0.2s ease-out;
-}
-@keyframes slideDown {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+  animation: fadeIn 0.2s;
 }
 .menu-dropdown.visible {
-  display: block !important;
+  display: block !important; /* Force visibility */
 }
 .menu-item {
   padding: 10px 16px;
@@ -420,20 +414,20 @@ body {
   font-size: 14px;
   color: var(--muted);
   cursor: grab;
-  padding: 6px;
-  border-radius: 4px;
+  padding: 4px;
+  border-radius: 3px;
   transition: all 0.2s;
   user-select: none;
   display: none;
   z-index: 10;
-  background: rgba(0,0,0,0.2);
+  background: var(--bg-transparent);
 }
 .server-card.reorder-mode .drag-handle {
   display: block;
 }
 .drag-handle:hover {
   color: var(--text);
-  background: rgba(0,0,0,0.4);
+  background: var(--bg-hover);
 }
 .drag-handle:active {
   cursor: grabbing;
@@ -1093,12 +1087,12 @@ body {
 @media (max-width: 768px) {
   /* Menu Dropdown Mobile */
   .menu-dropdown {
-    width: 220px;
+    width: 200px;
     right: 0;
-    top: 50px;
+    top: 45px;
   }
   .menu-item {
-    padding: 14px 20px; /* Larger touch target */
+    padding: 12px 16px; /* Larger touch target */
   }
 
   .header-btn .btn-text {
@@ -1167,7 +1161,7 @@ body {
   .user-desktop { display: none; }
   .user-mobile { display: none; }
   .clock-full { display: none; }
-  .clock-short { display: inline; font-size: 1rem; font-weight: 700; color: white; opacity: 1; }
+  .clock-short { display: inline; font-size: 1rem; font-weight: 700; }
 
   /* Modal Responsive */
   .modal-header-new {
@@ -1207,7 +1201,7 @@ body {
   .form-row {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
   }
   .form-row .form-group {
     width: 100%;
@@ -1219,14 +1213,14 @@ body {
   .user-item {
     flex-direction: column;
     align-items: stretch;
-    gap: 16px;
+    gap: 12px;
   }
   .user-item-info {
     text-align: center;
   }
   .user-item-actions {
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
   }
   .user-item-actions .btn {
     width: 100%;
@@ -1767,4 +1761,33 @@ form button:hover { background:#45a049; }
     text-align: center;
     font-family: monospace;
     min-height: 1.2em;
+}
+
+/* File Input Styling */
+.file-input {
+    display: none;
+}
+.file-label {
+    display: block;
+    padding: 12px;
+    background: var(--bg-hover);
+    text-align: center;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px dashed var(--border);
+    transition: all 0.2s;
+    color: var(--text);
+    font-weight: 500;
+}
+.file-label:hover {
+    background: rgba(255,255,255,0.15);
+    border-color: var(--muted);
+}
+.file-name {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: var(--accent);
+    text-align: center;
+    font-family: monospace;
+    min-height: 1em;
 }

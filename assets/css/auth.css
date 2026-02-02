@@ -206,17 +206,17 @@ h1 {
 .file-label {
     display: block;
     padding: 12px;
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(255, 255, 255, 0.1);
     text-align: center;
-    border-radius: 8px;
+    border-radius: 4px;
     cursor: pointer;
-    border: 1px dashed rgba(255, 255, 255, 0.2);
+    border: 1px dashed #666;
     transition: all 0.2s;
-    color: #e0e0e0;
-    font-weight: 500;
+    color: #ddd;
+    font-weight: normal;
 }
 .file-label:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.15);
     border-color: #aaa;
 }
 .file-name {
@@ -226,19 +226,4 @@ h1 {
     text-align: center;
     font-family: monospace;
     min-height: 1em;
-}
-
-/* Scrollbar for webkit */
-::-webkit-scrollbar {
-  width: 8px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: #555;
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #888;
 }
