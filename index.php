@@ -35,6 +35,7 @@ $isAdmin = isAdmin();
     <div class="header-section right" id="header-clock-btn">
       <button class="btn header-btn" id="theme-toggle-btn" title="Toggle Theme"><i class="fa-solid fa-moon"></i></button>
       <?php if ($isAdmin): ?>
+      <button class="btn header-btn" id="ssh-keys-nav-btn" title="SSH Key Manager"><i class="fa-solid fa-key"></i> <span class="btn-text">Keys</span></button>
       <button class="btn header-btn" id="logs-btn" title="View System Logs" onclick="window.open('view_logs.php', 'SystemLogs')"><i class="fa-solid fa-file-lines"></i> <span class="btn-text">Logs</span></button>
       <?php endif; ?>
       <button class="btn danger header-btn" onclick="window.location.href='logout.php'"><i class="fa-solid fa-right-from-bracket"></i> <span class="btn-text">Logout</span></button>
@@ -49,13 +50,8 @@ $isAdmin = isAdmin();
     </div>
     <div class="top-bar-right">
       <?php if ($isAdmin): ?>
-      <div class="server-actions" id="server-actions">
-        <button class="btn" id="edit-server-btn">Edit</button>
-        <button class="btn danger" id="delete-server-btn">Delete</button>
-      </div>
       <button class="btn" id="reorder-btn" title="Toggle Reorder Mode">Reorder</button>
       <button class="btn" id="users-btn" title="Manage Users">Users</button>
-      <button class="btn" id="ssh-keys-nav-btn" title="SSH Key Manager">SSH Keys</button>
       <?php endif; ?>
     </div>
   </div>

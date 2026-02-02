@@ -1434,7 +1434,6 @@ function showServerView() {
         document.getElementById('users-btn').style.display = '';
     }
 
-    document.getElementById('server-actions').classList.remove('visible');
     selectedServerId = null;
     window.scrollTo(0, 0);
 }
@@ -1592,7 +1591,6 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
         document.getElementById('users-btn').style.display = 'none';
     }
 
-    document.getElementById('server-actions').classList.add('visible');
     window.scrollTo(0, 0);
 
     // Render sessions
