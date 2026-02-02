@@ -1527,3 +1527,25 @@ form button:hover { background:#45a049; }
   margin-bottom: 8px;
   display: block;
 }
+
+/* Confirm/Alert Modal */
+.confirm-modal-content {
+  max-width: 400px;
+  text-align: center;
+}
+.confirm-modal-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: var(--text);
+}
+.confirm-modal-message {
+  margin-bottom: 20px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.confirm-modal-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}

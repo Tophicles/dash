@@ -326,10 +326,10 @@ $isAdmin = isAdmin();
 
 <!-- Custom Alert/Confirm Modal -->
 <div id="custom-modal" class="modal" style="z-index: 10000;">
-  <div class="modal-content" style="max-width: 400px; text-align: center;">
-    <div id="custom-modal-title" style="font-size: 1.2rem; font-weight: bold; margin-bottom: 10px;">Title</div>
-    <div id="custom-modal-message" style="margin-bottom: 20px; color: #ccc; line-height: 1.5;">Message</div>
-    <div id="custom-modal-actions" style="display: flex; justify-content: center; gap: 10px;">
+  <div class="modal-content confirm-modal-content">
+    <div id="custom-modal-title" class="confirm-modal-title">Title</div>
+    <div id="custom-modal-message" class="confirm-modal-message">Message</div>
+    <div id="custom-modal-actions" class="confirm-modal-actions">
       <button id="custom-modal-cancel" class="btn">Cancel</button>
       <button id="custom-modal-confirm" class="btn primary">Confirm</button>
     </div>
