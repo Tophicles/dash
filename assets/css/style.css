@@ -385,20 +385,22 @@ body {
   top: 4px;
   right: 4px;
   font-size: 14px;
-  color: rgba(255,255,255,0.5);
+  color: var(--muted);
   cursor: grab;
-  padding: 2px 4px;
+  padding: 4px;
   border-radius: 3px;
   transition: all 0.2s;
   user-select: none;
   display: none;
+  z-index: 10;
+  background: var(--bg-transparent);
 }
 .server-card.reorder-mode .drag-handle {
   display: block;
 }
 .drag-handle:hover {
-  color: rgba(255,255,255,0.9);
-  background: rgba(0,0,0,0.3);
+  color: var(--text);
+  background: var(--bg-hover);
 }
 .drag-handle:active {
   cursor: grabbing;
