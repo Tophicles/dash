@@ -2828,72 +2828,75 @@ function initTheme() {
     });
 }
 
-// Menu Dropdown Logic
-const menuBtn = document.getElementById('menu-toggle-btn');
-const menuDropdown = document.getElementById('menu-dropdown');
+// Initialize UI Elements (Theme, Menu, Listeners)
+document.addEventListener('DOMContentLoaded', () => {
+    // Theme Toggle Logic
+    initTheme();
 
-if (menuBtn && menuDropdown) {
-    menuBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        menuDropdown.classList.toggle('visible');
-    });
+    // Menu Dropdown Logic
+    const menuBtn = document.getElementById('menu-toggle-btn');
+    const menuDropdown = document.getElementById('menu-dropdown');
 
-    document.addEventListener('click', (e) => {
-        if (!menuDropdown.contains(e.target) && e.target !== menuBtn) {
-            menuDropdown.classList.remove('visible');
+    if (menuBtn && menuDropdown) {
+        menuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            // Ensure we are toggling on the main dropdown element
+            menuDropdown.classList.toggle('visible');
+        });
+
+        document.addEventListener('click', (e) => {
+            // Close if clicking outside the dropdown and not on the button
+            if (menuDropdown.classList.contains('visible') && !menuDropdown.contains(e.target) && !menuBtn.contains(e.target)) {
+                menuDropdown.classList.remove('visible');
+            }
+        });
+    }
+
+    // Bind Menu Items to Functions
+    // Re-bind IDs that were moved from buttons to divs
+    if (typeof IS_ADMIN !== 'undefined' && IS_ADMIN) {
+        const toggleFormBtn = document.getElementById('toggle-form');
+        if (toggleFormBtn) {
+            toggleFormBtn.addEventListener('click', () => {
+                openServerModal(false);
+                if (menuDropdown) menuDropdown.classList.remove('visible');
+            });
         }
-    });
-}
 
-// Bind Menu Items to Functions
-// Re-bind IDs that were moved from buttons to divs
-if (IS_ADMIN) {
-    const toggleFormBtn = document.getElementById('toggle-form');
-    if (toggleFormBtn) {
-        toggleFormBtn.addEventListener('click', () => {
-            openServerModal(false);
-            menuDropdown.classList.remove('visible');
-        });
+        const reorderBtn = document.getElementById('reorder-btn');
+        if (reorderBtn) {
+            reorderBtn.addEventListener('click', function() {
+                reorderMode = !reorderMode;
+                // Update text/style if needed (though it's in a menu now)
+                const span = this.querySelector('span');
+                if (span) span.textContent = reorderMode ? 'Done Reordering' : 'Reorder Servers';
+                renderServerGrid();
+                if (menuDropdown) menuDropdown.classList.remove('visible');
+            });
+        }
+
+        const usersBtn = document.getElementById('users-btn');
+        if (usersBtn) {
+            usersBtn.addEventListener('click', () => {
+                openUsersModal();
+                if (menuDropdown) menuDropdown.classList.remove('visible');
+            });
+        }
+
+        const sshBtn = document.getElementById('ssh-keys-nav-btn');
+        if (sshBtn) {
+            sshBtn.addEventListener('click', () => {
+                openSSHModal();
+                if (menuDropdown) menuDropdown.classList.remove('visible');
+            });
+        }
+
+        const backupBtn = document.getElementById('backup-nav-btn');
+        if (backupBtn) {
+            backupBtn.addEventListener('click', () => {
+                openBackupModal();
+                if (menuDropdown) menuDropdown.classList.remove('visible');
+            });
+        }
     }
-
-    const reorderBtn = document.getElementById('reorder-btn');
-    if (reorderBtn) {
-        reorderBtn.addEventListener('click', function() {
-            reorderMode = !reorderMode;
-            // Update text/style if needed (though it's in a menu now)
-            const span = this.querySelector('span');
-            if (span) span.textContent = reorderMode ? 'Done Reordering' : 'Reorder Servers';
-            renderServerGrid();
-            // Don't auto-close menu so user can see state change? Or close it.
-            // Let's close it to be consistent
-            menuDropdown.classList.remove('visible');
-        });
-    }
-
-    const usersBtn = document.getElementById('users-btn');
-    if (usersBtn) {
-        usersBtn.addEventListener('click', () => {
-            openUsersModal();
-            menuDropdown.classList.remove('visible');
-        });
-    }
-
-    const sshBtn = document.getElementById('ssh-keys-nav-btn');
-    if (sshBtn) {
-        sshBtn.addEventListener('click', () => {
-            openSSHModal();
-            menuDropdown.classList.remove('visible');
-        });
-    }
-
-    const backupBtn = document.getElementById('backup-nav-btn');
-    if (backupBtn) {
-        backupBtn.addEventListener('click', () => {
-            openBackupModal();
-            menuDropdown.classList.remove('visible');
-        });
-    }
-}
-
-// Initialize Theme
-initTheme();
+});
