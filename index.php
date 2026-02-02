@@ -60,6 +60,9 @@ $isAdmin = isAdmin();
           <div class="menu-item" id="backup-nav-btn">
             <i class="fa-solid fa-floppy-disk"></i> <span>Backup & Restore</span>
           </div>
+          <div class="menu-item danger" id="panic-btn">
+            <i class="fa-solid fa-radiation"></i> <span>Panic! (Reset)</span>
+          </div>
           <?php endif; ?>
           <div class="menu-divider"></div>
           <div class="menu-item danger" onclick="window.location.href='logout.php'">

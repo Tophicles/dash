@@ -2935,5 +2935,58 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (menuDropdown) menuDropdown.classList.remove('visible');
             });
         }
+
+        const panicBtn = document.getElementById('panic-btn');
+        if (panicBtn) {
+            panicBtn.addEventListener('click', async () => {
+                if (menuDropdown) menuDropdown.classList.remove('visible');
+
+                // First Confirmation
+                if (!await showModalConfirm(
+                    '<span style="color:#ef5350; font-weight:bold;">WARNING: FACTORY RESET</span><br><br>' +
+                    'This will <strong>permanently wipe ALL data</strong> including:<br>' +
+                    '• User Accounts<br>' +
+                    '• Server Configurations<br>' +
+                    '• SSH Keys<br>' +
+                    '• System Logs<br><br>' +
+                    'This action is <strong>IRREVOCABLE</strong>.<br>' +
+                    'It is highly recommended to download a backup first.<br><br>' +
+                    'Do you want to proceed?',
+                    'System Panic'
+                )) return;
+
+                // Second Confirmation
+                if (!await showModalConfirm(
+                    '<span style="color:#ef5350; font-weight:bold;">FINAL CONFIRMATION</span><br><br>' +
+                    'Are you absolutely sure?<br>' +
+                    'Typing "yes" is not required, but you must click Confirm to trigger the wipe.<br>' +
+                    'The system will be reset to factory defaults immediately.',
+                    'Irrevocable Action'
+                )) return;
+
+                // Execute Reset
+                try {
+                    // Show a "Wiping..." alert or just loading state
+                    // We can reuse showModalAlert but we want it to persist until redirect
+                    // So let's manually show a loading state on the body or just alert
+
+                    const res = await fetch('reset.php', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ confirmed: true })
+                    });
+                    const data = await res.json();
+
+                    if (data.success) {
+                        alert('System Reset Complete. Redirecting to setup...');
+                        window.location.reload();
+                    } else {
+                        showModalAlert('Reset Failed: ' + esc(data.error));
+                    }
+                } catch (e) {
+                    showModalAlert('Reset Request Failed: ' + e.message);
+                }
+            });
+        }
     }
 });
