@@ -58,7 +58,9 @@ body {
   border: 1px solid var(--border);
   border-radius: 8px;
   margin-bottom: 20px;
-  overflow: hidden;
+  /* Removed overflow: hidden to allow dropdowns to spill out */
+  position: relative;
+  z-index: 100;
 }
 .top-bar-header {
   display: flex;
@@ -211,6 +213,65 @@ body {
   border-radius: 6px;
   height: 32px;
   box-sizing: border-box;
+}
+
+/* Dropdown Menu Styles */
+.menu-container {
+  position: relative;
+  display: inline-block;
+}
+.menu-dropdown {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 100%; /* Below button */
+  margin-top: 8px;
+  background-color: var(--card);
+  min-width: 220px;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  z-index: 9999; /* Ensure it's on top of everything */
+  padding: 8px 0;
+  animation: fadeIn 0.2s;
+}
+.menu-dropdown.visible {
+  display: block !important; /* Force visibility */
+}
+.menu-item {
+  padding: 10px 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text);
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+.menu-item:hover {
+  background-color: var(--bg-hover);
+}
+.menu-item i {
+  width: 20px;
+  text-align: center;
+  color: var(--muted);
+}
+.menu-item:hover i {
+  color: var(--text);
+}
+.menu-divider {
+  height: 1px;
+  background-color: var(--border);
+  margin: 6px 0;
+}
+.menu-item.danger {
+  color: #ef5350;
+}
+.menu-item.danger:hover {
+  background-color: rgba(211, 47, 47, 0.1);
+}
+.menu-item.danger i {
+  color: #ef5350;
 }
 
 .server-actions {
@@ -952,6 +1013,16 @@ body {
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
+  /* Menu Dropdown Mobile */
+  .menu-dropdown {
+    width: 200px;
+    right: 0;
+    top: 45px;
+  }
+  .menu-item {
+    padding: 12px 16px; /* Larger touch target */
+  }
+
   .header-btn .btn-text {
     display: none;
   }
@@ -988,7 +1059,7 @@ body {
     padding: 10px 12px;
   }
   .header-section.center {
-    display: none; /* Hide MENU text on mobile to save space */
+    display: flex; /* Restore clock container */
   }
   .menu-content {
     flex-direction: column;
@@ -1012,12 +1083,12 @@ body {
     flex: 1;
   }
   .user-info {
-    text-align: center;
+    display: none; /* Hide redundant user info/MENU text on mobile */
   }
   .user-desktop { display: none; }
-  .user-mobile { display: inline; font-weight: bold; cursor: pointer; }
+  .user-mobile { display: none; }
   .clock-full { display: none; }
-  .clock-short { display: inline; }
+  .clock-short { display: inline; font-size: 1rem; font-weight: 700; }
 
   /* Modal Responsive */
   .modal-header-new {

@@ -352,6 +352,84 @@ if (IS_ADMIN) {
     });
 }
 
+// Backup & Restore Logic (Admin)
+if (IS_ADMIN) {
+    const backupBtn = document.getElementById('backup-nav-btn');
+    if (backupBtn) {
+        backupBtn.addEventListener('click', openBackupModal);
+    }
+}
+
+function openBackupModal() {
+    document.getElementById('backup-modal').classList.add('visible');
+    // Reset file input and button
+    document.getElementById('restore-file-input').value = '';
+    document.getElementById('restore-backup-btn').disabled = true;
+}
+
+function closeBackupModal() {
+    document.getElementById('backup-modal').classList.remove('visible');
+}
+
+// Close backup modal on outside click
+document.getElementById('backup-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeBackupModal();
+});
+
+// Download Backup
+document.getElementById('download-backup-btn').addEventListener('click', function() {
+    window.location.href = 'backup.php';
+    logSystemEvent('Backup download initiated');
+});
+
+// Enable Restore Button
+const restoreInput = document.getElementById('restore-file-input');
+if (restoreInput) {
+    restoreInput.addEventListener('change', function() {
+        document.getElementById('restore-backup-btn').disabled = !this.files.length;
+    });
+}
+
+// Restore Action
+document.getElementById('restore-backup-btn').addEventListener('click', async function() {
+    const file = restoreInput.files[0];
+    if (!file) return;
+
+    if (!await showModalConfirm('DANGER: This will overwrite all users, servers, and keys.\n\nAre you absolutely sure you want to restore from this backup?')) return;
+
+    const btn = this;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Restoring...';
+
+    const formData = new FormData();
+    formData.append('backup_file', file);
+
+    try {
+        const res = await fetch('backup.php', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            showModalAlert('System Restored Successfully! Reloading...');
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            showModalAlert('Restore Failed: ' + esc(data.error));
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    } catch (e) {
+        console.error(e);
+        showModalAlert('Upload failed: ' + esc(e.message));
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+});
+
 
 // Back button
 document.getElementById('back-btn').addEventListener('click', function() {
@@ -2724,14 +2802,17 @@ function initTheme() {
 
     function updateThemeIcon(theme) {
         const icon = themeToggleBtn.querySelector('i');
+        const text = themeToggleBtn.querySelector('span');
         if (theme === 'light') {
-            icon.className = 'fa-solid fa-sun';
-            themeToggleBtn.title = 'Switch to Dark Mode';
-            icon.style.color = '#ffa726'; // Orange-ish sun
+            // Current is Light, show option to switch to Dark
+            icon.className = 'fa-solid fa-moon'; // Icon for target (Dark)
+            if (text) text.textContent = 'Dark Mode';
+            icon.style.color = '';
         } else {
-            icon.className = 'fa-solid fa-moon';
-            themeToggleBtn.title = 'Switch to Light Mode';
-            icon.style.color = ''; // Reset
+            // Current is Dark, show option to switch to Light
+            icon.className = 'fa-solid fa-sun'; // Icon for target (Light)
+            if (text) text.textContent = 'Light Mode';
+            icon.style.color = '#ffa726'; // Orange-ish sun
         }
     }
 
@@ -2749,5 +2830,78 @@ function initTheme() {
     });
 }
 
-// Initialize Theme
-initTheme();
+// Initialize UI Elements (Theme, Menu, Listeners)
+document.addEventListener('DOMContentLoaded', () => {
+    // Theme Toggle Logic
+    initTheme();
+
+    // Menu Dropdown Logic
+    const menuBtn = document.getElementById('menu-toggle-btn');
+    const menuDropdown = document.getElementById('menu-dropdown');
+
+    if (menuBtn && menuDropdown) {
+        // Toggle on click
+        menuBtn.onclick = function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            menuDropdown.classList.toggle('visible');
+        };
+
+        // Close on outside click
+        document.addEventListener('click', (e) => {
+            if (menuDropdown.classList.contains('visible') && !menuDropdown.contains(e.target) && !menuBtn.contains(e.target)) {
+                menuDropdown.classList.remove('visible');
+            }
+        });
+    } else {
+        console.error('Menu elements not found:', { btn: menuBtn, dropdown: menuDropdown });
+    }
+
+    // Bind Menu Items to Functions
+    // Re-bind IDs that were moved from buttons to divs
+    if (typeof IS_ADMIN !== 'undefined' && IS_ADMIN) {
+        const toggleFormBtn = document.getElementById('toggle-form');
+        if (toggleFormBtn) {
+            toggleFormBtn.addEventListener('click', () => {
+                openServerModal(false);
+                if (menuDropdown) menuDropdown.classList.remove('visible');
+            });
+        }
+
+        const reorderBtn = document.getElementById('reorder-btn');
+        if (reorderBtn) {
+            reorderBtn.addEventListener('click', function() {
+                reorderMode = !reorderMode;
+                // Update text/style if needed (though it's in a menu now)
+                const span = this.querySelector('span');
+                if (span) span.textContent = reorderMode ? 'Done Reordering' : 'Reorder Servers';
+                renderServerGrid();
+                if (menuDropdown) menuDropdown.classList.remove('visible');
+            });
+        }
+
+        const usersBtn = document.getElementById('users-btn');
+        if (usersBtn) {
+            usersBtn.addEventListener('click', () => {
+                openUsersModal();
+                if (menuDropdown) menuDropdown.classList.remove('visible');
+            });
+        }
+
+        const sshBtn = document.getElementById('ssh-keys-nav-btn');
+        if (sshBtn) {
+            sshBtn.addEventListener('click', () => {
+                openSSHModal();
+                if (menuDropdown) menuDropdown.classList.remove('visible');
+            });
+        }
+
+        const backupBtn = document.getElementById('backup-nav-btn');
+        if (backupBtn) {
+            backupBtn.addEventListener('click', () => {
+                openBackupModal();
+                if (menuDropdown) menuDropdown.classList.remove('visible');
+            });
+        }
+    }
+});
