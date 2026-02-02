@@ -40,6 +40,7 @@ $isAdmin = isAdmin();
       <button class="btn header-btn" id="users-btn" title="Manage Users"><i class="fa-solid fa-users"></i> <span class="btn-text">Users</span></button>
       <button class="btn header-btn" id="ssh-keys-nav-btn" title="SSH Key Manager"><i class="fa-solid fa-key"></i> <span class="btn-text">Keys</span></button>
       <button class="btn header-btn" id="logs-btn" title="View System Logs" onclick="window.open('view_logs.php', 'SystemLogs')"><i class="fa-solid fa-file-lines"></i> <span class="btn-text">Logs</span></button>
+      <button class="btn header-btn" id="backup-nav-btn" title="Backup & Restore"><i class="fa-solid fa-floppy-disk"></i> <span class="btn-text">Backup</span></button>
       <?php endif; ?>
       <button class="btn danger header-btn" onclick="window.location.href='logout.php'"><i class="fa-solid fa-right-from-bracket"></i> <span class="btn-text">Logout</span></button>
     </div>
@@ -241,6 +242,28 @@ $isAdmin = isAdmin();
   <div class="modal-content">
     <span class="modal-close">&times;</span>
     <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- Backup Modal -->
+<div id="backup-modal" class="modal">
+  <div class="modal-content" style="max-width: 500px;">
+    <span class="modal-close" onclick="closeBackupModal()">&times;</span>
+    <h2 style="margin-bottom: 20px;">Backup & Restore</h2>
+
+    <div class="info-box">
+        <h3><i class="fa-solid fa-download"></i> Create Backup</h3>
+        <p style="margin-bottom: 10px; font-size: 0.9rem; color: #ccc;">Download a ZIP archive containing all servers, users, and configuration keys.</p>
+        <button class="btn primary" id="download-backup-btn" style="width: 100%;">Download Backup</button>
+    </div>
+
+    <div class="danger-box">
+        <h3><i class="fa-solid fa-upload"></i> Restore Backup</h3>
+        <p style="margin-bottom: 10px; font-size: 0.9rem; color: #ccc;">Upload a backup file to restore settings. <strong>This will overwrite current configuration.</strong></p>
+
+        <input type="file" id="restore-file-input" accept=".zip" style="margin-bottom: 10px; width: 100%;">
+        <button class="btn danger" id="restore-backup-btn" style="width: 100%;" disabled>Upload & Restore</button>
+    </div>
   </div>
 </div>
 
