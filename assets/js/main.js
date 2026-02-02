@@ -632,6 +632,26 @@ async function fetchServerStatus(serverId) {
         // Update Header controls
         const containers = document.querySelectorAll(`[id^="js-header-controls-${serverId}"]`);
 
+        // Update SSH Badge based on actual connection status
+        const sshBadge = document.getElementById(`ssh-badge-${esc(serverId)}`);
+        if (sshBadge) {
+            const server = SERVERS.find(s => s.id === serverId);
+            const name = server ? server.name : 'Server';
+            if (data.success) {
+                sshBadge.innerHTML = '<i class="fa-solid fa-check"></i> SSH';
+                sshBadge.style.color = '#81c784';
+                sshBadge.style.borderColor = 'rgba(76,175,80,0.3)';
+                sshBadge.style.cursor = 'pointer';
+                sshBadge.onclick = () => openSSHConnectedModal(name);
+            } else {
+                sshBadge.innerHTML = '<i class="fa-solid fa-xmark"></i> SSH';
+                sshBadge.style.color = '#e57373';
+                sshBadge.style.borderColor = 'rgba(229,115,115,0.3)';
+                sshBadge.style.cursor = 'pointer';
+                sshBadge.onclick = () => openServerSetupModal(serverId, name);
+            }
+        }
+
         containers.forEach(container => {
             if (data.success) {
                 // Parse detailed status
@@ -698,7 +718,12 @@ async function fetchServerStatus(serverId) {
                     `;
                 }
             } else {
-                container.innerHTML = `<span style="font-size:0.8rem; color:red;" title="${esc(data.error)}">Error</span>`;
+                container.innerHTML = ''; // Clear controls
+                const statsEl = document.getElementById('server-stats');
+                if (statsEl) {
+                    statsEl.style.display = 'block';
+                    statsEl.innerHTML = '<div style="color:var(--muted); font-size:0.9rem; padding:15px; background:rgba(255,255,255,0.05); border-radius:6px; margin-top:10px;"><i class="fa-solid fa-triangle-exclamation" style="color:#e57373;"></i> Server controls and statistics depend on SSH setup.</div>';
+                }
             }
         });
     } catch (e) {
@@ -757,9 +782,91 @@ function pollServerStatus(serverId) {
     }, 1500);
 }
 
-async function deployServerKey(serverId) {
-    const containers = document.querySelectorAll(`[id^="js-header-controls-${serverId}"]`);
-    containers.forEach(c => c.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verifying...');
+async function openServerSetupModal(serverId, serverName) {
+    const modal = document.getElementById('server-setup-modal');
+    const cmdDisplay = document.getElementById('setup-command-display');
+    const verifyBtn = document.getElementById('setup-verify-btn');
+
+    modal.classList.add('visible');
+    cmdDisplay.innerHTML = 'Loading...';
+    verifyBtn.disabled = true;
+
+    // Fetch Public Key
+    try {
+        const res = await fetch('ssh_manager.php?action=get_public_key');
+        const data = await res.json();
+        if (data.success && data.key) {
+            // Build One-Liner Command
+            // wget -O - <url> | sudo bash -s install
+            const baseUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
+            const scriptUrl = `${baseUrl}/os_helpers/linux_setup.sh`;
+            // Safe command to display
+            const cmd = `wget -qO- "${scriptUrl}" | sudo bash -s install "${data.key}"`;
+
+            cmdDisplay.innerText = cmd;
+            verifyBtn.disabled = false;
+            verifyBtn.onclick = () => deployServerKey(serverId, verifyBtn);
+        } else {
+            cmdDisplay.innerText = 'Error loading key.';
+        }
+    } catch (e) {
+        cmdDisplay.innerText = 'Network Error.';
+    }
+}
+
+function closeServerSetupModal() {
+    document.getElementById('server-setup-modal').classList.remove('visible');
+}
+
+function openSSHConnectedModal(serverName) {
+    const modal = document.getElementById('ssh-connected-modal');
+    const cmdDisplay = document.getElementById('uninstall-command-display');
+
+    // Generate Uninstall Command
+    // wget -qO- <url> | sudo bash -s uninstall
+    const baseUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
+    const scriptUrl = `${baseUrl}/os_helpers/linux_setup.sh`;
+    const cmd = `wget -qO- "${scriptUrl}" | sudo bash -s uninstall`;
+
+    cmdDisplay.innerText = cmd;
+    modal.classList.add('visible');
+}
+
+function closeSSHConnectedModal() {
+    document.getElementById('ssh-connected-modal').classList.remove('visible');
+}
+
+document.getElementById('ssh-connected-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeSSHConnectedModal();
+});
+
+function copyToClipboard(elementId, btn) {
+    const el = document.getElementById(elementId);
+    let text = el.value || el.innerText;
+
+    navigator.clipboard.writeText(text).then(() => {
+        const original = btn.innerText;
+        btn.innerText = 'Copied!';
+        setTimeout(() => btn.innerText = original, 2000);
+    }).catch(err => {
+        console.error('Failed to copy', err);
+        // Fallback for textarea
+        if (el.select) {
+            el.select();
+            document.execCommand('copy');
+            const original = btn.innerText;
+            btn.innerText = 'Copied!';
+            setTimeout(() => btn.innerText = original, 2000);
+        }
+    });
+}
+
+async function deployServerKey(serverId, btn) {
+    const originalText = btn ? btn.innerText : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verifying...';
+    }
 
     try {
         // Try to connect (status check)
@@ -781,18 +888,27 @@ async function deployServerKey(serverId) {
             const server = SERVERS.find(s => s.id === serverId);
             if (server) server.ssh_initialized = true;
 
-            // Refresh
+            // Refresh UI
             fetchServerStatus(serverId);
+            fetchServerStats(serverId);
+            closeServerSetupModal();
             showModalAlert('SSH Connection Verified! Controls enabled.');
         } else {
             // Failed
-            showModalAlert('Connection Failed: ' + esc(data.error) + '\n\nPlease ensure you have run the "linux_setup.sh" script on the target server.');
-            // Revert button (Clear spinner)
-            const containers = document.querySelectorAll(`[id^="js-header-controls-${serverId}"]`);
-            containers.forEach(c => c.innerHTML = '');
+            showModalAlert('Connection Failed: ' + esc(data.error) + '\n\nPlease ensure you have run the setup script and pasted the key.');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerText = originalText; // Reset button
+                btn.innerHTML = originalText;
+            }
         }
     } catch (e) {
         showModalAlert('Request failed: ' + esc(e.message));
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = originalText;
+            btn.innerHTML = originalText;
+        }
     }
 }
 
@@ -1347,7 +1463,7 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
     }
 
     headerHtml += `
-            ${esc(serverName)}
+            <span class="server-name-text">${esc(serverName)}</span>
             ${server && server.version ? `<span class="server-title-version">[v${esc(server.version)}]</span>` : ''}
     `;
 
@@ -1364,10 +1480,11 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
     // Header Center (SSH Indicator)
     headerHtml += `<div class="header-center" style="display:flex;">`;
     if (server && (!server.os_type || server.os_type === 'linux')) {
+        const sshId = `ssh-badge-${esc(server.id)}`;
         if (server.ssh_initialized) {
-            headerHtml += `<span class="badge" style="background:rgba(255,255,255,0.1); color:#81c784; font-size:0.75rem; border:1px solid rgba(76,175,80,0.3);"><i class="fa-solid fa-check"></i> SSH</span>`;
+            headerHtml += `<span id="${sshId}" class="badge" style="background:rgba(255,255,255,0.1); color:#81c784; font-size:0.75rem; border:1px solid rgba(76,175,80,0.3); cursor:pointer;" onclick="openSSHConnectedModal('${esc(serverName)}')"><i class="fa-solid fa-check"></i> SSH</span>`;
         } else {
-            headerHtml += `<span class="badge" style="background:rgba(255,255,255,0.1); color:#e57373; font-size:0.75rem; border:1px solid rgba(229,115,115,0.3); cursor:pointer;" onclick="deployServerKey('${esc(server.id)}')"><i class="fa-solid fa-xmark"></i> SSH</span>`;
+            headerHtml += `<span id="${sshId}" class="badge" style="background:rgba(255,255,255,0.1); color:#e57373; font-size:0.75rem; border:1px solid rgba(229,115,115,0.3); cursor:pointer;" onclick="openServerSetupModal('${esc(server.id)}', '${esc(serverName)}')"><i class="fa-solid fa-xmark"></i> SSH</span>`;
         }
     }
     headerHtml += `</div>`;
@@ -1808,7 +1925,7 @@ async function showItemDetails(serverName, itemId, serverType) {
             // Play method badge
             if (sessionData.playMethod) {
                 const isDirectPlay = sessionData.playMethod.toLowerCase().includes('direct');
-                const methodIcon = isDirectPlay ? '⚡' : '🔄';
+                const methodIcon = isDirectPlay ? '<i class="fa-solid fa-bolt"></i>' : '<i class="fa-solid fa-arrows-rotate"></i>';
                 const methodClass = isDirectPlay ? 'direct-play' : 'transcoding';
                 const methodText = isDirectPlay ? 'Direct Play' : 'Transcoding';
                 topBadges += `<span class="playmethod-badge-fixed ${methodClass}">${methodIcon} ${methodText}</span>`;
@@ -1834,7 +1951,7 @@ async function showItemDetails(serverName, itemId, serverType) {
                 html += `<div class="progress-bar"><div class="progress" style="width:${percent}%"></div></div>`;
                 html += '</div>';
             } else {
-                html += '<div class="modal-playback-live">🔴 Live</div>';
+                html += '<div class="modal-playback-live"><i class="fa-solid fa-circle" style="color:#ff5252;"></i> Live</div>';
             }
 
             html += '</div>';
@@ -2577,7 +2694,7 @@ async function fetchServerStats(serverId) {
                         </div>
                         <div class="stats-item">
                             <span class="stats-label">Net</span>
-                            <span class="stats-value">↓${rxStr} ↑${txStr}</span>
+                            <span class="stats-value"><i class="fa-solid fa-arrow-down"></i> ${rxStr} <i class="fa-solid fa-arrow-up"></i> ${txStr}</span>
                         </div>
                         <div class="stats-item" style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 10px; margin-left: 6px;">
                             <span class="stats-value" style="color:var(--accent); font-weight:600;">${procStr}</span>
