@@ -80,6 +80,36 @@ $isAdmin = isAdmin();
   </div>
 </div>
 
+<!-- SSH Connected Modal -->
+<div id="ssh-connected-modal" class="modal">
+  <div class="modal-content" style="max-width: 600px;">
+    <span class="modal-close" onclick="closeSSHConnectedModal()">&times;</span>
+    <h2 style="margin-bottom: 20px; color: #81c784;"><i class="fa-solid fa-shield-halved"></i> Secure Connection Active</h2>
+
+    <div style="margin-bottom: 20px; line-height: 1.6; color: #ccc;">
+      <p style="margin-bottom: 10px;">This server is connected using a dedicated SSH key pair (<code>mediasvc</code> user). This method is secure because:</p>
+      <ul style="list-style: disc; margin-left: 20px; color: #aaa; font-size: 0.9rem;">
+        <li>No passwords are stored or transmitted.</li>
+        <li>The connection is restricted to specific commands (updates, restarts, stats) via <code>sudoers</code>.</li>
+        <li>Interactive login for this user is disabled.</li>
+      </ul>
+    </div>
+
+    <div style="background: rgba(211, 47, 47, 0.1); border: 1px solid rgba(211, 47, 47, 0.3); padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+      <label style="color: #e57373; font-weight: bold; margin-bottom: 8px; display: block;">Uninstall / Disconnect</label>
+      <div style="font-size: 0.85rem; color: #ccc; margin-bottom: 8px;">To remove the dashboard agent and revoke access, run this command on your server:</div>
+      <div style="background: #111; padding: 10px; border-radius: 4px; border: 1px solid #333; font-family: monospace; font-size: 0.8rem; word-break: break-all; margin-bottom: 8px; color: #eee;" id="uninstall-command-display">
+        Loading command...
+      </div>
+      <button class="btn" onclick="copyToClipboard('uninstall-command-display', this)">Copy Command</button>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end;">
+      <button class="btn" onclick="closeSSHConnectedModal()">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- SSH Manager Modal -->
 <div id="ssh-modal" class="modal">
   <div class="modal-content" style="max-width: 600px;">

@@ -635,19 +635,19 @@ async function fetchServerStatus(serverId) {
         // Update SSH Badge based on actual connection status
         const sshBadge = document.getElementById(`ssh-badge-${esc(serverId)}`);
         if (sshBadge) {
+            const server = SERVERS.find(s => s.id === serverId);
+            const name = server ? server.name : 'Server';
             if (data.success) {
                 sshBadge.innerHTML = '<i class="fa-solid fa-check"></i> SSH';
                 sshBadge.style.color = '#81c784';
                 sshBadge.style.borderColor = 'rgba(76,175,80,0.3)';
-                sshBadge.onclick = null;
-                sshBadge.style.cursor = 'default';
+                sshBadge.style.cursor = 'pointer';
+                sshBadge.onclick = () => openSSHConnectedModal(name);
             } else {
                 sshBadge.innerHTML = '<i class="fa-solid fa-xmark"></i> SSH';
                 sshBadge.style.color = '#e57373';
                 sshBadge.style.borderColor = 'rgba(229,115,115,0.3)';
                 sshBadge.style.cursor = 'pointer';
-                const server = SERVERS.find(s => s.id === serverId);
-                const name = server ? server.name : 'Server';
                 sshBadge.onclick = () => openServerSetupModal(serverId, name);
             }
         }
@@ -817,6 +817,28 @@ async function openServerSetupModal(serverId, serverName) {
 function closeServerSetupModal() {
     document.getElementById('server-setup-modal').classList.remove('visible');
 }
+
+function openSSHConnectedModal(serverName) {
+    const modal = document.getElementById('ssh-connected-modal');
+    const cmdDisplay = document.getElementById('uninstall-command-display');
+
+    // Generate Uninstall Command
+    // wget -qO- <url> | sudo bash -s uninstall
+    const baseUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
+    const scriptUrl = `${baseUrl}/os_helpers/linux_setup.sh`;
+    const cmd = `wget -qO- "${scriptUrl}" | sudo bash -s uninstall`;
+
+    cmdDisplay.innerText = cmd;
+    modal.classList.add('visible');
+}
+
+function closeSSHConnectedModal() {
+    document.getElementById('ssh-connected-modal').classList.remove('visible');
+}
+
+document.getElementById('ssh-connected-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeSSHConnectedModal();
+});
 
 function copyToClipboard(elementId, btn) {
     const el = document.getElementById(elementId);
@@ -1460,7 +1482,7 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
     if (server && (!server.os_type || server.os_type === 'linux')) {
         const sshId = `ssh-badge-${esc(server.id)}`;
         if (server.ssh_initialized) {
-            headerHtml += `<span id="${sshId}" class="badge" style="background:rgba(255,255,255,0.1); color:#81c784; font-size:0.75rem; border:1px solid rgba(76,175,80,0.3);"><i class="fa-solid fa-check"></i> SSH</span>`;
+            headerHtml += `<span id="${sshId}" class="badge" style="background:rgba(255,255,255,0.1); color:#81c784; font-size:0.75rem; border:1px solid rgba(76,175,80,0.3); cursor:pointer;" onclick="openSSHConnectedModal('${esc(serverName)}')"><i class="fa-solid fa-check"></i> SSH</span>`;
         } else {
             headerHtml += `<span id="${sshId}" class="badge" style="background:rgba(255,255,255,0.1); color:#e57373; font-size:0.75rem; border:1px solid rgba(229,115,115,0.3); cursor:pointer;" onclick="openServerSetupModal('${esc(server.id)}', '${esc(serverName)}')"><i class="fa-solid fa-xmark"></i> SSH</span>`;
         }
