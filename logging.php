@@ -1,8 +1,10 @@
 <?php
+require_once 'path_helper.php';
+
 // Simple logging helper
 
 function writeLog($message, $level = 'INFO') {
-    $logFile = 'dashboard.log';
+    $logFile = DATA_DIR . 'dashboard.log';
 
     // Create file if it doesn't exist
     if (!file_exists($logFile)) {
