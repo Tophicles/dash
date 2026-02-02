@@ -2,7 +2,7 @@
 require_once 'auth.php';
 
 // Check if setup is needed
-if (!file_exists('users.json')) {
+if (!file_exists(DATA_DIR . 'users.json')) {
     header('Location: setup.php');
     exit;
 }
