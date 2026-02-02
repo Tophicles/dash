@@ -5,7 +5,7 @@ requireLogin();
 requireAdmin();
 
 header('Content-Type: application/json');
-$serversFile = DATA_DIR . "servers.json";
+$serversFile = DB_DIR . "servers.json";
 $data = json_decode(file_get_contents('php://input'), true);
 
 if(!$data || !isset($data['id'])) { 

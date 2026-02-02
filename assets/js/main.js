@@ -377,9 +377,39 @@ document.getElementById('backup-modal').addEventListener('click', function(e) {
 });
 
 // Download Backup
-document.getElementById('download-backup-btn').addEventListener('click', function() {
-    window.location.href = 'backup.php';
-    logSystemEvent('Backup download initiated');
+document.getElementById('download-backup-btn').addEventListener('click', async function() {
+    const btn = this;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
+
+    try {
+        const res = await fetch('backup.php?action=generate');
+        const data = await res.json();
+
+        if (data.success && data.downloadUrl) {
+            logSystemEvent('Backup generated successfully');
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Done!';
+
+            // Trigger download
+            window.location.href = data.downloadUrl;
+
+            // Reset button after a moment
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }, 3000);
+        } else {
+            showModalAlert('Backup generation failed: ' + esc(data.error));
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    } catch (e) {
+        console.error('Backup error:', e);
+        showModalAlert('Backup failed to generate');
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
 });
 
 // Enable Restore Button
@@ -1643,7 +1673,10 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
         const container = document.getElementById(`js-header-controls-${esc(serverId)}`);
         if (container) {
              if (server.ssh_initialized) {
-                 container.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                 // Only set spinner if empty, to avoid flickering on re-render
+                 if (!container.innerHTML) {
+                     container.innerHTML = '<i class="fa-solid fa-spinner fa-spin" title="Verifying SSH..."></i>';
+                 }
                  fetchServerStatus(serverId);
                  if (typeof fetchServerStats === 'function') fetchServerStats(serverId);
              }

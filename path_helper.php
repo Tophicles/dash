@@ -12,4 +12,24 @@ function getDataDir() {
 if (!defined('DATA_DIR')) {
     define('DATA_DIR', getDataDir());
 }
+
+if (!defined('DB_DIR')) {
+    define('DB_DIR', DATA_DIR . 'db/');
+}
+
+// Ensure DB directory exists
+if (!file_exists(DB_DIR)) {
+    if (!file_exists(DATA_DIR)) {
+        mkdir(DATA_DIR, 0777, true);
+    }
+    mkdir(DB_DIR, 0777, true);
+
+    // Migration: Move existing JSON files to DB_DIR
+    $filesToMove = ['users.json', 'servers.json', 'activity.json', 'watcher_state.json'];
+    foreach ($filesToMove as $file) {
+        if (file_exists(DATA_DIR . $file)) {
+            rename(DATA_DIR . $file, DB_DIR . $file);
+        }
+    }
+}
 ?>

@@ -14,7 +14,7 @@ if (empty($serverName) || (empty($itemId) && empty($path))) {
 }
 
 // Load server configuration
-$serversFile = DATA_DIR . 'servers.json';
+$serversFile = DB_DIR . 'servers.json';
 if (!file_exists($serversFile)) {
     http_response_code(404);
     exit;

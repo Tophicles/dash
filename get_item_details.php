@@ -14,7 +14,7 @@ if (empty($serverName) || empty($itemId)) {
 }
 
 // Load server configuration
-$serversFile = DATA_DIR . 'servers.json';
+$serversFile = DB_DIR . 'servers.json';
 if (!file_exists($serversFile)) {
     echo json_encode(['success' => false, 'error' => 'servers.json not found']);
     exit;

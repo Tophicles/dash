@@ -8,7 +8,7 @@ session_write_close();
 
 header('Content-Type: application/json');
 
-$activityFile = DATA_DIR . 'activity.json';
+$activityFile = DB_DIR . 'activity.json';
 $activeUsers = [];
 
 if (file_exists($activityFile)) {

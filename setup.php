@@ -3,7 +3,7 @@ require_once 'logging.php';
 session_start();
 
 // Check if users.json already exists
-$usersFile = DATA_DIR . 'users.json';
+$usersFile = DB_DIR . 'users.json';
 $setupComplete = file_exists($usersFile);
 
 if ($setupComplete) {
@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         // Initialize servers.json if it doesn't exist
-        $serversFile = DATA_DIR . 'servers.json';
+        $serversFile = DB_DIR . 'servers.json';
         if (!file_exists($serversFile)) {
             $initialServers = [
                 'refreshSeconds' => 5,
@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Initialize activity.json if it doesn't exist
-        $activityFile = DATA_DIR . 'activity.json';
+        $activityFile = DB_DIR . 'activity.json';
         if (!file_exists($activityFile)) {
             file_put_contents($activityFile, '{}');
             @chmod($activityFile, 0666);

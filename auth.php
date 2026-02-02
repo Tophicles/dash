@@ -5,7 +5,7 @@ session_start();
 
 // Load users from JSON file
 function loadUsers() {
-    $usersFile = DATA_DIR . 'users.json';
+    $usersFile = DB_DIR . 'users.json';
     if (!file_exists($usersFile)) {
         // No users file exists, redirect to setup
         if (basename($_SERVER['PHP_SELF']) !== 'setup.php') {
@@ -22,7 +22,7 @@ function loadUsers() {
 
 // Save users to JSON file
 function saveUsers($users) {
-    $usersFile = DATA_DIR . 'users.json';
+    $usersFile = DB_DIR . 'users.json';
     return file_put_contents($usersFile, json_encode($users, JSON_PRETTY_PRINT)) !== false;
 }
 
@@ -71,7 +71,7 @@ function logout() {
 function updateActivity() {
     if (!isLoggedIn()) return;
 
-    $activityFile = DATA_DIR . 'activity.json';
+    $activityFile = DB_DIR . 'activity.json';
     $user = getCurrentUser()['username'];
     $now = time();
 
