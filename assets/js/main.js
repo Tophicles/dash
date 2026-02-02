@@ -1900,15 +1900,15 @@ async function showItemDetails(serverName, itemId, serverType) {
             }
 
             html += `
-                <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; font-family: monospace; font-size: 0.85rem; word-break: break-all; color: #aaa;">
+                <div class="modal-file-info">
                     <div style="margin-bottom: 8px;">
-                        <div style="font-size: 0.7rem; text-transform: uppercase; margin-bottom: 2px; color: #666;">Root Path</div>
-                        ${esc(dir)}
+                        <div class="modal-file-label">Root Path</div>
+                        <span class="modal-file-value">${esc(dir)}</span>
                     </div>
                     ${file ? `
                     <div>
-                        <div style="font-size: 0.7rem; text-transform: uppercase; margin-bottom: 2px; color: #666;">Filename</div>
-                        <span style="color: #aaa;">${esc(file)}</span>
+                        <div class="modal-file-label">Filename</div>
+                        <span class="modal-file-value">${esc(file)}</span>
                     </div>` : ''}
                 </div>
             `;
