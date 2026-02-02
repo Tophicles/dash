@@ -1059,7 +1059,7 @@ body {
     padding: 10px 12px;
   }
   .header-section.center {
-    display: none; /* Hide MENU text on mobile to save space */
+    display: flex; /* Restore clock container */
   }
   .menu-content {
     flex-direction: column;
@@ -1083,12 +1083,12 @@ body {
     flex: 1;
   }
   .user-info {
-    text-align: center;
+    display: none; /* Hide redundant user info/MENU text on mobile */
   }
   .user-desktop { display: none; }
-  .user-mobile { display: inline; font-weight: bold; cursor: pointer; }
+  .user-mobile { display: none; }
   .clock-full { display: none; }
-  .clock-short { display: inline; }
+  .clock-short { display: inline; font-size: 1rem; font-weight: 700; }
 
   /* Modal Responsive */
   .modal-header-new {
