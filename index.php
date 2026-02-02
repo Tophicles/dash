@@ -60,7 +60,7 @@ $isAdmin = isAdmin();
 
 <!-- Server Setup Modal -->
 <div id="server-setup-modal" class="modal">
-  <div class="modal-content" style="max-width: 650px;">
+  <div class="modal-content" style="max-width: 650px; padding: 20px;">
     <span class="modal-close" onclick="closeServerSetupModal()">&times;</span>
     <h2 style="margin-bottom: 20px;">Connect Server via SSH</h2>
 
@@ -82,7 +82,7 @@ $isAdmin = isAdmin();
 
 <!-- SSH Connected Modal -->
 <div id="ssh-connected-modal" class="modal">
-  <div class="modal-content" style="max-width: 600px;">
+  <div class="modal-content" style="max-width: 600px; padding: 20px;">
     <span class="modal-close" onclick="closeSSHConnectedModal()">&times;</span>
     <h2 style="margin-bottom: 20px; color: #81c784;"><i class="fa-solid fa-shield-halved"></i> Secure Connection Active</h2>
 
@@ -112,7 +112,7 @@ $isAdmin = isAdmin();
 
 <!-- SSH Manager Modal -->
 <div id="ssh-modal" class="modal">
-  <div class="modal-content" style="max-width: 600px;">
+  <div class="modal-content" style="max-width: 600px; padding: 20px;">
     <span class="modal-close" onclick="closeSSHModal()">&times;</span>
     <h2 style="margin-bottom: 20px;">SSH Key Management</h2>
 
