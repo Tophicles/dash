@@ -352,6 +352,114 @@ if (IS_ADMIN) {
     });
 }
 
+// Backup & Restore Logic (Admin)
+if (IS_ADMIN) {
+    const backupBtn = document.getElementById('backup-nav-btn');
+    if (backupBtn) {
+        backupBtn.addEventListener('click', openBackupModal);
+    }
+}
+
+function openBackupModal() {
+    document.getElementById('backup-modal').classList.add('visible');
+    // Reset file input and button
+    document.getElementById('restore-file-input').value = '';
+    document.getElementById('restore-backup-btn').disabled = true;
+}
+
+function closeBackupModal() {
+    document.getElementById('backup-modal').classList.remove('visible');
+}
+
+// Close backup modal on outside click
+document.getElementById('backup-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeBackupModal();
+});
+
+// Download Backup
+document.getElementById('download-backup-btn').addEventListener('click', async function() {
+    const btn = this;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
+
+    try {
+        const res = await fetch('backup.php?action=generate');
+        const data = await res.json();
+
+        if (data.success && data.downloadUrl) {
+            logSystemEvent('Backup generated successfully');
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Done!';
+
+            // Trigger download
+            window.location.href = data.downloadUrl;
+
+            // Reset button after a moment
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }, 3000);
+        } else {
+            showModalAlert('Backup generation failed: ' + esc(data.error));
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    } catch (e) {
+        console.error('Backup error:', e);
+        showModalAlert('Backup failed to generate');
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+});
+
+// Enable Restore Button
+const restoreInput = document.getElementById('restore-file-input');
+if (restoreInput) {
+    restoreInput.addEventListener('change', function() {
+        document.getElementById('restore-backup-btn').disabled = !this.files.length;
+    });
+}
+
+// Restore Action
+document.getElementById('restore-backup-btn').addEventListener('click', async function() {
+    const file = restoreInput.files[0];
+    if (!file) return;
+
+    if (!await showModalConfirm('DANGER: This will overwrite all users, servers, and keys.\n\nAre you absolutely sure you want to restore from this backup?')) return;
+
+    const btn = this;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Restoring...';
+
+    const formData = new FormData();
+    formData.append('backup_file', file);
+
+    try {
+        const res = await fetch('backup.php', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            showModalAlert('System Restored Successfully! Reloading...');
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            showModalAlert('Restore Failed: ' + esc(data.error));
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    } catch (e) {
+        console.error(e);
+        showModalAlert('Upload failed: ' + esc(e.message));
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+});
+
 
 // Back button
 document.getElementById('back-btn').addEventListener('click', function() {
@@ -789,7 +897,10 @@ async function openServerSetupModal(serverId, serverName) {
 
     modal.classList.add('visible');
     cmdDisplay.innerHTML = 'Loading...';
+
+    // Reset button state
     verifyBtn.disabled = true;
+    verifyBtn.textContent = 'Verify Connection'; // Reset text to remove spinner
 
     // Fetch Public Key
     try {
@@ -806,6 +917,8 @@ async function openServerSetupModal(serverId, serverName) {
             cmdDisplay.innerText = cmd;
             verifyBtn.disabled = false;
             verifyBtn.onclick = () => deployServerKey(serverId, verifyBtn);
+
+            // Focus verify button if keys are likely already there? No, user might need to copy.
         } else {
             cmdDisplay.innerText = 'Error loading key.';
         }
@@ -1099,7 +1212,6 @@ function toggleSection(labelId, contentSelector) {
 
 // Initialize toggles
 toggleSection('online-users-label', '#online-users .user-list-content');
-toggleSection('dashboard-users-label', '#dashboard-users .user-list-content');
 
 // Top Bar Header Logic
 function updateClock() {
@@ -1132,8 +1244,40 @@ document.getElementById('header-reload-btn').addEventListener('click', function(
     }
 });
 
+// Active Sessions Modal Logic
+const userInfoBtn = document.getElementById('user-info-btn');
+if (userInfoBtn) {
+    userInfoBtn.addEventListener('click', () => {
+        openActiveSessionsModal();
+    });
+}
+
+function openActiveSessionsModal() {
+    const modal = document.getElementById('active-sessions-modal');
+    if (!modal) return;
+    modal.classList.add('visible');
+    fetchDashboardUsers();
+}
+
+function closeActiveSessionsModal() {
+    const modal = document.getElementById('active-sessions-modal');
+    if (modal) modal.classList.remove('visible');
+}
+
+document.getElementById('active-sessions-modal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeActiveSessionsModal();
+});
+
 // Fetch and render dashboard users
 async function fetchDashboardUsers() {
+    const container = document.getElementById("active-sessions-list");
+    if (!container) return;
+
+    // Show loading if empty
+    if (!container.innerHTML.trim()) {
+        container.innerHTML = '<div style="text-align:center; color: #888;">Loading...</div>';
+    }
+
     try {
         const res = await fetch('get_active_users.php?_=' + Date.now());
         if (!res.ok) throw new Error('API Error');
@@ -1141,25 +1285,25 @@ async function fetchDashboardUsers() {
         renderDashboardUsers(data.users || []);
     } catch (e) {
         console.error('Error fetching dashboard users:', e);
+        container.innerHTML = '<div style="text-align:center; color: #ef5350;">Failed to load users</div>';
     }
 }
 
 function renderDashboardUsers(users) {
-    const container = document.querySelector("#dashboard-users .user-list-content");
+    const container = document.getElementById("active-sessions-list");
     if (!container) return;
 
     if (!users || users.length === 0) {
-        container.innerHTML = '<span style="color:var(--muted);font-size:0.9rem;">No users active</span>';
+        container.innerHTML = '<div style="text-align:center; color:var(--muted);">No users active</div>';
         return;
     }
 
     container.innerHTML = '';
     users.forEach(user => {
-        const badge = document.createElement('div');
-        badge.className = 'online-user-badge';
-        badge.style.background = '#2196f3'; // Different color for dashboard users
-        badge.innerHTML = `<i class="fa-solid fa-user"></i> ${esc(user)}`;
-        container.appendChild(badge);
+        const item = document.createElement('div');
+        item.style.cssText = 'background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 6px; display: flex; align-items: center; gap: 10px; border: 1px solid rgba(255,255,255,0.1);';
+        item.innerHTML = `<i class="fa-solid fa-user" style="color: #2196f3;"></i> <span style="font-weight: 500;">${esc(user)}</span>`;
+        container.appendChild(item);
     });
 }
 
@@ -1171,7 +1315,6 @@ function renderServerGrid() {
 
     try {
         renderOnlineUsers(query);
-        fetchDashboardUsers();
     } catch(e) {
         console.error("Error in user rendering:", e);
     }
@@ -1259,8 +1402,11 @@ function renderServerGrid() {
         else if (server.os_type === 'macos') osIcon = 'fa-apple';
         else if (server.os_type === 'other') osIcon = 'fa-server';
 
+        // Drag Handle (Always included if admin, CSS controls visibility)
+        const dragHandleHtml = IS_ADMIN ? '<div class="drag-handle"><i class="fa-solid fa-bars"></i></div>' : '';
+
         card.innerHTML = `
-            ${dragHandle}
+            ${dragHandleHtml}
             <div class="server-name">${esc(server.name)}</div>
             ${server.version ? `
                 <div class="server-version">
@@ -1565,7 +1711,10 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
         const container = document.getElementById(`js-header-controls-${esc(serverId)}`);
         if (container) {
              if (server.ssh_initialized) {
-                 container.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                 // Only set spinner if empty, to avoid flickering on re-render
+                 if (!container.innerHTML) {
+                     container.innerHTML = '<i class="fa-solid fa-spinner fa-spin" title="Verifying SSH..."></i>';
+                 }
                  fetchServerStatus(serverId);
                  if (typeof fetchServerStats === 'function') fetchServerStats(serverId);
              }
@@ -1633,18 +1782,6 @@ if (serverSearch) {
     });
 }
 
-// Toggle reorder mode (admin only)
-if (IS_ADMIN) {
-    document.getElementById('reorder-btn').addEventListener('click', function() {
-        reorderMode = !reorderMode;
-        this.classList.toggle('active');
-        this.textContent = reorderMode ? 'Done' : 'Reorder';
-
-        // Re-render to update drag handles
-        renderServerGrid();
-    });
-
-}
 
 // Drag and Drop handlers
 let draggedCard = null;
@@ -2724,14 +2861,17 @@ function initTheme() {
 
     function updateThemeIcon(theme) {
         const icon = themeToggleBtn.querySelector('i');
+        const text = themeToggleBtn.querySelector('span');
         if (theme === 'light') {
-            icon.className = 'fa-solid fa-sun';
-            themeToggleBtn.title = 'Switch to Dark Mode';
-            icon.style.color = '#ffa726'; // Orange-ish sun
+            // Current is Light, show option to switch to Dark
+            icon.className = 'fa-solid fa-moon'; // Icon for target (Dark)
+            if (text) text.textContent = 'Dark Mode';
+            icon.style.color = '';
         } else {
-            icon.className = 'fa-solid fa-moon';
-            themeToggleBtn.title = 'Switch to Light Mode';
-            icon.style.color = ''; // Reset
+            // Current is Dark, show option to switch to Light
+            icon.className = 'fa-solid fa-sun'; // Icon for target (Light)
+            if (text) text.textContent = 'Light Mode';
+            icon.style.color = '#ffa726'; // Orange-ish sun
         }
     }
 
@@ -2749,5 +2889,139 @@ function initTheme() {
     });
 }
 
-// Initialize Theme
-initTheme();
+// Initialize UI Elements (Theme, Menu, Listeners)
+document.addEventListener('DOMContentLoaded', () => {
+    // Theme Toggle Logic
+    initTheme();
+
+    // Menu Dropdown Logic
+    const menuBtn = document.getElementById('menu-toggle-btn');
+    const menuDropdown = document.getElementById('menu-dropdown');
+
+    if (menuBtn && menuDropdown) {
+        // Toggle on click
+        menuBtn.onclick = function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            menuDropdown.classList.toggle('visible');
+        };
+
+        // Close on outside click
+        document.addEventListener('click', (e) => {
+            if (menuDropdown.classList.contains('visible') && !menuDropdown.contains(e.target) && !menuBtn.contains(e.target)) {
+                menuDropdown.classList.remove('visible');
+            }
+        });
+    } else {
+        console.error('Menu elements not found:', { btn: menuBtn, dropdown: menuDropdown });
+    }
+
+    // Bind Menu Items to Functions
+    // Re-bind IDs that were moved from buttons to divs
+    if (typeof IS_ADMIN !== 'undefined' && IS_ADMIN) {
+        const toggleFormBtn = document.getElementById('toggle-form');
+        if (toggleFormBtn) {
+            toggleFormBtn.addEventListener('click', () => {
+                openServerModal(false);
+                if (menuDropdown) menuDropdown.classList.remove('visible');
+            });
+        }
+
+        const reorderBtn = document.getElementById('reorder-btn');
+        if (reorderBtn) {
+            reorderBtn.addEventListener('click', function() {
+                reorderMode = !reorderMode;
+
+                // Update text/style
+                // 'this' refers to the clicked element (div.menu-item), so we search inside it
+                const span = this.querySelector('span');
+                const icon = this.querySelector('i');
+
+                if (span) span.textContent = reorderMode ? 'Done Reordering' : 'Reorder Servers';
+                if (icon) icon.className = reorderMode ? 'fa-solid fa-check' : 'fa-solid fa-sort';
+
+                renderServerGrid();
+
+                // Close menu to allow interaction with grid
+                if (menuDropdown) menuDropdown.classList.remove('visible');
+            });
+        }
+
+        const usersBtn = document.getElementById('users-btn');
+        if (usersBtn) {
+            usersBtn.addEventListener('click', () => {
+                openUsersModal();
+                if (menuDropdown) menuDropdown.classList.remove('visible');
+            });
+        }
+
+        const sshBtn = document.getElementById('ssh-keys-nav-btn');
+        if (sshBtn) {
+            sshBtn.addEventListener('click', () => {
+                openSSHModal();
+                if (menuDropdown) menuDropdown.classList.remove('visible');
+            });
+        }
+
+        const backupBtn = document.getElementById('backup-nav-btn');
+        if (backupBtn) {
+            backupBtn.addEventListener('click', () => {
+                openBackupModal();
+                if (menuDropdown) menuDropdown.classList.remove('visible');
+            });
+        }
+
+        const panicBtn = document.getElementById('panic-btn');
+        if (panicBtn) {
+            panicBtn.addEventListener('click', async () => {
+                if (menuDropdown) menuDropdown.classList.remove('visible');
+
+                // First Confirmation
+                if (!await showModalConfirm(
+                    '<span style="color:#ef5350; font-weight:bold;">WARNING: FACTORY RESET</span><br><br>' +
+                    'This will <strong>permanently wipe ALL data</strong> including:<br>' +
+                    '• User Accounts<br>' +
+                    '• Server Configurations<br>' +
+                    '• SSH Keys<br>' +
+                    '• System Logs<br><br>' +
+                    'This action is <strong>IRREVOCABLE</strong>.<br>' +
+                    'It is highly recommended to download a backup first.<br><br>' +
+                    'Do you want to proceed?',
+                    'System Panic'
+                )) return;
+
+                // Second Confirmation
+                if (!await showModalConfirm(
+                    '<span style="color:#ef5350; font-weight:bold;">FINAL CONFIRMATION</span><br><br>' +
+                    'Are you absolutely sure?<br>' +
+                    'Typing "yes" is not required, but you must click Confirm to trigger the wipe.<br>' +
+                    'The system will be reset to factory defaults immediately.',
+                    'Irrevocable Action'
+                )) return;
+
+                // Execute Reset
+                try {
+                    // Show a "Wiping..." alert or just loading state
+                    // We can reuse showModalAlert but we want it to persist until redirect
+                    // So let's manually show a loading state on the body or just alert
+
+                    const res = await fetch('reset.php', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ confirmed: true })
+                    });
+                    const data = await res.json();
+
+                    if (data.success) {
+                        alert('System Reset Complete. Redirecting to setup...');
+                        window.location.reload();
+                    } else {
+                        showModalAlert('Reset Failed: ' + esc(data.error));
+                    }
+                } catch (e) {
+                    showModalAlert('Reset Request Failed: ' + e.message);
+                }
+            });
+        }
+    }
+});
