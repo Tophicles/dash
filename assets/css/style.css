@@ -537,6 +537,7 @@ body {
   overflow-y: auto;
   position: relative;
   animation: slideUp 0.3s;
+  padding: 20px;
 }
 @keyframes slideUp {
   from { transform: translateY(50px); opacity: 0; }
@@ -558,7 +559,7 @@ body {
   color: var(--text);
 }
 #modal-body {
-  padding: 20px;
+  /* padding handled by modal-content */
 }
 .modal-header {
   display: flex;
