@@ -93,8 +93,19 @@ install_user() {
     echo "   MultiDash Linux Server Setup (Install) "
     echo "=========================================="
 
-    echo "Paste SSH public key:"
-    read -r PUB_KEY
+    # Accept key as argument $2, or read from input
+    PUB_KEY="${2:-}"
+
+    if [ -z "$PUB_KEY" ]; then
+        if [ -t 0 ]; then
+            echo "Paste SSH public key:"
+            read -r PUB_KEY
+        else
+            echo "❌ Public key not provided."
+            echo "Usage: curl ... | sudo bash -s install \"ssh-rsa ...\""
+            exit 1
+        fi
+    fi
 
     if [ -z "$PUB_KEY" ]; then
         echo "❌ Public key cannot be empty."
@@ -151,7 +162,7 @@ uninstall_user() {
 # Main
 ########################################
 case "${1:-}" in
-    install) install_user ;;
+    install) install_user "$@" ;;
     uninstall) uninstall_user ;;
     *)
         echo "Usage: sudo ./linux_setup.sh [install|uninstall]"
