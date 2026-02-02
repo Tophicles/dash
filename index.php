@@ -58,6 +58,58 @@ $isAdmin = isAdmin();
   </div>
 </div>
 
+<!-- Server Setup Modal -->
+<div id="server-setup-modal" class="modal">
+  <div class="modal-content" style="max-width: 650px;">
+    <span class="modal-close" onclick="closeServerSetupModal()">&times;</span>
+    <h2 style="margin-bottom: 20px;">Connect Server via SSH</h2>
+
+    <div style="background: rgba(33, 150, 243, 0.1); border: 1px solid rgba(33, 150, 243, 0.3); padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+      <label style="color: #64b5f6; font-weight: bold; margin-bottom: 8px; display: block;">Setup Command</label>
+      <div style="font-size: 0.85rem; color: #ccc; margin-bottom: 8px;">Run this unified command on your <strong>Linux</strong> media server to install the agent and authorized key:</div>
+      <div style="background: #111; padding: 10px; border-radius: 4px; border: 1px solid #333; font-family: monospace; font-size: 0.8rem; word-break: break-all; margin-bottom: 8px; color: #eee;" id="setup-command-display">
+        Loading command...
+      </div>
+      <button class="btn" onclick="copyToClipboard('setup-command-display', this)">Copy Command</button>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
+      <button class="btn" onclick="closeServerSetupModal()">Close</button>
+      <button class="btn primary" id="setup-verify-btn">Verify Connection</button>
+    </div>
+  </div>
+</div>
+
+<!-- SSH Connected Modal -->
+<div id="ssh-connected-modal" class="modal">
+  <div class="modal-content" style="max-width: 600px;">
+    <span class="modal-close" onclick="closeSSHConnectedModal()">&times;</span>
+    <h2 style="margin-bottom: 20px; color: #81c784;"><i class="fa-solid fa-shield-halved"></i> Secure Connection Active</h2>
+
+    <div style="margin-bottom: 20px; line-height: 1.6; color: #ccc;">
+      <p style="margin-bottom: 10px;">This server is connected using a dedicated SSH key pair (<code>mediasvc</code> user). This method is secure because:</p>
+      <ul style="list-style: disc; margin-left: 20px; color: #aaa; font-size: 0.9rem;">
+        <li>No passwords are stored or transmitted.</li>
+        <li>The connection is restricted to specific commands (updates, restarts, stats) via <code>sudoers</code>.</li>
+        <li>Interactive login for this user is disabled.</li>
+      </ul>
+    </div>
+
+    <div style="background: rgba(211, 47, 47, 0.1); border: 1px solid rgba(211, 47, 47, 0.3); padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+      <label style="color: #e57373; font-weight: bold; margin-bottom: 8px; display: block;">Uninstall / Disconnect</label>
+      <div style="font-size: 0.85rem; color: #ccc; margin-bottom: 8px;">To remove the dashboard agent and revoke access, run this command on your server:</div>
+      <div style="background: #111; padding: 10px; border-radius: 4px; border: 1px solid #333; font-family: monospace; font-size: 0.8rem; word-break: break-all; margin-bottom: 8px; color: #eee;" id="uninstall-command-display">
+        Loading command...
+      </div>
+      <button class="btn" onclick="copyToClipboard('uninstall-command-display', this)">Copy Command</button>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+      <button class="btn" onclick="closeSSHConnectedModal()">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- SSH Manager Modal -->
 <div id="ssh-modal" class="modal">
   <div class="modal-content" style="max-width: 600px;">
@@ -119,7 +171,7 @@ $isAdmin = isAdmin();
 
 <!-- Sessions View -->
 <div id="sessions-view" class="view-container">
-  <button class="back-btn" id="back-btn">← Back to Servers</button>
+  <button class="back-btn" id="back-btn"><i class="fa-solid fa-arrow-left"></i> Back to Servers</button>
   <div id="server-title"></div>
   <div id="server-stats" style="text-align:center; color:var(--muted); font-size:0.9rem; margin-bottom:10px; display:none; font-family: monospace;"></div>
   <div id="server-libraries-container" style="margin-bottom:16px; display:none;"></div>
