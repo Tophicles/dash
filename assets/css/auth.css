@@ -142,3 +142,32 @@ h1 {
 .info-box li {
   margin: 5px 0;
 }
+
+/* File Picker Styles (Shared with Setup) */
+.file-input {
+    display: none;
+}
+.file-label {
+    display: block;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    text-align: center;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px dashed #666;
+    transition: all 0.2s;
+    color: #ddd;
+    font-weight: normal;
+}
+.file-label:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: #aaa;
+}
+.file-name {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: #4caf50;
+    text-align: center;
+    font-family: monospace;
+    min-height: 1em;
+}
