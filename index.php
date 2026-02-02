@@ -24,7 +24,7 @@ $isAdmin = isAdmin();
       <div id="header-reload-btn" title="Reload Dashboard" style="cursor: pointer;">
         <span class="header-badge">Home</span>
       </div>
-      <span class="user-info">
+      <span class="user-info" id="user-info-btn" style="cursor: pointer;" title="Show Active Users">
         <span class="user-desktop"><i class="fa-solid fa-user"></i> <?php echo htmlspecialchars(ucwords($user['username'])); ?> (<?php echo htmlspecialchars($user['role']); ?>)</span>
         <span class="user-mobile">MENU</span>
       </span>
@@ -175,12 +175,6 @@ $isAdmin = isAdmin();
         <span style="color:var(--muted);font-size:0.9rem;">No users online</span>
       </div>
     </div>
-    <div id="dashboard-users" class="online-users">
-      <div class="list-label" id="dashboard-users-label">Dashboard Users +</div>
-      <div class="user-list-content hidden">
-        <span style="color:var(--muted);font-size:0.9rem;">Loading...</span>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -195,6 +189,20 @@ $isAdmin = isAdmin();
     <input type="text" id="session-search" placeholder="Filter sessions...">
   </div>
   <div id="sessions" class="session-grid"></div>
+</div>
+
+<!-- Active Sessions Modal -->
+<div id="active-sessions-modal" class="modal">
+  <div class="modal-content" style="max-width: 400px;">
+    <span class="modal-close" onclick="closeActiveSessionsModal()">&times;</span>
+    <h2 style="margin-bottom: 20px;">Active Dashboard Users</h2>
+    <div id="active-sessions-list" style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="text-align:center; color: #888;">Loading...</div>
+    </div>
+    <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+        <button class="btn" onclick="closeActiveSessionsModal()">Close</button>
+    </div>
+  </div>
 </div>
 
 <!-- Modal for Add/Edit Server -->

@@ -1212,7 +1212,6 @@ function toggleSection(labelId, contentSelector) {
 
 // Initialize toggles
 toggleSection('online-users-label', '#online-users .user-list-content');
-toggleSection('dashboard-users-label', '#dashboard-users .user-list-content');
 
 // Top Bar Header Logic
 function updateClock() {
@@ -1245,8 +1244,40 @@ document.getElementById('header-reload-btn').addEventListener('click', function(
     }
 });
 
+// Active Sessions Modal Logic
+const userInfoBtn = document.getElementById('user-info-btn');
+if (userInfoBtn) {
+    userInfoBtn.addEventListener('click', () => {
+        openActiveSessionsModal();
+    });
+}
+
+function openActiveSessionsModal() {
+    const modal = document.getElementById('active-sessions-modal');
+    if (!modal) return;
+    modal.classList.add('visible');
+    fetchDashboardUsers();
+}
+
+function closeActiveSessionsModal() {
+    const modal = document.getElementById('active-sessions-modal');
+    if (modal) modal.classList.remove('visible');
+}
+
+document.getElementById('active-sessions-modal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeActiveSessionsModal();
+});
+
 // Fetch and render dashboard users
 async function fetchDashboardUsers() {
+    const container = document.getElementById("active-sessions-list");
+    if (!container) return;
+
+    // Show loading if empty
+    if (!container.innerHTML.trim()) {
+        container.innerHTML = '<div style="text-align:center; color: #888;">Loading...</div>';
+    }
+
     try {
         const res = await fetch('get_active_users.php?_=' + Date.now());
         if (!res.ok) throw new Error('API Error');
@@ -1254,25 +1285,25 @@ async function fetchDashboardUsers() {
         renderDashboardUsers(data.users || []);
     } catch (e) {
         console.error('Error fetching dashboard users:', e);
+        container.innerHTML = '<div style="text-align:center; color: #ef5350;">Failed to load users</div>';
     }
 }
 
 function renderDashboardUsers(users) {
-    const container = document.querySelector("#dashboard-users .user-list-content");
+    const container = document.getElementById("active-sessions-list");
     if (!container) return;
 
     if (!users || users.length === 0) {
-        container.innerHTML = '<span style="color:var(--muted);font-size:0.9rem;">No users active</span>';
+        container.innerHTML = '<div style="text-align:center; color:var(--muted);">No users active</div>';
         return;
     }
 
     container.innerHTML = '';
     users.forEach(user => {
-        const badge = document.createElement('div');
-        badge.className = 'online-user-badge';
-        badge.style.background = '#2196f3'; // Different color for dashboard users
-        badge.innerHTML = `<i class="fa-solid fa-user"></i> ${esc(user)}`;
-        container.appendChild(badge);
+        const item = document.createElement('div');
+        item.style.cssText = 'background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 6px; display: flex; align-items: center; gap: 10px; border: 1px solid rgba(255,255,255,0.1);';
+        item.innerHTML = `<i class="fa-solid fa-user" style="color: #2196f3;"></i> <span style="font-weight: 500;">${esc(user)}</span>`;
+        container.appendChild(item);
     });
 }
 
@@ -1284,7 +1315,6 @@ function renderServerGrid() {
 
     try {
         renderOnlineUsers(query);
-        fetchDashboardUsers();
     } catch(e) {
         console.error("Error in user rendering:", e);
     }
