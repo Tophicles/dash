@@ -1367,8 +1367,11 @@ function renderServerGrid() {
         else if (server.os_type === 'macos') osIcon = 'fa-apple';
         else if (server.os_type === 'other') osIcon = 'fa-server';
 
+        // Drag Handle (Always included if admin, CSS controls visibility)
+        const dragHandleHtml = IS_ADMIN ? '<div class="drag-handle"><i class="fa-solid fa-bars"></i></div>' : '';
+
         card.innerHTML = `
-            ${dragHandle}
+            ${dragHandleHtml}
             <div class="server-name">${esc(server.name)}</div>
             ${server.version ? `
                 <div class="server-version">
@@ -1744,18 +1747,6 @@ if (serverSearch) {
     });
 }
 
-// Toggle reorder mode (admin only)
-if (IS_ADMIN) {
-    document.getElementById('reorder-btn').addEventListener('click', function() {
-        reorderMode = !reorderMode;
-        this.classList.toggle('active');
-        this.textContent = reorderMode ? 'Done' : 'Reorder';
-
-        // Re-render to update drag handles
-        renderServerGrid();
-    });
-
-}
 
 // Drag and Drop handlers
 let draggedCard = null;
@@ -2905,17 +2896,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (reorderBtn) {
             reorderBtn.addEventListener('click', function() {
                 reorderMode = !reorderMode;
+
                 // Update text/style
+                // 'this' refers to the clicked element (div.menu-item), so we search inside it
                 const span = this.querySelector('span');
                 const icon = this.querySelector('i');
+
                 if (span) span.textContent = reorderMode ? 'Done Reordering' : 'Reorder Servers';
                 if (icon) icon.className = reorderMode ? 'fa-solid fa-check' : 'fa-solid fa-sort';
 
                 renderServerGrid();
 
-                // If starting reorder, keep menu open? No, close it so user can drag.
-                // But if stopping (Done), maybe irrelevant.
-                // Let's close it always for consistent UX.
+                // Close menu to allow interaction with grid
                 if (menuDropdown) menuDropdown.classList.remove('visible');
             });
         }
