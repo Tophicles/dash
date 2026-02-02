@@ -784,12 +784,10 @@ function pollServerStatus(serverId) {
 
 async function openServerSetupModal(serverId, serverName) {
     const modal = document.getElementById('server-setup-modal');
-    const keyDisplay = document.getElementById('setup-ssh-key');
     const cmdDisplay = document.getElementById('setup-command-display');
     const verifyBtn = document.getElementById('setup-verify-btn');
 
     modal.classList.add('visible');
-    keyDisplay.value = 'Loading key...';
     cmdDisplay.innerHTML = 'Loading...';
     verifyBtn.disabled = true;
 
@@ -798,8 +796,6 @@ async function openServerSetupModal(serverId, serverName) {
         const res = await fetch('ssh_manager.php?action=get_public_key');
         const data = await res.json();
         if (data.success && data.key) {
-            keyDisplay.value = data.key;
-
             // Build One-Liner Command
             // wget -O - <url> | sudo bash -s install
             const baseUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
@@ -811,10 +807,10 @@ async function openServerSetupModal(serverId, serverName) {
             verifyBtn.disabled = false;
             verifyBtn.onclick = () => deployServerKey(serverId, verifyBtn);
         } else {
-            keyDisplay.value = 'Error loading key.';
+            cmdDisplay.innerText = 'Error loading key.';
         }
     } catch (e) {
-        keyDisplay.value = 'Network Error.';
+        cmdDisplay.innerText = 'Network Error.';
     }
 }
 
@@ -872,6 +868,7 @@ async function deployServerKey(serverId, btn) {
 
             // Refresh UI
             fetchServerStatus(serverId);
+            fetchServerStats(serverId);
             closeServerSetupModal();
             showModalAlert('SSH Connection Verified! Controls enabled.');
         } else {
