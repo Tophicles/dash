@@ -29,30 +29,19 @@ $isAdmin = isAdmin();
         <span class="user-mobile">MENU</span>
       </span>
     </div>
-    <div class="header-section center" id="menu-toggle-label">
-      MENU +
+    <div class="header-section center">
+      <span class="header-badge" id="header-clock">--:--</span>
     </div>
     <div class="header-section right" id="header-clock-btn">
       <button class="btn header-btn" id="theme-toggle-btn" title="Toggle Theme"><i class="fa-solid fa-moon"></i></button>
       <?php if ($isAdmin): ?>
+      <button class="btn header-btn primary" id="toggle-form" title="Add Server"><i class="fa-solid fa-plus"></i> <span class="btn-text">Add</span></button>
+      <button class="btn header-btn" id="reorder-btn" title="Toggle Reorder Mode"><i class="fa-solid fa-sort"></i> <span class="btn-text">Reorder</span></button>
+      <button class="btn header-btn" id="users-btn" title="Manage Users"><i class="fa-solid fa-users"></i> <span class="btn-text">Users</span></button>
       <button class="btn header-btn" id="ssh-keys-nav-btn" title="SSH Key Manager"><i class="fa-solid fa-key"></i> <span class="btn-text">Keys</span></button>
       <button class="btn header-btn" id="logs-btn" title="View System Logs" onclick="window.open('view_logs.php', 'SystemLogs')"><i class="fa-solid fa-file-lines"></i> <span class="btn-text">Logs</span></button>
       <?php endif; ?>
       <button class="btn danger header-btn" onclick="window.location.href='logout.php'"><i class="fa-solid fa-right-from-bracket"></i> <span class="btn-text">Logout</span></button>
-      <span class="header-badge" id="header-clock">--:--</span>
-    </div>
-  </div>
-  <div id="menu-content" class="menu-content hidden">
-    <div class="top-bar-left">
-      <?php if ($isAdmin): ?>
-      <button class="btn primary" id="toggle-form">Add Server</button>
-      <?php endif; ?>
-    </div>
-    <div class="top-bar-right">
-      <?php if ($isAdmin): ?>
-      <button class="btn" id="reorder-btn" title="Toggle Reorder Mode">Reorder</button>
-      <button class="btn" id="users-btn" title="Manage Users">Users</button>
-      <?php endif; ?>
     </div>
   </div>
 </div>

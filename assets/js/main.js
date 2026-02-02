@@ -1132,14 +1132,6 @@ document.getElementById('header-reload-btn').addEventListener('click', function(
     }
 });
 
-document.getElementById('menu-header').addEventListener('click', function() {
-    const content = document.getElementById('menu-content');
-    const label = document.getElementById('menu-toggle-label');
-    content.classList.toggle('hidden');
-    const isHidden = content.classList.contains('hidden');
-    label.textContent = 'MENU ' + (isHidden ? '+' : '-');
-});
-
 // Fetch and render dashboard users
 async function fetchDashboardUsers() {
     try {

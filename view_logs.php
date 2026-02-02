@@ -125,10 +125,29 @@ if (isset($_GET['fetch'])) {
     function formatLine(line) {
         if (!line.trim()) return '';
         // Parse standard format: [TIMESTAMP] [LEVEL] Message
+        // PHP date format Y-m-d H:i:s is parseable by JS Date if we add 'T' or let constructor handle it (often works)
+        // But for cross-browser safety, let's treat it as UTC if server is UTC, or just assume server time.
+        // Actually, easiest is to let JS parse it.
         const match = line.match(/^\[(.*?)\] \[(.*?)\] (.*)$/);
         if (match) {
             const [_, ts, level, msg] = match;
-            return `<div class="log-line" data-level="${level}"><span class="timestamp">${ts}</span><span class="level-${level}">[${level}]</span> ${esc(msg)}</div>`;
+
+            // Convert to local time
+            // Assuming log timestamp is in YYYY-MM-DD HH:MM:SS format
+            // We append 'Z' to treat it as UTC if we assume server is UTC.
+            // If server is NOT UTC, this might shift it.
+            // However, most servers log in UTC. Let's try parsing it.
+            let localTime = ts;
+            try {
+                // PHP log: 2023-10-27 10:00:00
+                // We assume this is UTC to fix the offset issue
+                const date = new Date(ts + 'Z');
+                if (!isNaN(date.getTime())) {
+                    localTime = date.toLocaleString();
+                }
+            } catch (e) {}
+
+            return `<div class="log-line" data-level="${level}"><span class="timestamp">${localTime}</span><span class="level-${level}">[${level}]</span> ${esc(msg)}</div>`;
         }
         return `<div class="log-line">${esc(line)}</div>`;
     }
