@@ -1299,10 +1299,18 @@ function renderDashboardUsers(users) {
     }
 
     container.innerHTML = '';
-    users.forEach(user => {
+    users.forEach(u => {
+        // Handle both string (old API) and object (new API) formats for robustness
+        const username = typeof u === 'string' ? u : u.username;
+        const role = typeof u === 'object' && u.role ? u.role : 'viewer';
+
+        const roleBadge = role === 'admin'
+            ? '<span style="background:#4caf50; color:white; padding:2px 6px; border-radius:4px; font-size:0.65rem; font-weight:700; margin-left:auto; text-transform:uppercase;">ADMIN</span>'
+            : '<span style="background:#546e7a; color:white; padding:2px 6px; border-radius:4px; font-size:0.65rem; font-weight:700; margin-left:auto; text-transform:uppercase;">VIEWER</span>';
+
         const item = document.createElement('div');
         item.style.cssText = 'background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 6px; display: flex; align-items: center; gap: 10px; border: 1px solid rgba(255,255,255,0.1);';
-        item.innerHTML = `<i class="fa-solid fa-user" style="color: #2196f3;"></i> <span style="font-weight: 500;">${esc(user)}</span>`;
+        item.innerHTML = `<i class="fa-solid fa-user" style="color: #2196f3;"></i> <span style="font-weight: 500;">${esc(username)}</span> ${roleBadge}`;
         container.appendChild(item);
     });
 }
