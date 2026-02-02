@@ -50,6 +50,11 @@ body {
 .header-section {
   display: flex;
   align-items: center;
+  gap: 10px;
+}
+.header-btn {
+  padding: 4px 10px;
+  font-size: 0.85rem;
 }
 .header-section.center {
   font-size: 0.75rem;
@@ -909,6 +914,9 @@ body {
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
+  .header-btn .btn-text {
+    display: none;
+  }
   .server-header-enhanced {
     flex-direction: column;
     gap: 12px;
