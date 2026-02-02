@@ -33,6 +33,7 @@ $isAdmin = isAdmin();
       MENU +
     </div>
     <div class="header-section right" id="header-clock-btn">
+      <button class="btn header-btn" id="theme-toggle-btn" title="Toggle Theme"><i class="fa-solid fa-moon"></i></button>
       <?php if ($isAdmin): ?>
       <button class="btn header-btn" id="logs-btn" title="View System Logs" onclick="window.open('view_logs.php', 'SystemLogs')"><i class="fa-solid fa-file-lines"></i> <span class="btn-text">Logs</span></button>
       <?php endif; ?>
