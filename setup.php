@@ -3,7 +3,7 @@ require_once 'logging.php';
 session_start();
 
 // Check if users.json already exists
-$usersFile = 'users.json';
+$usersFile = DATA_DIR . 'users.json';
 $setupComplete = file_exists($usersFile);
 
 if ($setupComplete) {
@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         // Initialize servers.json if it doesn't exist
-        $serversFile = 'servers.json';
+        $serversFile = DATA_DIR . 'servers.json';
         if (!file_exists($serversFile)) {
             $initialServers = [
                 'refreshSeconds' => 5,
@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Initialize activity.json if it doesn't exist
-        $activityFile = 'activity.json';
+        $activityFile = DATA_DIR . 'activity.json';
         if (!file_exists($activityFile)) {
             file_put_contents($activityFile, '{}');
             @chmod($activityFile, 0666);
@@ -77,11 +77,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Redirect to dashboard after 2 seconds
                 header('Refresh: 2; URL=index.php');
             } else {
-                $error = 'File write succeeded but file does not exist. Path: ' . realpath('.') . '/' . $usersFile;
+                $error = 'File write succeeded but file does not exist. Path: ' . $usersFile;
                 writeLog("Setup Error: $error", "ERROR");
             }
         } else {
-            $error = 'Failed to write to users.json. Directory: ' . realpath('.') . ' - Check permissions.';
+            $error = 'Failed to write to users.json. Directory: ' . DATA_DIR . ' - Check permissions.';
             writeLog("Setup Error: $error", "ERROR");
         }
     }
