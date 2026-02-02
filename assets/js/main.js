@@ -718,7 +718,12 @@ async function fetchServerStatus(serverId) {
                     `;
                 }
             } else {
-                container.innerHTML = `<span style="font-size:0.8rem; color:red;" title="${esc(data.error)}">Error</span>`;
+                container.innerHTML = ''; // Clear controls
+                const statsEl = document.getElementById('server-stats');
+                if (statsEl) {
+                    statsEl.style.display = 'block';
+                    statsEl.innerHTML = '<div style="color:var(--muted); font-size:0.9rem; padding:15px; background:rgba(255,255,255,0.05); border-radius:6px; margin-top:10px;"><i class="fa-solid fa-triangle-exclamation" style="color:#e57373;"></i> Server controls and statistics depend on SSH setup.</div>';
+                }
             }
         });
     } catch (e) {
@@ -800,7 +805,7 @@ async function openServerSetupModal(serverId, serverName) {
             const baseUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
             const scriptUrl = `${baseUrl}/os_helpers/linux_setup.sh`;
             // Safe command to display
-            const cmd = `wget -qO- "${scriptUrl}" | sudo bash -s install`;
+            const cmd = `wget -qO- "${scriptUrl}" | sudo bash -s install "${data.key}"`;
 
             cmdDisplay.innerText = cmd;
             verifyBtn.disabled = false;
