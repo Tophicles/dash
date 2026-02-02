@@ -1,7 +1,8 @@
 <?php
 require_once 'logging.php';
+require_once 'path_helper.php';
 
-define('SSH_KEY_DIR', __DIR__ . '/keys');
+define('SSH_KEY_DIR', DATA_DIR . 'keys');
 define('SSH_PRIVATE_KEY_PATH', SSH_KEY_DIR . '/id_rsa');
 define('SSH_PUBLIC_KEY_PATH', SSH_PRIVATE_KEY_PATH . '.pub');
 
