@@ -5,7 +5,7 @@ requireAdmin();
 // AJAX request to fetch logs
 if (isset($_GET['fetch'])) {
     header('Content-Type: text/plain');
-    $logFile = 'dashboard.log';
+    $logFile = DATA_DIR . 'dashboard.log';
     if (file_exists($logFile)) {
         // Efficiently read last 20KB
         $fp = fopen($logFile, 'r');
