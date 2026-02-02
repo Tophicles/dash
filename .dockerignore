@@ -12,3 +12,4 @@ watcher_state.json
 dashboard.log
 key.php
 keys/
+db/
