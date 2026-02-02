@@ -3021,8 +3021,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const data = await res.json();
 
                     if (data.success) {
-                        alert('System Reset Complete. Redirecting to setup...');
-                        window.location.reload();
+                        showModalAlert('System Reset Complete. Redirecting to setup...');
+                        setTimeout(() => window.location.reload(), 3000);
                     } else {
                         showModalAlert('Reset Failed: ' + esc(data.error));
                     }
