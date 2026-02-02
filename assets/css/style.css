@@ -58,7 +58,9 @@ body {
   border: 1px solid var(--border);
   border-radius: 8px;
   margin-bottom: 20px;
-  overflow: hidden;
+  /* Removed overflow: hidden to allow dropdowns to spill out */
+  position: relative;
+  z-index: 100;
 }
 .top-bar-header {
   display: flex;
@@ -222,18 +224,19 @@ body {
   display: none;
   position: absolute;
   right: 0;
-  top: 40px; /* Below button */
+  top: 100%; /* Below button */
+  margin-top: 8px;
   background-color: var(--card);
   min-width: 220px;
   box-shadow: 0 8px 16px rgba(0,0,0,0.4);
   border: 1px solid var(--border);
   border-radius: 8px;
-  z-index: 2000;
+  z-index: 9999; /* Ensure it's on top of everything */
   padding: 8px 0;
   animation: fadeIn 0.2s;
 }
 .menu-dropdown.visible {
-  display: block;
+  display: block !important; /* Force visibility */
 }
 .menu-item {
   padding: 10px 16px;

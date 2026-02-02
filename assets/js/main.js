@@ -2838,18 +2838,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const menuDropdown = document.getElementById('menu-dropdown');
 
     if (menuBtn && menuDropdown) {
-        menuBtn.addEventListener('click', (e) => {
+        // Toggle on click
+        menuBtn.onclick = function(e) {
             e.stopPropagation();
-            // Ensure we are toggling on the main dropdown element
+            e.preventDefault();
             menuDropdown.classList.toggle('visible');
-        });
+        };
 
+        // Close on outside click
         document.addEventListener('click', (e) => {
-            // Close if clicking outside the dropdown and not on the button
             if (menuDropdown.classList.contains('visible') && !menuDropdown.contains(e.target) && !menuBtn.contains(e.target)) {
                 menuDropdown.classList.remove('visible');
             }
         });
+    } else {
+        console.error('Menu elements not found:', { btn: menuBtn, dropdown: menuDropdown });
     }
 
     // Bind Menu Items to Functions
