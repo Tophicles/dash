@@ -2804,13 +2804,15 @@ function initTheme() {
         const icon = themeToggleBtn.querySelector('i');
         const text = themeToggleBtn.querySelector('span');
         if (theme === 'light') {
-            icon.className = 'fa-solid fa-sun';
+            // Current is Light, show option to switch to Dark
+            icon.className = 'fa-solid fa-moon'; // Icon for target (Dark)
+            if (text) text.textContent = 'Dark Mode';
+            icon.style.color = '';
+        } else {
+            // Current is Dark, show option to switch to Light
+            icon.className = 'fa-solid fa-sun'; // Icon for target (Light)
             if (text) text.textContent = 'Light Mode';
             icon.style.color = '#ffa726'; // Orange-ish sun
-        } else {
-            icon.className = 'fa-solid fa-moon';
-            if (text) text.textContent = 'Dark Mode';
-            icon.style.color = ''; // Reset
         }
     }
 
