@@ -897,7 +897,10 @@ async function openServerSetupModal(serverId, serverName) {
 
     modal.classList.add('visible');
     cmdDisplay.innerHTML = 'Loading...';
+
+    // Reset button state
     verifyBtn.disabled = true;
+    verifyBtn.textContent = 'Verify Connection'; // Reset text to remove spinner
 
     // Fetch Public Key
     try {
@@ -914,6 +917,8 @@ async function openServerSetupModal(serverId, serverName) {
             cmdDisplay.innerText = cmd;
             verifyBtn.disabled = false;
             verifyBtn.onclick = () => deployServerKey(serverId, verifyBtn);
+
+            // Focus verify button if keys are likely already there? No, user might need to copy.
         } else {
             cmdDisplay.innerText = 'Error loading key.';
         }
