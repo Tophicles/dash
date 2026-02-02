@@ -12,7 +12,7 @@ header('Content-Type: application/json');
 
 $serverName = $_GET['server'] ?? '';
 $serverId = $_GET['id'] ?? '';
-$servers = json_decode(file_get_contents('servers.json'), true)['servers'];
+$servers = json_decode(file_get_contents(DATA_DIR . 'servers.json'), true)['servers'];
 
 $server = [];
 if ($serverId) {
@@ -449,10 +449,14 @@ function logWatchers($serverName, $type, $jsonResponse) {
     }
 
     // Load state
-    $stateFile = 'watcher_state.json';
+    $stateFile = DATA_DIR . 'watcher_state.json';
     $state = [];
     if (file_exists($stateFile)) {
         $state = json_decode(file_get_contents($stateFile), true) ?: [];
+    } else {
+        // Auto-recover if missing
+        file_put_contents($stateFile, '[]');
+        @chmod($stateFile, 0666);
     }
 
     // Check for changes

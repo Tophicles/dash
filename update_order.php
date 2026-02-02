@@ -4,7 +4,7 @@ requireLogin();
 requireAdmin();
 
 header('Content-Type: application/json');
-$serversFile = __DIR__."/servers.json";
+$serversFile = DATA_DIR . "servers.json";
 $data = json_decode(file_get_contents('php://input'), true);
 
 if(!$data || !isset($data['servers'])) { 
