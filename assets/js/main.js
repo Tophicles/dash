@@ -2905,10 +2905,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (reorderBtn) {
             reorderBtn.addEventListener('click', function() {
                 reorderMode = !reorderMode;
-                // Update text/style if needed (though it's in a menu now)
+                // Update text/style
                 const span = this.querySelector('span');
+                const icon = this.querySelector('i');
                 if (span) span.textContent = reorderMode ? 'Done Reordering' : 'Reorder Servers';
+                if (icon) icon.className = reorderMode ? 'fa-solid fa-check' : 'fa-solid fa-sort';
+
                 renderServerGrid();
+
+                // If starting reorder, keep menu open? No, close it so user can drag.
+                // But if stopping (Done), maybe irrelevant.
+                // Let's close it always for consistent UX.
                 if (menuDropdown) menuDropdown.classList.remove('visible');
             });
         }
