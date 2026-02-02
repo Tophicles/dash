@@ -6,6 +6,16 @@ require_once 'path_helper.php';
 requireLogin();
 requireAdmin();
 
+if (!class_exists('ZipArchive')) {
+    http_response_code(500);
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        echo json_encode(['success' => false, 'error' => 'PHP Zip extension not installed']);
+    } else {
+        die("Error: PHP Zip extension (ZipArchive) is not installed on the server.");
+    }
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     // Create Backup
     $zipFile = sys_get_temp_dir() . '/multidash_backup_' . date('Ymd_His') . '.zip';
