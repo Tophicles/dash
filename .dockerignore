@@ -1,0 +1,7 @@
+.git
+.gitignore
+Dockerfile
+docker-compose.yml
+DEPLOYMENT.md
+screenshots
+generate_screenshots.py
