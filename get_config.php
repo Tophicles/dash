@@ -6,7 +6,7 @@ requireLogin();
 
 header('Content-Type: application/json');
 
-$serversFile = 'servers.json';
+$serversFile = DB_DIR . 'servers.json';
 $config = ['refreshSeconds' => 5, 'servers' => []];
 
 if (file_exists($serversFile)) {
