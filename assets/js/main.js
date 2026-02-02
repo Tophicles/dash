@@ -642,7 +642,7 @@ async function fetchServerStatus(serverId) {
                 sshBadge.style.color = '#81c784';
                 sshBadge.style.borderColor = 'rgba(76,175,80,0.3)';
                 sshBadge.style.cursor = 'pointer';
-                sshBadge.onclick = () => openSSHConnectedModal(name);
+                sshBadge.onclick = () => openSSHConnectedModal(serverId, name);
             } else {
                 sshBadge.innerHTML = '<i class="fa-solid fa-xmark"></i> SSH';
                 sshBadge.style.color = '#e57373';
@@ -818,7 +818,8 @@ function closeServerSetupModal() {
     document.getElementById('server-setup-modal').classList.remove('visible');
 }
 
-function openSSHConnectedModal(serverName) {
+function openSSHConnectedModal(serverId, serverName) {
+    currentSSHModalServerId = serverId;
     const modal = document.getElementById('ssh-connected-modal');
     const cmdDisplay = document.getElementById('uninstall-command-display');
 
@@ -834,6 +835,11 @@ function openSSHConnectedModal(serverName) {
 
 function closeSSHConnectedModal() {
     document.getElementById('ssh-connected-modal').classList.remove('visible');
+    if (currentSSHModalServerId) {
+        fetchServerStatus(currentSSHModalServerId);
+        fetchServerStats(currentSSHModalServerId);
+        currentSSHModalServerId = null;
+    }
 }
 
 document.getElementById('ssh-connected-modal').addEventListener('click', function(e) {
@@ -1482,7 +1488,7 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
     if (server && (!server.os_type || server.os_type === 'linux')) {
         const sshId = `ssh-badge-${esc(server.id)}`;
         if (server.ssh_initialized) {
-            headerHtml += `<span id="${sshId}" class="badge" style="background:rgba(255,255,255,0.1); color:#81c784; font-size:0.75rem; border:1px solid rgba(76,175,80,0.3); cursor:pointer;" onclick="openSSHConnectedModal('${esc(serverName)}')"><i class="fa-solid fa-check"></i> SSH</span>`;
+            headerHtml += `<span id="${sshId}" class="badge" style="background:rgba(255,255,255,0.1); color:#81c784; font-size:0.75rem; border:1px solid rgba(76,175,80,0.3); cursor:pointer;" onclick="openSSHConnectedModal('${esc(server.id)}', '${esc(serverName)}')"><i class="fa-solid fa-check"></i> SSH</span>`;
         } else {
             headerHtml += `<span id="${sshId}" class="badge" style="background:rgba(255,255,255,0.1); color:#e57373; font-size:0.75rem; border:1px solid rgba(229,115,115,0.3); cursor:pointer;" onclick="openServerSetupModal('${esc(server.id)}', '${esc(serverName)}')"><i class="fa-solid fa-xmark"></i> SSH</span>`;
         }
@@ -1680,6 +1686,7 @@ document.addEventListener('dragover', (e) => {
 
 // Modal functions
 let modalRefreshInterval = null;
+let currentSSHModalServerId = null;
 let currentModalServer = null;
 let currentModalItemId = null;
 let currentModalServerType = null;
