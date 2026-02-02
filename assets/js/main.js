@@ -352,6 +352,84 @@ if (IS_ADMIN) {
     });
 }
 
+// Backup & Restore Logic (Admin)
+if (IS_ADMIN) {
+    const backupBtn = document.getElementById('backup-nav-btn');
+    if (backupBtn) {
+        backupBtn.addEventListener('click', openBackupModal);
+    }
+}
+
+function openBackupModal() {
+    document.getElementById('backup-modal').classList.add('visible');
+    // Reset file input and button
+    document.getElementById('restore-file-input').value = '';
+    document.getElementById('restore-backup-btn').disabled = true;
+}
+
+function closeBackupModal() {
+    document.getElementById('backup-modal').classList.remove('visible');
+}
+
+// Close backup modal on outside click
+document.getElementById('backup-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeBackupModal();
+});
+
+// Download Backup
+document.getElementById('download-backup-btn').addEventListener('click', function() {
+    window.location.href = 'backup.php';
+    logSystemEvent('Backup download initiated');
+});
+
+// Enable Restore Button
+const restoreInput = document.getElementById('restore-file-input');
+if (restoreInput) {
+    restoreInput.addEventListener('change', function() {
+        document.getElementById('restore-backup-btn').disabled = !this.files.length;
+    });
+}
+
+// Restore Action
+document.getElementById('restore-backup-btn').addEventListener('click', async function() {
+    const file = restoreInput.files[0];
+    if (!file) return;
+
+    if (!await showModalConfirm('DANGER: This will overwrite all users, servers, and keys.\n\nAre you absolutely sure you want to restore from this backup?')) return;
+
+    const btn = this;
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Restoring...';
+
+    const formData = new FormData();
+    formData.append('backup_file', file);
+
+    try {
+        const res = await fetch('backup.php', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            showModalAlert('System Restored Successfully! Reloading...');
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            showModalAlert('Restore Failed: ' + esc(data.error));
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    } catch (e) {
+        console.error(e);
+        showModalAlert('Upload failed: ' + esc(e.message));
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+});
+
 
 // Back button
 document.getElementById('back-btn').addEventListener('click', function() {
