@@ -73,7 +73,7 @@ $isAdmin = isAdmin();
       <button class="btn" onclick="copyToClipboard('setup-command-display', this)">Copy Command</button>
     </div>
 
-    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
       <button class="btn" onclick="closeServerSetupModal()">Close</button>
       <button class="btn primary" id="setup-verify-btn">Verify Connection</button>
     </div>
@@ -104,7 +104,7 @@ $isAdmin = isAdmin();
       <button class="btn" onclick="copyToClipboard('uninstall-command-display', this)">Copy Command</button>
     </div>
 
-    <div style="display: flex; justify-content: flex-end;">
+    <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
       <button class="btn" onclick="closeSSHConnectedModal()">Close</button>
     </div>
   </div>
