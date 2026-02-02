@@ -1,11 +1,12 @@
 <?php
+require_once 'path_helper.php';
 
 /**
  * Gets or generates the secret encryption key.
  * The key is stored in key.php which is a PHP file to prevent direct access.
  */
 function getSecretKey() {
-    $keyFile = __DIR__ . '/key.php';
+    $keyFile = DATA_DIR . 'key.php';
     if (!file_exists($keyFile)) {
         // Generate a random 32-byte key and store it as a hex string in a PHP file
         $key = bin2hex(random_bytes(32));
