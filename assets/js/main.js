@@ -245,6 +245,14 @@ function openUpdateModal(serverId) {
     modal.classList.add('visible');
     currentUpdateServerId = serverId;
 
+    // Restore UI state (in case it was used for logs)
+    const title = modal.querySelector('h2');
+    title.textContent = 'Update Server';
+    const controls = modal.querySelector('.server-form-group');
+    if (controls) controls.style.display = 'block';
+    const startBtn = document.getElementById('start-update-btn');
+    if (startBtn) startBtn.style.display = '';
+
     const logOutput = document.getElementById('update-log-output');
     logOutput.textContent = 'Ready to start update...';
 
@@ -1737,6 +1745,15 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
         // 2. SSH Controls Container (Start/Stop/Restart)
         headerHtml += `<span id="js-header-controls-${esc(serverId)}"></span>`;
 
+        // Windows Agent Logs
+        if (server.os_type === 'windows') {
+            headerHtml += `
+                <button class="admin-action-btn" title="View Agent Logs" onclick="viewAgentLogs('${esc(server.id)}', '${esc(server.name)}')">
+                    <i class="fa-solid fa-bug"></i>
+                </button>
+            `;
+        }
+
         // 3. Reinstall / Update (Linux + SSH)
         if ((!server.os_type || server.os_type === 'linux') && server.ssh_initialized) {
             const btnColor = server.hasUpdate ? '#4caf50' : '#888';
@@ -2254,6 +2271,39 @@ async function saveServerOrder() {
     } catch (error) {
         console.error('Error saving order:', error);
     }
+}
+
+async function viewAgentLogs(serverId, serverName) {
+    const modal = document.getElementById('update-modal'); // Reuse update modal for now or create new
+    modal.classList.add('visible');
+
+    // Reset Modal Content
+    const title = modal.querySelector('h2');
+    const logOutput = document.getElementById('update-log-output');
+    const controls = modal.querySelector('.server-form-group'); // Hide update controls
+    const startBtn = document.getElementById('start-update-btn');
+
+    title.textContent = `Agent Logs: ${serverName}`;
+    controls.style.display = 'none';
+    startBtn.style.display = 'none';
+    logOutput.textContent = 'Fetching logs...';
+
+    try {
+        const res = await fetch(`proxy.php?id=${encodeURIComponent(serverId)}&action=ssh_agent_logs`);
+        const data = await res.json();
+
+        if (data.success) {
+            logOutput.textContent = data.output || 'No logs found.';
+        } else {
+            logOutput.textContent = 'Error fetching logs: ' + (data.error || 'Unknown error');
+        }
+    } catch (e) {
+        logOutput.textContent = 'Network error: ' + e.message;
+    }
+
+    // Cleanup when closing is handled by standard modal close logic, but we might need to reset state if we reuse modal
+    // Ideally we should have a dedicated log modal, but for this quick feature reuse is okay.
+    // We just need to make sure openUpdateModal resets these changes.
 }
 
 // Load all servers
