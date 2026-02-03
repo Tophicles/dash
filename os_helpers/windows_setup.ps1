@@ -139,8 +139,71 @@ if ($cmd -match '^MULTIDASH_COMMAND (\w+) "([^"]+)"$') {
             Write-Output "Service restarted"
         }
         "STATUS" {
-            $svc = Get-Service -Name $target -ErrorAction SilentlyContinue
-            if ($svc -and $svc.Status -eq 'Running') { Write-Output "active" } else { Write-Output "inactive" }
+            $proc = Get-Process -Name $target -ErrorAction SilentlyContinue
+            if ($proc) { Write-Output "active" } else { Write-Output "inactive" }
+        }
+        "START_PROCESS" {
+            if (Test-Path $target) {
+                Start-Process -FilePath $target
+                Write-Output "Process started"
+            } else {
+                Write-Error "Executable not found: $target"
+                exit 1
+            }
+        }
+        "STOP_PROCESS" {
+            $proc = Get-Process | Where-Object { $_.MainModule.FileName -eq $target }
+            if ($proc) {
+                Stop-Process -InputObject $proc -Force
+                Write-Output "Process stopped"
+            } else {
+                Write-Output "Process not running"
+            }
+        }
+        "RESTART_PROCESS" {
+            $proc = Get-Process | Where-Object { $_.MainModule.FileName -eq $target }
+            if ($proc) {
+                Stop-Process -InputObject $proc -Force
+            }
+            Start-Sleep 2
+            if (Test-Path $target) {
+                Start-Process -FilePath $target
+                Write-Output "Process restarted"
+            } else {
+                Write-Error "Executable not found: $target"
+                exit 1
+            }
+        }
+        "FIND_PATH" {
+            # Try exact match
+            $proc = Get-Process -Name $target -ErrorAction SilentlyContinue | Select-Object -First 1
+
+            # Try without .exe if present, or with .exe if missing (simple toggle logic not perfect but helps)
+            if (-not $proc) {
+                if ($target -match '\.exe$') {
+                    $name = $target -replace '\.exe$', ''
+                    $proc = Get-Process -Name $name -ErrorAction SilentlyContinue | Select-Object -First 1
+                } else {
+                    $proc = Get-Process -Name "$target.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+                }
+            }
+
+            # Try wildcard match as last resort (risky but useful for detection)
+            if (-not $proc) {
+                 $proc = Get-Process | Where-Object { $_.ProcessName -like "*$target*" } | Select-Object -First 1
+            }
+
+            if ($proc) {
+                try {
+                    Write-Output $proc.MainModule.FileName
+                } catch {
+                    Write-Error "Process found but cannot read path (Admin required?)"
+                    exit 1
+                }
+            } else {
+                Write-Error "Process not found: $target"
+                exit 1
+            }
         }
         "STATS" {
             # Windows Stats Generation
