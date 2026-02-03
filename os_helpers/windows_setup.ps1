@@ -144,7 +144,9 @@ if ($cmd -match '^MULTIDASH_COMMAND (\w+) "([^"]+)"$') {
         }
         "START_PROCESS" {
             if (Test-Path $target) {
-                Start-Process -FilePath $target
+                # Set working directory to the executable's folder
+                $workDir = Split-Path -Parent $target
+                Start-Process -FilePath $target -WorkingDirectory $workDir
                 Write-Output "Process started"
             } else {
                 Write-Error "Executable not found: $target"
@@ -152,22 +154,43 @@ if ($cmd -match '^MULTIDASH_COMMAND (\w+) "([^"]+)"$') {
             }
         }
         "STOP_PROCESS" {
-            $proc = Get-Process | Where-Object { $_.MainModule.FileName -eq $target }
-            if ($proc) {
-                Stop-Process -InputObject $proc -Force
+            # Normalize target path for comparison
+            $targetPath = $target.Trim().ToLower()
+
+            # Find process by matching MainModule.FileName
+            $procs = Get-Process | Where-Object {
+                try {
+                    $_.MainModule.FileName.ToLower() -eq $targetPath
+                } catch {
+                    $false
+                }
+            }
+
+            if ($procs) {
+                $procs | Stop-Process -Force
                 Write-Output "Process stopped"
             } else {
                 Write-Output "Process not running"
             }
         }
         "RESTART_PROCESS" {
-            $proc = Get-Process | Where-Object { $_.MainModule.FileName -eq $target }
-            if ($proc) {
-                Stop-Process -InputObject $proc -Force
+            $targetPath = $target.Trim().ToLower()
+            $procs = Get-Process | Where-Object {
+                try {
+                    $_.MainModule.FileName.ToLower() -eq $targetPath
+                } catch {
+                    $false
+                }
+            }
+
+            if ($procs) {
+                $procs | Stop-Process -Force
             }
             Start-Sleep 2
+
             if (Test-Path $target) {
-                Start-Process -FilePath $target
+                $workDir = Split-Path -Parent $target
+                Start-Process -FilePath $target -WorkingDirectory $workDir
                 Write-Output "Process restarted"
             } else {
                 Write-Error "Executable not found: $target"
