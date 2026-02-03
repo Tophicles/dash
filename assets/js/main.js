@@ -898,6 +898,7 @@ async function openServerSetupModal(serverId, serverName) {
     const modal = document.getElementById('server-setup-modal');
     const cmdDisplay = document.getElementById('setup-command-display');
     const verifyBtn = document.getElementById('setup-verify-btn');
+    const infoText = modal.querySelector('.info-text');
 
     modal.classList.add('visible');
     cmdDisplay.innerHTML = 'Loading...';
@@ -913,7 +914,13 @@ async function openServerSetupModal(serverId, serverName) {
         if (data.success && data.key) {
             const baseUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
             const server = SERVERS.find(s => s.id === serverId);
-            const os = server ? server.os_type : 'linux';
+            const os = server ? (server.os_type || 'linux') : 'linux';
+
+            // Update the info text with the correct OS name
+            const osName = os.charAt(0).toUpperCase() + os.slice(1);
+            if (infoText) {
+                infoText.innerHTML = `Run this unified command on your <strong>${esc(osName)}</strong> media server to install the agent and authorized key:`;
+            }
 
             let cmd = '';
 
