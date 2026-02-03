@@ -112,6 +112,13 @@ We provide a helper script to automate the secure setup process on Linux.
 ### 3. Windows Setup (Automated)
 **Prerequisite:** Ensure the [OpenSSH Server](https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse?tabs=gui) feature is installed and the service is running.
 
+You can install it via PowerShell:
+```powershell
+dism /online /add-capability /capabilityname:OpenSSH.Server~~~~0.0.1.0
+Start-Service sshd
+Set-Service -Name sshd -StartupType 'Automatic'
+```
+
 1.  **Run the Unified Command:**
     Open the server in the dashboard (ensure OS is set to **Windows** in Edit Server), click the **SSH (Disconnected)** badge, and copy the PowerShell command.
 
