@@ -24,7 +24,7 @@ if (empty($data['name']) || empty($data['type']) || empty($data['url'])) {
 }
 
 // Load existing servers
-$serversFile = 'servers.json';
+$serversFile = DB_DIR . 'servers.json';
 if (!file_exists($serversFile)) {
     echo json_encode(['success' => false, 'error' => 'servers.json not found']);
     exit;
