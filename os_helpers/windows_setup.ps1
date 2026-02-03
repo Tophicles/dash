@@ -160,36 +160,38 @@ if ($cmd -match '^MULTIDASH_COMMAND (\w+) "([^"]+)"$') {
                 Write-Output "Process not running"
             }
         }
-        "RESTART_PROCESS" {
-            $targetPath = $target.Trim().ToLower()
-            $procs = Get-Process | Where-Object {
-                try {
-                    $_.MainModule.FileName.ToLower() -eq $targetPath
-                } catch {
-                    $false
-                }
-            }
+"RESTART_PROCESS" {
 
-            if ($procs) {
-                $procs | Stop-Process -Force
-                # Wait for processes to exit
-                foreach ($p in $procs) {
-                    $p.WaitForExit(5000)
-                }
-            }
-
-            # Additional safety buffer
-            Start-Sleep -Seconds 3
-
-            if (Test-Path $target) {
-                $workDir = Split-Path -Parent $target
-                Start-Process -FilePath $target -WorkingDirectory $workDir
-                Write-Output "Process restarted"
-            } else {
-                Write-Error "Executable not found: $target"
-                exit 1
-            }
+    # Find running process by name OR path
+    $proc = Get-Process | Where-Object {
+        try {
+            $_.MainModule.FileName -eq $target -or
+            $_.ProcessName -ieq $target
+        } catch {
+            $false
         }
+    } | Select-Object -First 1
+
+    if (-not $proc) {
+        Write-Error "Process not running: $target"
+        exit 1
+    }
+
+    # Capture the real executable path BEFORE stopping
+    $exePath = $proc.MainModule.FileName
+    $workDir = Split-Path -Parent $exePath
+
+    # Stop process
+    Stop-Process -Id $proc.Id -Force
+    $proc.WaitForExit(5000)
+
+    Start-Sleep -Seconds 2
+
+    # Restart
+    Start-Process -FilePath $exePath -WorkingDirectory $workDir
+
+    Write-Output "Process restarted"
+}
         "STATS" {
             # Windows Stats Generation
             Write-Output "OS: Windows"; Write-Output "---"
