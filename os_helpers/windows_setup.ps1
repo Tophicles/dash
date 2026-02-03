@@ -139,8 +139,8 @@ if ($cmd -match '^MULTIDASH_COMMAND (\w+) "([^"]+)"$') {
             Write-Output "Service restarted"
         }
         "STATUS" {
-            $svc = Get-Service -Name $target -ErrorAction SilentlyContinue
-            if ($svc -and $svc.Status -eq 'Running') { Write-Output "active" } else { Write-Output "inactive" }
+            $proc = Get-Process -Name $target -ErrorAction SilentlyContinue
+            if ($proc) { Write-Output "active" } else { Write-Output "inactive" }
         }
         "STATS" {
             # Windows Stats Generation

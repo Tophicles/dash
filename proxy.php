@@ -113,7 +113,7 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
         } elseif ($action === 'ssh_start') {
             $cmd = "MULTIDASH_COMMAND START \"$service\"";
         } elseif ($action === 'ssh_status') {
-            $cmd = "MULTIDASH_COMMAND STATUS \"$service\"";
+            $cmd = "MULTIDASH_COMMAND STATUS \"$processName\"";
         } elseif ($action === 'ssh_system_stats') {
             $cmd = "MULTIDASH_COMMAND STATS \"$processName\"";
         }
