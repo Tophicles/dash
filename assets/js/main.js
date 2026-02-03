@@ -948,11 +948,21 @@ function openSSHConnectedModal(serverId, serverName) {
     const modal = document.getElementById('ssh-connected-modal');
     const cmdDisplay = document.getElementById('uninstall-command-display');
 
-    // Generate Uninstall Command
-    // wget -qO- <url> | sudo bash -s uninstall
     const baseUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
-    const scriptUrl = `${baseUrl}/os_helpers/linux_setup.sh`;
-    const cmd = `wget -qO- "${scriptUrl}" | sudo bash -s uninstall`;
+    const server = SERVERS.find(s => s.id === serverId);
+    const os = server ? server.os_type : 'linux';
+
+    let cmd = '';
+
+    if (os === 'windows') {
+        const scriptUrl = `${baseUrl}/os_helpers/windows_setup.ps1`;
+        // PowerShell Command
+        cmd = `Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('${scriptUrl}')); Uninstall-User`;
+    } else {
+        // Linux Command
+        const scriptUrl = `${baseUrl}/os_helpers/linux_setup.sh`;
+        cmd = `wget -qO- "${scriptUrl}" | sudo bash -s uninstall`;
+    }
 
     cmdDisplay.innerText = cmd;
     modal.classList.add('visible');
