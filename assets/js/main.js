@@ -99,6 +99,7 @@ function updateServerFormFields() {
     const urlInput = document.getElementById('server-url-input');
     const osSelect = document.getElementById('server-os-select');
     const sshPortGroup = document.getElementById('ssh-port-group');
+    const winPathGroup = document.getElementById('windows-path-group');
 
     if (!typeSelect || !apiKeyGroup || !tokenGroup) return;
 
@@ -118,11 +119,22 @@ function updateServerFormFields() {
     }
 
     // OS Logic
-    if (osSelect && sshPortGroup) {
-        if (osSelect.value === 'linux' || osSelect.value === 'windows') {
-            sshPortGroup.style.display = 'flex';
-        } else {
-            sshPortGroup.style.display = 'none';
+    if (osSelect) {
+        if (sshPortGroup) {
+            // Show SSH port for Linux/Windows as they support SSH
+            if (osSelect.value === 'linux' || osSelect.value === 'windows') {
+                sshPortGroup.style.display = 'flex';
+            } else {
+                sshPortGroup.style.display = 'none';
+            }
+        }
+
+        if (winPathGroup) {
+            if (osSelect.value === 'windows') {
+                winPathGroup.style.display = 'block';
+            } else {
+                winPathGroup.style.display = 'none';
+            }
         }
     }
 }
@@ -927,7 +939,7 @@ async function openServerSetupModal(serverId, serverName) {
             if (os === 'windows') {
                 const scriptUrl = `${baseUrl}/os_helpers/windows_setup.ps1`;
                 // PowerShell Command
-                cmd = `Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('${scriptUrl}')); Install-User -Key "${data.key}"`;
+                cmd = `Invoke-WebRequest "${scriptUrl}" -OutFile windows_setup.ps1\n.\\windows_setup.ps1 -Install -Key "${data.key}"`;
             } else {
                 // Linux Command
                 const scriptUrl = `${baseUrl}/os_helpers/linux_setup.sh`;
@@ -2301,6 +2313,7 @@ function openEditServerModal(serverId) {
 
     form.querySelector('[name="os_type"]').value = server.os_type || 'linux';
     form.querySelector('[name="ssh_port"]').value = server.ssh_port || '22';
+    form.querySelector('[name="windows_path"]').value = server.windows_path || '';
 
     // Store server ID for update
     form.dataset.originalName = server.id;
@@ -2382,7 +2395,8 @@ document.getElementById('add-server-form').addEventListener('submit', async e=>{
         apiKey:f.apiKey.value,
         token:f.token.value,
         os_type: f.os_type.value,
-        ssh_port: f.ssh_port.value
+        ssh_port: f.ssh_port.value,
+        windows_path: f.windows_path.value
     };
 
     // If editing, include server ID
@@ -2808,7 +2822,7 @@ async function fetchServerStats(serverId) {
                 // Process
                 const wProcParts = parts[startIdx + 4].split(' ');
                 if (wProcParts.length >= 3 && wProcParts[0] !== '0') {
-                    const wpMem = (parseInt(wProcParts[0]) / 1024 / 1024).toFixed(2);
+                    const wpMem = (parseInt(wProcParts[0]) / 1024 / 1024 / 1024).toFixed(2);
                     const wpTime = Math.floor(parseFloat(wProcParts[1]) / 3600);
                     const wpThreads = wProcParts[2];
 
