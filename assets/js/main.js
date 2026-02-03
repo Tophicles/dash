@@ -119,7 +119,7 @@ function updateServerFormFields() {
 
     // OS Logic
     if (osSelect && sshPortGroup) {
-        if (osSelect.value === 'linux') {
+        if (osSelect.value === 'linux' || osSelect.value === 'windows') {
             sshPortGroup.style.display = 'flex';
         } else {
             sshPortGroup.style.display = 'none';
@@ -898,6 +898,7 @@ async function openServerSetupModal(serverId, serverName) {
     const modal = document.getElementById('server-setup-modal');
     const cmdDisplay = document.getElementById('setup-command-display');
     const verifyBtn = document.getElementById('setup-verify-btn');
+    const infoText = modal.querySelector('.info-text');
 
     modal.classList.add('visible');
     cmdDisplay.innerHTML = 'Loading...';
@@ -911,18 +912,32 @@ async function openServerSetupModal(serverId, serverName) {
         const res = await fetch('ssh_manager.php?action=get_public_key');
         const data = await res.json();
         if (data.success && data.key) {
-            // Build One-Liner Command
-            // wget -O - <url> | sudo bash -s install
             const baseUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
-            const scriptUrl = `${baseUrl}/os_helpers/linux_setup.sh`;
-            // Safe command to display
-            const cmd = `wget -qO- "${scriptUrl}" | sudo bash -s install "${data.key}"`;
+            const server = SERVERS.find(s => s.id === serverId);
+            const os = server ? (server.os_type || 'linux') : 'linux';
+
+            // Update the info text with the correct OS name
+            const osName = os.charAt(0).toUpperCase() + os.slice(1);
+            if (infoText) {
+                infoText.innerHTML = `Run this unified command on your <strong>${esc(osName)}</strong> media server to install the agent and authorized key:`;
+            }
+
+            let cmd = '';
+
+            if (os === 'windows') {
+                const scriptUrl = `${baseUrl}/os_helpers/windows_setup.ps1`;
+                // PowerShell Command
+                cmd = `Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('${scriptUrl}')); Install-User -Key "${data.key}"`;
+            } else {
+                // Linux Command
+                const scriptUrl = `${baseUrl}/os_helpers/linux_setup.sh`;
+                cmd = `wget -qO- "${scriptUrl}" | sudo bash -s install "${data.key}"`;
+            }
 
             cmdDisplay.innerText = cmd;
             verifyBtn.disabled = false;
             verifyBtn.onclick = () => deployServerKey(serverId, verifyBtn);
 
-            // Focus verify button if keys are likely already there? No, user might need to copy.
         } else {
             cmdDisplay.innerText = 'Error loading key.';
         }
@@ -940,11 +955,21 @@ function openSSHConnectedModal(serverId, serverName) {
     const modal = document.getElementById('ssh-connected-modal');
     const cmdDisplay = document.getElementById('uninstall-command-display');
 
-    // Generate Uninstall Command
-    // wget -qO- <url> | sudo bash -s uninstall
     const baseUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
-    const scriptUrl = `${baseUrl}/os_helpers/linux_setup.sh`;
-    const cmd = `wget -qO- "${scriptUrl}" | sudo bash -s uninstall`;
+    const server = SERVERS.find(s => s.id === serverId);
+    const os = server ? server.os_type : 'linux';
+
+    let cmd = '';
+
+    if (os === 'windows') {
+        const scriptUrl = `${baseUrl}/os_helpers/windows_setup.ps1`;
+        // PowerShell Command
+        cmd = `Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('${scriptUrl}')); Uninstall-User`;
+    } else {
+        // Linux Command
+        const scriptUrl = `${baseUrl}/os_helpers/linux_setup.sh`;
+        cmd = `wget -qO- "${scriptUrl}" | sudo bash -s uninstall`;
+    }
 
     cmdDisplay.innerText = cmd;
     modal.classList.add('visible');
@@ -1634,7 +1659,7 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
 
     // Header Center (SSH Indicator)
     headerHtml += `<div class="header-center" style="display:flex;">`;
-    if (server && (!server.os_type || server.os_type === 'linux')) {
+    if (server && (!server.os_type || server.os_type === 'linux' || server.os_type === 'windows')) {
         const sshId = `ssh-badge-${esc(server.id)}`;
         if (server.ssh_initialized) {
             headerHtml += `<span id="${sshId}" class="badge" style="background:rgba(255,255,255,0.1); color:#81c784; font-size:0.75rem; border:1px solid rgba(76,175,80,0.3); cursor:pointer;" onclick="openSSHConnectedModal('${esc(server.id)}', '${esc(serverName)}')"><i class="fa-solid fa-check"></i> SSH</span>`;
@@ -1717,8 +1742,8 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
         libsEl.innerHTML = '';
     }
 
-    // Trigger async load of controls if admin and linux
-    if (IS_ADMIN && server && (!server.os_type || server.os_type === 'linux')) {
+    // Trigger async load of controls if admin and supported OS
+    if (IS_ADMIN && server && (!server.os_type || server.os_type === 'linux' || server.os_type === 'windows')) {
         // Initial render
         const container = document.getElementById(`js-header-controls-${esc(serverId)}`);
         if (container) {
@@ -2729,88 +2754,149 @@ async function fetchServerStats(serverId) {
 
         if (data.success && data.output) {
             const parts = data.output.split('---').map(p => p.trim());
+            let uptimeStr, loadString, memString, memAvailStr, rxStr, txStr, cpuPercent, procStr;
 
-            if (parts.length < 9) {
-                console.warn('Incomplete stats data received', parts);
-                statsEl.innerHTML = '<div style="color:orange; font-size:0.8rem;">Stats incomplete</div>';
-                return;
+            // Detect OS by header (Added OS: Windows or OS: Linux in proxy)
+            // If first part is OS: Linux or just straight stats (legacy), use linux parsing
+            // Windows proxy prepends OS: Windows
+
+            // Handle optional SSH banner noise by finding the OS line
+            let startIdx = 0;
+            let isWindows = false;
+
+            if (data.output.includes('OS: Windows')) {
+                isWindows = true;
+                const idx = parts.findIndex(p => p.includes('OS: Windows'));
+                if (idx !== -1) startIdx = idx + 1;
+            } else if (data.output.includes('OS: Linux')) {
+                 const idx = parts.findIndex(p => p.includes('OS: Linux'));
+                 if (idx !== -1) startIdx = idx + 1;
             }
 
-            // 1. Uptime
-            // Handle SSH banners by taking the last line of the output
-            const uptimeLines = parts[0].trim().split('\n');
-            const uptimeLine = uptimeLines[uptimeLines.length - 1].trim();
-            const uptimeSec = parseFloat(uptimeLine.split(' ')[0]);
-            const d = Math.floor(uptimeSec / 86400);
-            const h = Math.floor((uptimeSec % 86400) / 3600);
-            const uptimeStr = (isNaN(d) || isNaN(h)) ? 'Unknown' : `${d}d ${h}h`;
-
-            // 2. Load
-            const loadString = parts[1].split(' ').slice(0, 3).join(' ');
-
-            // 3. Memory
-            const memLines = parts[2].split('\n');
-            const memLine = memLines.find(l => l.startsWith('Mem:'));
-            let memTotal = 0, memUsed = 0, memAvail = 0;
-            if (memLine) {
-                const vals = memLine.match(/\d+/g);
-                if (vals && vals.length >= 3) {
-                     // free output: total used free shared buff/cache available
-                     memTotal = parseInt(vals[0]);
-                     memUsed = parseInt(vals[1]);
-                     // Available is usually index 5, fallback to free (2)
-                     memAvail = parseInt(vals[5]) || parseInt(vals[2]);
+            if (isWindows) {
+                // Windows Parsing (Based on proxy structure)
+                // 0: Uptime (Seconds) -> 1: CPU Load -> 2: Memory -> 3: Net -> 4: Process
+                if (parts.length < startIdx + 5) {
+                    console.warn('Incomplete Windows stats');
+                    statsEl.innerHTML = '<div style="color:orange; font-size:0.8rem;">Stats incomplete</div>';
+                    return;
                 }
-            }
-            const memString = `${toGB(memUsed)}/${toGB(memTotal)} GB`;
-            const memAvailStr = `${toGB(memAvail)} GB avail`;
 
-            // 4. Net
-            const netStart = parseNet(parts[3]);
-            const netEnd = parseNet(parts[7]);
+                // Uptime
+                const upSec = parseFloat(parts[startIdx]);
+                const wd = Math.floor(upSec / 86400);
+                const wh = Math.floor((upSec % 86400) / 3600);
+                uptimeStr = (isNaN(wd)) ? 'Unknown' : `${wd}d ${wh}h`;
 
-            const rxStr = formatSpeed(netEnd.rx - netStart.rx);
-            const txStr = formatSpeed(netEnd.tx - netStart.tx);
+                // CPU
+                cpuPercent = parseInt(parts[startIdx + 1]);
 
-            // 5. CPU
-            const cpuStart = parseCpu(parts[4]);
-            const cpuEnd = parseCpu(parts[8]);
-            let cpuPercent = 0;
-            const diffTotal = cpuEnd.total - cpuStart.total;
-            const diffIdle = cpuEnd.idle - cpuStart.idle;
-            if (diffTotal > 0) {
-                cpuPercent = ((1 - diffIdle / diffTotal) * 100).toFixed(0);
-            }
+                // Memory
+                const memParts = parts[startIdx + 2].split(' ');
+                const wMemUsed = parseInt(memParts[0]);
+                const wMemTotal = parseInt(memParts[1]);
+                const wMemAvail = wMemTotal - wMemUsed;
+                memString = `${toGB(wMemUsed)}/${toGB(wMemTotal)} GB`;
+                memAvailStr = `${toGB(wMemAvail)} GB avail`;
+                loadString = "N/A"; // No loadavg on Windows
 
-            // 6. Process Stats
-            let procStr = '';
-            const procParts = parts[5].trim().split(/\s+/);
-            if (procParts.length >= 3 && procParts[0] !== '0') {
-                const rssKB = parseInt(procParts[0]);
-                const timeStr = procParts[1];
-                const threads = procParts[2];
-                const rssGB = (rssKB / 1048576).toFixed(2);
+                // Net
+                const netParts = parts[startIdx + 3].split(' ');
+                rxStr = formatSpeed(parseInt(netParts[0]));
+                txStr = formatSpeed(parseInt(netParts[1]));
 
-                let hours = 0;
-                if (timeStr.includes('-')) {
-                    const [day, t] = timeStr.split('-');
-                    hours += parseInt(day) * 24;
-                    const tParts = t.split(':');
-                    hours += parseInt(tParts[0]);
+                // Process
+                const wProcParts = parts[startIdx + 4].split(' ');
+                if (wProcParts.length >= 3 && wProcParts[0] !== '0') {
+                    const wpMem = (parseInt(wProcParts[0]) / 1024 / 1024).toFixed(2);
+                    const wpTime = Math.floor(parseFloat(wProcParts[1]) / 3600);
+                    const wpThreads = wProcParts[2];
+
+                    let svcName = 'Process';
+                    const server = SERVERS.find(s => s.id === serverId);
+                    if (server) svcName = server.type === 'plex' ? 'Plex' : (server.type === 'emby' ? 'Emby' : 'Jellyfin');
+
+                    procStr = `${svcName} ${wpMem} GB • ${wpTime}h CPU • ${wpThreads} threads`;
                 } else {
-                    const tParts = timeStr.split(':');
-                    if (tParts.length === 3) hours += parseInt(tParts[0]);
+                    procStr = 'Service Stopped';
                 }
 
-                let svcName = 'Process';
-                const server = SERVERS.find(s => s.id === serverId);
-                if (server) {
-                    svcName = server.type === 'plex' ? 'Plex' : (server.type === 'emby' ? 'Emby' : 'Jellyfin');
-                }
-
-                procStr = `${svcName} ${rssGB} GB • ${hours}h CPU • ${threads} threads`;
             } else {
-                procStr = 'Service Stopped';
+                // Linux Parsing (Legacy + New Header)
+                if (parts.length < startIdx + 9) {
+                     if (startIdx === 0 && parts.length < 9) {
+                         console.warn('Incomplete stats data received', parts);
+                         statsEl.innerHTML = '<div style="color:orange; font-size:0.8rem;">Stats incomplete</div>';
+                         return;
+                     }
+                }
+
+                // 1. Uptime
+                const uptimeLines = parts[startIdx].trim().split('\n');
+                const uptimeLine = uptimeLines[uptimeLines.length - 1].trim();
+                const uptimeSec = parseFloat(uptimeLine.split(' ')[0]);
+                const d = Math.floor(uptimeSec / 86400);
+                const h = Math.floor((uptimeSec % 86400) / 3600);
+                uptimeStr = (isNaN(d) || isNaN(h)) ? 'Unknown' : `${d}d ${h}h`;
+
+                // 2. Load
+                loadString = parts[startIdx + 1].split(' ').slice(0, 3).join(' ');
+
+                // 3. Memory
+                const memLines = parts[startIdx + 2].split('\n');
+                const memLine = memLines.find(l => l.startsWith('Mem:'));
+                let memTotal = 0, memUsed = 0, memAvail = 0;
+                if (memLine) {
+                    const vals = memLine.match(/\d+/g);
+                    if (vals && vals.length >= 3) {
+                         memTotal = parseInt(vals[0]);
+                         memUsed = parseInt(vals[1]);
+                         memAvail = parseInt(vals[5]) || parseInt(vals[2]);
+                    }
+                }
+                memString = `${toGB(memUsed)}/${toGB(memTotal)} GB`;
+                memAvailStr = `${toGB(memAvail)} GB avail`;
+
+                // 4. Net
+                const netStart = parseNet(parts[startIdx + 3]);
+                const netEnd = parseNet(parts[startIdx + 7]);
+                rxStr = formatSpeed(netEnd.rx - netStart.rx);
+                txStr = formatSpeed(netEnd.tx - netStart.tx);
+
+                // 5. CPU
+                const cpuStart = parseCpu(parts[startIdx + 4]);
+                const cpuEnd = parseCpu(parts[startIdx + 8]);
+                cpuPercent = 0;
+                const diffTotal = cpuEnd.total - cpuStart.total;
+                const diffIdle = cpuEnd.idle - cpuStart.idle;
+                if (diffTotal > 0) {
+                    cpuPercent = ((1 - diffIdle / diffTotal) * 100).toFixed(0);
+                }
+
+                // 6. Process Stats
+                const procParts = parts[startIdx + 5].trim().split(/\s+/);
+                if (procParts.length >= 3 && procParts[0] !== '0') {
+                    const rssKB = parseInt(procParts[0]);
+                    const timeStr = procParts[1];
+                    const threads = procParts[2];
+                    const rssGB = (rssKB / 1048576).toFixed(2);
+                    let hours = 0;
+                    if (timeStr.includes('-')) {
+                        const [day, t] = timeStr.split('-');
+                        hours += parseInt(day) * 24;
+                        const tParts = t.split(':');
+                        hours += parseInt(tParts[0]);
+                    } else {
+                        const tParts = timeStr.split(':');
+                        if (tParts.length === 3) hours += parseInt(tParts[0]);
+                    }
+                    let svcName = 'Process';
+                    const server = SERVERS.find(s => s.id === serverId);
+                    if (server) svcName = server.type === 'plex' ? 'Plex' : (server.type === 'emby' ? 'Emby' : 'Jellyfin');
+                    procStr = `${svcName} ${rssGB} GB • ${hours}h CPU • ${threads} threads`;
+                } else {
+                    procStr = 'Service Stopped';
+                }
             }
 
             // Render

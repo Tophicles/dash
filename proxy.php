@@ -36,8 +36,8 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
 
     // Verify OS
     $os = $server['os_type'] ?? 'linux';
-    if ($os !== 'linux') {
-        echo json_encode(['success' => false, 'error' => 'SSH restart only supported on Linux']);
+    if ($os !== 'linux' && $os !== 'windows') {
+        echo json_encode(['success' => false, 'error' => 'SSH actions only supported on Linux and Windows']);
         exit;
     }
 
@@ -53,44 +53,77 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
     $port = $server['ssh_port'] ?: 22;
     $user = 'mediasvc';
 
-    // Determine Command based on Type
+    // Determine Service Name based on Type and OS
     $service = '';
     $type = $server['type'] ?? '';
-
     $processName = '';
-    if ($type === 'plex') { $service = 'plexmediaserver'; $processName = 'Plex Media Server'; }
-    else if ($type === 'emby') { $service = 'emby-server'; $processName = 'EmbyServer'; }
-    else if ($type === 'jellyfin') { $service = 'jellyfin'; $processName = 'jellyfin'; }
+
+    if ($os === 'linux') {
+        if ($type === 'plex') { $service = 'plexmediaserver'; $processName = 'Plex Media Server'; }
+        else if ($type === 'emby') { $service = 'emby-server'; $processName = 'EmbyServer'; }
+        else if ($type === 'jellyfin') { $service = 'jellyfin'; $processName = 'jellyfin'; }
+    } elseif ($os === 'windows') {
+        // Common Windows Service Names
+        if ($type === 'plex') { $service = 'PlexService'; $processName = 'Plex Media Server'; }
+        else if ($type === 'emby') { $service = 'Emby'; $processName = 'EmbyServer'; }
+        else if ($type === 'jellyfin') { $service = 'JellyfinServer'; $processName = 'jellyfin'; }
+    }
 
     if (!$service) {
-         echo json_encode(['success' => false, 'error' => 'Unknown server type for service restart']);
+         echo json_encode(['success' => false, 'error' => 'Unknown server type/OS for service control']);
          exit;
     }
 
     // Determine Action
     $cmd = "";
-    if ($action === 'ssh_restart') {
-        // Run in background to prevent timeout
-        $cmd = "nohup sudo systemctl restart $service > /dev/null 2>&1 &";
-    } elseif ($action === 'ssh_stop') {
-        $cmd = "nohup sudo systemctl stop $service > /dev/null 2>&1 &";
-    } elseif ($action === 'ssh_start') {
-        $cmd = "nohup sudo systemctl start $service > /dev/null 2>&1 &";
-    } elseif ($action === 'ssh_status') {
-        // Append || true to ensure exit code 0 even if inactive (which returns 3)
-        $cmd = "systemctl is-active $service || true";
-    } elseif ($action === 'ssh_system_stats') {
-        // Detailed stats command chain: Uptime, Load, Mem, Net1, CPU1, Process, Sleep, Net2, CPU2
-        $cmd = "cat /proc/uptime; echo '---'; " .
-               "cat /proc/loadavg; echo '---'; " .
-               "free -b; echo '---'; " .
-               "cat /proc/net/dev; echo '---'; " .
-               "grep 'cpu ' /proc/stat; echo '---'; " .
-               "pid=$(pgrep -f '$processName' | head -n1); if [ -n \"\$pid\" ]; then ps -o rss,time,thcount --no-headers -p \$pid; else echo '0 0 0'; fi; echo '---'; " .
-               "sleep 1; echo '---'; " .
-               "cat /proc/net/dev; echo '---'; " .
-               "grep 'cpu ' /proc/stat";
-    } elseif ($action === 'ssh_update') {
+
+    if ($os === 'linux') {
+        // --- Linux Commands ---
+        if ($action === 'ssh_restart') {
+            $cmd = "nohup sudo systemctl restart $service > /dev/null 2>&1 &";
+        } elseif ($action === 'ssh_stop') {
+            $cmd = "nohup sudo systemctl stop $service > /dev/null 2>&1 &";
+        } elseif ($action === 'ssh_start') {
+            $cmd = "nohup sudo systemctl start $service > /dev/null 2>&1 &";
+        } elseif ($action === 'ssh_status') {
+            $cmd = "systemctl is-active $service || true";
+        } elseif ($action === 'ssh_system_stats') {
+            // Echo OS type first
+            $cmd = "echo 'OS: Linux'; echo '---'; " .
+                   "cat /proc/uptime; echo '---'; " .
+                   "cat /proc/loadavg; echo '---'; " .
+                   "free -b; echo '---'; " .
+                   "cat /proc/net/dev; echo '---'; " .
+                   "grep 'cpu ' /proc/stat; echo '---'; " .
+                   "pid=$(pgrep -f '$processName' | head -n1); if [ -n \"\$pid\" ]; then ps -o rss,time,thcount --no-headers -p \$pid; else echo '0 0 0'; fi; echo '---'; " .
+                   "sleep 1; echo '---'; " .
+                   "cat /proc/net/dev; echo '---'; " .
+                   "grep 'cpu ' /proc/stat";
+        }
+    } elseif ($os === 'windows') {
+        // --- Windows Commands (Safe Mode with Wrapper) ---
+        // We use a custom protocol that the server-side wrapper parses.
+        // Format: MULTIDASH_COMMAND ACTION "TARGET"
+        // The ForceCommand on the server handles the execution.
+
+        if ($action === 'ssh_restart') {
+            $cmd = "MULTIDASH_COMMAND RESTART \"$service\"";
+        } elseif ($action === 'ssh_stop') {
+            $cmd = "MULTIDASH_COMMAND STOP \"$service\"";
+        } elseif ($action === 'ssh_start') {
+            $cmd = "MULTIDASH_COMMAND START \"$service\"";
+        } elseif ($action === 'ssh_status') {
+            $cmd = "MULTIDASH_COMMAND STATUS \"$service\"";
+        } elseif ($action === 'ssh_system_stats') {
+            $cmd = "MULTIDASH_COMMAND STATS \"$processName\"";
+        }
+    }
+
+    if ($action === 'ssh_update') {
+        if ($os === 'windows') {
+            echo json_encode(['success' => false, 'error' => 'Updates not supported on Windows']);
+            exit;
+        }
         $logFile = "/home/mediasvc/multidash_update_{$server['id']}.log";
 
         // Check allowed sudo paths for update file
