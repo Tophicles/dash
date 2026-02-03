@@ -137,6 +137,10 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
         }
     }
 
+    // Default timeout
+    $timeout = 10;
+    if ($action === 'ssh_agent_logs') $timeout = 15;
+
     if ($action === 'ssh_update') {
         if ($os === 'windows') {
             echo json_encode(['success' => false, 'error' => 'Updates not supported on Windows']);
@@ -238,7 +242,7 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
     }
 
     // Execute SSH
-    $result = executeSSHCommand($host, $port, $user, $cmd);
+    $result = executeSSHCommand($host, $port, $user, $cmd, $timeout);
 
     if ($result['success']) {
         if ($action === 'ssh_status') {

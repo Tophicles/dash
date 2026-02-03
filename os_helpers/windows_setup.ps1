@@ -236,7 +236,7 @@ if ($cmd -match '^MULTIDASH_COMMAND (\w+) "([^"]+)"$') {
         }
         "LOGS" {
             if (Test-Path $LogFile) {
-                Get-Content $LogFile -Tail 50
+                Get-Content $LogFile | Select-Object -Last 50
             } else {
                 Write-Output "No logs found."
             }
