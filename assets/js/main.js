@@ -196,6 +196,46 @@ document.getElementById('server-modal').addEventListener('click', function(e) {
     }
 });
 
+// Auto-Detect Logic
+const autoDetectBtn = document.getElementById('auto-detect-btn');
+if (autoDetectBtn) {
+    autoDetectBtn.addEventListener('click', async function() {
+        const form = document.getElementById('add-server-form');
+        const serverId = form.dataset.originalName; // Stores ID in edit mode
+        const input = document.getElementById('windows-path-input');
+
+        if (!serverId) {
+            showModalAlert('Please save the server first and ensure SSH is connected.');
+            return;
+        }
+
+        const btn = this;
+        const originalIcon = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+        try {
+            const res = await fetch(`proxy.php?id=${encodeURIComponent(serverId)}&action=ssh_find_path`);
+            const data = await res.json();
+
+            if (data.success && data.output) {
+                // Output might contain newlines or be just the path
+                const path = data.output.trim();
+                input.value = path;
+                showModalAlert('Path Detected: ' + esc(path));
+            } else {
+                const err = data.error || 'Process not found (is it running?)';
+                showModalAlert('Detection Failed: ' + esc(err));
+            }
+        } catch (e) {
+            showModalAlert('Request failed: ' + esc(e.message));
+        }
+
+        btn.disabled = false;
+        btn.innerHTML = originalIcon;
+    });
+}
+
 // Update Modal Logic
 let updatePollInterval = null;
 let currentUpdateServerId = null;
