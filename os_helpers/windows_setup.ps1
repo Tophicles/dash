@@ -174,6 +174,15 @@ if ($cmd -match '^MULTIDASH_COMMAND (\w+) "([^"]+)"$') {
                 exit 1
             }
         }
+        "FIND_PATH" {
+            $proc = Get-Process -Name $target -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($proc) {
+                Write-Output $proc.MainModule.FileName
+            } else {
+                Write-Error "Process not found (is it running?)"
+                exit 1
+            }
+        }
         "STATS" {
             # Windows Stats Generation
             Write-Output "OS: Windows"; Write-Output "---"
