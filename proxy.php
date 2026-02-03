@@ -64,8 +64,8 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
         else if ($type === 'jellyfin') { $service = 'jellyfin'; $processName = 'jellyfin'; }
     } elseif ($os === 'windows') {
         // Common Windows Service Names
-        if ($type === 'plex') { $service = 'PlexService'; $processName = 'Plex Media Server'; }
-        else if ($type === 'emby') { $service = 'Emby'; $processName = 'EmbyServer'; }
+        if ($type === 'plex') { $service = 'Plex Media Server'; $processName = 'Plex Media Server'; }
+        else if ($type === 'emby') { $service = 'EmbyServer'; $processName = 'EmbyServer'; }
         else if ($type === 'jellyfin') { $service = 'JellyfinServer'; $processName = 'jellyfin'; }
     }
 
@@ -106,16 +106,34 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
         // Format: MULTIDASH_COMMAND ACTION "TARGET"
         // The ForceCommand on the server handles the execution.
 
+        // Check if Windows Path is configured (Process Mode)
+        $winPath = $server['windows_path'] ?? '';
+
         if ($action === 'ssh_restart') {
-            $cmd = "MULTIDASH_COMMAND RESTART \"$service\"";
+            if ($winPath) {
+                $cmd = "MULTIDASH_COMMAND RESTART_PROCESS \"$winPath\"";
+            } else {
+                $cmd = "MULTIDASH_COMMAND RESTART \"$service\"";
+            }
         } elseif ($action === 'ssh_stop') {
-            $cmd = "MULTIDASH_COMMAND STOP \"$service\"";
+            if ($winPath) {
+                // For Stop, we use the Path to identify the process if possible (cleaner in wrapper)
+                $cmd = "MULTIDASH_COMMAND STOP_PROCESS \"$winPath\"";
+            } else {
+                $cmd = "MULTIDASH_COMMAND STOP \"$service\"";
+            }
         } elseif ($action === 'ssh_start') {
-            $cmd = "MULTIDASH_COMMAND START \"$service\"";
+            if ($winPath) {
+                $cmd = "MULTIDASH_COMMAND START_PROCESS \"$winPath\"";
+            } else {
+                $cmd = "MULTIDASH_COMMAND START \"$service\"";
+            }
         } elseif ($action === 'ssh_status') {
-            $cmd = "MULTIDASH_COMMAND STATUS \"$service\"";
+            $cmd = "MULTIDASH_COMMAND STATUS \"$processName\"";
         } elseif ($action === 'ssh_system_stats') {
             $cmd = "MULTIDASH_COMMAND STATS \"$processName\"";
+        } elseif ($action === 'ssh_agent_logs') {
+            $cmd = "MULTIDASH_COMMAND LOGS \"agent\"";
         }
     }
 
