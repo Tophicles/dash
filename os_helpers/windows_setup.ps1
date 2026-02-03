@@ -203,6 +203,56 @@ if ($cmd -match '^MULTIDASH_COMMAND (\w+) "([^"]+)"$') {
                 exit 1
             }
         }
+        "START_PROCESS" {
+            if (Test-Path $target) {
+                Start-Process -FilePath $target
+                Write-Output "Process started"
+            } else {
+                Write-Error "Executable not found: $target"
+                exit 1
+            }
+        }
+        "STOP_PROCESS" {
+            $proc = Get-Process | Where-Object { $_.MainModule.FileName -eq $target }
+            if ($proc) {
+                Stop-Process -InputObject $proc -Force
+                Write-Output "Process stopped"
+            } else {
+                Write-Output "Process not running"
+            }
+        }
+"RESTART_PROCESS" {
+
+    # Find running process by name OR path
+    $proc = Get-Process | Where-Object {
+        try {
+            $_.MainModule.FileName -eq $target -or
+            $_.ProcessName -ieq $target
+        } catch {
+            $false
+        }
+    } | Select-Object -First 1
+
+    if (-not $proc) {
+        Write-Error "Process not running: $target"
+        exit 1
+    }
+
+    # Capture the real executable path BEFORE stopping
+    $exePath = $proc.MainModule.FileName
+    $workDir = Split-Path -Parent $exePath
+
+    # Stop process
+    Stop-Process -Id $proc.Id -Force
+    $proc.WaitForExit(5000)
+
+    Start-Sleep -Seconds 2
+
+    # Restart
+    Start-Process -FilePath $exePath -WorkingDirectory $workDir
+
+    Write-Output "Process restarted"
+}
         "STATS" {
             # Windows Stats Generation
             Write-Output "OS: Windows"; Write-Output "---"
