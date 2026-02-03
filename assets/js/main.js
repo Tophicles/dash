@@ -927,7 +927,7 @@ async function openServerSetupModal(serverId, serverName) {
             if (os === 'windows') {
                 const scriptUrl = `${baseUrl}/os_helpers/windows_setup.ps1`;
                 // PowerShell Command
-                cmd = `Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('${scriptUrl}')); Install-User -Key "${data.key}"`;
+                cmd = `Invoke-WebRequest "${scriptUrl}" -OutFile windows_setup.ps1\n.\\windows_setup.ps1 -Install -Key "${data.key}"`;
             } else {
                 // Linux Command
                 const scriptUrl = `${baseUrl}/os_helpers/linux_setup.sh`;
@@ -2808,7 +2808,7 @@ async function fetchServerStats(serverId) {
                 // Process
                 const wProcParts = parts[startIdx + 4].split(' ');
                 if (wProcParts.length >= 3 && wProcParts[0] !== '0') {
-                    const wpMem = (parseInt(wProcParts[0]) / 1024 / 1024).toFixed(2);
+                    const wpMem = (parseInt(wProcParts[0]) / 1024 / 1024 / 1024).toFixed(2);
                     const wpTime = Math.floor(parseFloat(wProcParts[1]) / 3600);
                     const wpThreads = wProcParts[2];
 
