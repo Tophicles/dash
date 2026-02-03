@@ -41,7 +41,7 @@ function generateSSHKeyPair() {
     return ($returnVar === 0 && file_exists(SSH_PUBLIC_KEY_PATH));
 }
 
-function executeSSHCommand($host, $port, $user, $command) {
+function executeSSHCommand($host, $port, $user, $command, $timeout = 10) {
     if (!file_exists(SSH_PRIVATE_KEY_PATH)) {
         return ['success' => false, 'error' => 'No SSH private key found. Generate one in settings.'];
     }
@@ -50,11 +50,13 @@ function executeSSHCommand($host, $port, $user, $command) {
     // -i: Identity file
     // -p: Port
     // -o StrictHostKeyChecking=no: Don't ask for fingerprint confirmation (risky but necessary for automation)
-    // -o ConnectTimeout=5: Fail fast
+    // -o ConnectTimeout=5: Fail fast connection
     // -o BatchMode=yes: Don't ask for passwords
 
+    // Use `timeout` command to prevent execution hang
     $sshCmd = sprintf(
-        "ssh -i %s -p %d -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ConnectTimeout=5 -o BatchMode=yes %s@%s %s 2>&1",
+        "timeout %d ssh -i %s -p %d -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ConnectTimeout=5 -o BatchMode=yes %s@%s %s 2>&1",
+        (int)$timeout,
         escapeshellarg(SSH_PRIVATE_KEY_PATH),
         (int)$port,
         escapeshellarg($user),

@@ -146,7 +146,7 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
 
         // Check allowed sudo paths for update file
         $sudoCheckCmd = "sudo -l";
-        $sudoCheckRes = executeSSHCommand($host, $port, $user, $sudoCheckCmd);
+        $sudoCheckRes = executeSSHCommand($host, $port, $user, $sudoCheckCmd, 5);
 
         $tmpDeb = "/home/mediasvc/multidash_update.deb"; // Default secure path
 
