@@ -93,43 +93,34 @@ View detailed system and error logs with a live tail view.
     *   **Emby/Jellyfin:** Requires your server URL and an API Key.
     *   **Plex:** Requires your server URL and an X-Plex-Token.
 
-## SSH Remote Control Setup (Linux Only)
+## SSH Remote Control Setup
 
-To enable the "Restart Server" and "Update Server" features via SSH, you must configure your media servers to accept SSH commands from the dashboard. This feature is designed to be secure by using a restricted user and key-based authentication. **This feature is supported on Linux media servers only.**
+To enable "Restart Server" and viewing real-time system stats via SSH, you must configure your media servers to accept secure, key-based SSH commands. **This feature supports Linux and Windows (via OpenSSH).**
 
 ### 1. Generate Keys
 Click the **SSH Keys** button in the top menu (under "Menu") to open the key manager. Click "Generate New Key Pair" and copy the generated Public Key.
 
-### 2. Configure Remote Media Server (Automated Method)
-We provide a helper script to automate the secure setup process.
+### 2. Linux Setup (Automated)
+We provide a helper script to automate the secure setup process on Linux.
 
-1.  **Download the script on your media server:**
-    SSH into your media server and download the helper script using `curl` or `wget`:
-
+1.  **Run the Unified Command:**
+    Open the server in the dashboard, click the **SSH (Disconnected)** badge, and copy the unified command.
     ```bash
-    # Using curl
-    curl -O https://your-dashboard-url/dash/os_helpers/linux_setup.sh
-
-    # OR using wget
-    wget https://your-dashboard-url/dash/os_helpers/linux_setup.sh
-    ```
-    *Replace `https://your-dashboard-url/dash/` with the actual URL where you installed the dashboard.*
-
-2.  **Run the script:**
-    ```bash
-    chmod +x linux_setup.sh
-    sudo ./linux_setup.sh install
+    curl -sL https://your-dashboard/os_helpers/linux_setup.sh | sudo bash -s -- "YOUR_PUBLIC_KEY"
     ```
 
-3.  **Paste Public Key:**
-    When prompted, paste the Public Key copied from the dashboard.
+### 3. Windows Setup (Automated)
+**Prerequisite:** Ensure the [OpenSSH Server](https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse?tabs=gui) feature is installed and the service is running.
 
-To remove the configuration later, simply run the script again with the `uninstall` argument:
-```bash
-sudo ./linux_setup.sh uninstall
-```
+1.  **Run the Unified Command:**
+    Open the server in the dashboard (ensure OS is set to **Windows** in Edit Server), click the **SSH (Disconnected)** badge, and copy the PowerShell command.
 
-### 3. Configure Remote Media Server (Manual Method)
+    *Run this in an Administrator PowerShell window on your media server:*
+    ```powershell
+    Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://your-dashboard/os_helpers/windows_setup.ps1')); Install-User -Key "YOUR_PUBLIC_KEY"
+    ```
+
+### 4. Configure Remote Media Server (Manual Linux)
 If you prefer to configure the server manually, follow these steps:
 
 **Step 1: Create a restricted user**
