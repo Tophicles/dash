@@ -1,14 +1,15 @@
 <#
 .SYNOPSIS
     MultiDash Windows Server Setup Helper
-    Sets up the 'mediasvc' user and SSH keys for remote management.
+    Sets up the 'mediasvc' user, SSH keys, and a restricted shell wrapper.
     Must be run as Administrator.
 
 .DESCRIPTION
-    1. Creates 'mediasvc' user with a random password.
-    2. Adds user to 'Administrators' group (required for service management).
-    3. Configures SSH public key authentication in 'administrators_authorized_keys'.
-    4. Sets correct ACLs for the key file.
+    1. Creates 'mediasvc' user.
+    2. Adds user to 'Administrators' group.
+    3. Configures SSH public key authentication.
+    4. Installs a restricted shell wrapper script.
+    5. Configures sshd_config to ForceCommand the wrapper.
 
 .PARAMETER Install
     Switch to perform installation.
@@ -26,6 +27,11 @@ param (
 
 $ErrorActionPreference = "Stop"
 $UserName = "mediasvc"
+$WrapperDir = "$env:ProgramData\MultiDash"
+$WrapperFile = "$WrapperDir\ssh_wrapper.ps1"
+$SSHDConfig = "$env:ProgramData\ssh\sshd_config"
+$MarkerStart = "# BEGIN MEDIASVC-MULTIDASH"
+$MarkerEnd = "# END MEDIASVC-MULTIDASH"
 
 # --- Helper Functions ---
 
@@ -73,7 +79,6 @@ function Install-User {
 
     Write-Host "Configuring SSH key..."
 
-    # Check if key already exists in file
     $content = ""
     if (Test-Path $keyFile) {
         $content = Get-Content $keyFile -Raw
@@ -83,39 +88,169 @@ function Install-User {
         Add-Content -Path $keyFile -Value $Key -Encoding ASCII
     }
 
-    # 4. Permissions (Critical for OpenSSH Admin Keys)
-    # Permissions must be: SYSTEM:F, Administrators:F, Owner:F. No other access.
-    Write-Host "Setting file permissions..."
-
+    # Permissions
+    Write-Host "Setting key permissions..."
     $acl = Get-Acl $keyFile
-    $acl.SetAccessRuleProtection($true, $false) # Disable inheritance
-
+    $acl.SetAccessRuleProtection($true, $false)
     $adminRule = New-Object System.Security.AccessControl.FileSystemAccessRule("Administrators", "FullControl", "Allow")
     $systemRule = New-Object System.Security.AccessControl.FileSystemAccessRule("SYSTEM", "FullControl", "Allow")
-
     $acl.SetAccessRule($adminRule)
     $acl.AddAccessRule($systemRule)
-
     Set-Acl -Path $keyFile -AclObject $acl
 
-    Write-Host "✅ Setup complete. 'mediasvc' is ready." -ForegroundColor Green
-    Write-Host "Ensure the 'OpenSSH SSH Server' service is running."
+    # 4. Install Wrapper
+    Write-Host "Installing Restricted Shell Wrapper..."
+    if (-not (Test-Path $WrapperDir)) {
+        New-Item -Path $WrapperDir -ItemType Directory -Force | Out-Null
+    }
+
+    $wrapperContent = @'
+# MultiDash Restricted Shell Wrapper
+$cmd = $env:SSH_ORIGINAL_COMMAND
+
+if ([string]::IsNullOrWhiteSpace($cmd)) {
+    Write-Error "Access Denied: No command provided."
+    exit 1
+}
+
+# Strict parsing: ACTION "TARGET"
+# Matches: MULTIDASH_COMMAND RESTART "Plex Media Server"
+if ($cmd -match '^MULTIDASH_COMMAND (\w+) "([^"]+)"$') {
+    $action = $matches[1].ToUpper()
+    $target = $matches[2]
+
+    # Sanity check target (prevent some injections although regex "([^"]+)" handles most)
+    if ($target -match '[;&|]') {
+        Write-Error "Invalid target characters."
+        exit 1
+    }
+
+    switch ($action) {
+        "START" {
+            Start-Service -Name $target -ErrorAction Stop
+            Write-Output "Service started"
+        }
+        "STOP" {
+            Stop-Service -Name $target -Force -ErrorAction Stop
+            Write-Output "Service stopped"
+        }
+        "RESTART" {
+            Restart-Service -Name $target -Force -ErrorAction Stop
+            Write-Output "Service restarted"
+        }
+        "STATUS" {
+            $svc = Get-Service -Name $target -ErrorAction SilentlyContinue
+            if ($svc -and $svc.Status -eq 'Running') { Write-Output "active" } else { Write-Output "inactive" }
+        }
+        "STATS" {
+            # Windows Stats Generation
+            Write-Output "OS: Windows"; Write-Output "---"
+
+            # Uptime
+            $boot = (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
+            $uptime = (Get-Date) - $boot
+            Write-Output $uptime.TotalSeconds; Write-Output "---"
+
+            # CPU
+            $cpu = Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average
+            Write-Output $cpu.Average; Write-Output "---"
+
+            # Memory
+            $os = Get-CimInstance Win32_OperatingSystem
+            $total = $os.TotalVisibleMemorySize * 1024
+            $free = $os.FreePhysicalMemory * 1024
+            $used = $total - $free
+            Write-Output "$used $total"; Write-Output "---"
+
+            # Network
+            $net = Get-CimInstance Win32_PerfFormattedData_Tcpip_NetworkInterface
+            $rx = ($net | Measure-Object -Property BytesReceivedPerSec -Sum).Sum
+            $tx = ($net | Measure-Object -Property BytesSentPerSec -Sum).Sum
+            Write-Output "$rx $tx"; Write-Output "---"
+
+            # Process
+            $proc = Get-Process -Name $target -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($proc) {
+                $mem = $proc.WorkingSet
+                $time = $proc.TotalProcessorTime.TotalSeconds
+                $threads = $proc.Threads.Count
+                Write-Output "$mem $time $threads"
+            } else {
+                Write-Output "0 0 0"
+            }
+        }
+        Default {
+            Write-Error "Unknown action: $action"
+            exit 1
+        }
+    }
+} else {
+    Write-Error "Invalid command format or access denied."
+    exit 1
+}
+'@
+    Set-Content -Path $WrapperFile -Value $wrapperContent
+
+    # 5. Configure sshd_config
+    Write-Host "Locking down sshd_config..."
+
+    if (Test-Path $SSHDConfig) {
+        $configContent = Get-Content $SSHDConfig -Raw
+
+        # Remove old block if exists (regex replace is tricky with multiline, split/filter is safer)
+        if ($configContent -match $MarkerStart) {
+            # Use regex to remove the block
+            $configContent = [regex]::Replace($configContent, "(?ms)$MarkerStart.*?$MarkerEnd\r?\n?", "")
+        }
+
+        # Append new block
+        $block = @"
+
+$MarkerStart
+Match User $UserName
+    ForceCommand powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$WrapperFile"
+    PermitTTY no
+    AllowTcpForwarding no
+    X11Forwarding no
+    GatewayPorts no
+$MarkerEnd
+"@
+        $configContent = $configContent + $block
+        Set-Content -Path $SSHDConfig -Value $configContent
+
+        Write-Host "Restarting sshd..."
+        Restart-Service sshd -Force
+    } else {
+        Write-Warning "sshd_config not found at $SSHDConfig. Manual configuration required."
+    }
+
+    Write-Host "✅ Setup complete. 'mediasvc' is ready and locked down." -ForegroundColor Green
 }
 
 function Uninstall-User {
     Write-Host "--- MultiDash Windows Uninstall ---" -ForegroundColor Yellow
 
-    # Remove Key
+    # Clean sshd_config
+    if (Test-Path $SSHDConfig) {
+        $content = Get-Content $SSHDConfig -Raw
+        if ($content -match $MarkerStart) {
+            Write-Host "Removing config block from sshd_config..."
+            $newContent = [regex]::Replace($content, "(?ms)$MarkerStart.*?$MarkerEnd\r?\n?", "")
+            Set-Content -Path $SSHDConfig -Value $newContent
+            Restart-Service sshd -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    # Remove Wrapper
+    if (Test-Path $WrapperDir) {
+        Remove-Item -Path $WrapperDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    # Warning about Key
     $sshDir = "$env:ProgramData\ssh"
     $keyFile = "$sshDir\administrators_authorized_keys"
-
     if (Test-Path $keyFile) {
-        Write-Host "Removing key from administrators_authorized_keys..."
-        # Note: This is a simple implementation that removes lines matching the user comment if possible,
-        # but since we don't store the key, we can't selectively remove easily without potentially deleting others.
-        # For safety in this script, we will warn.
-        Write-Warning "Cannot automatically remove specific key from $keyFile without exact match."
-        Write-Warning "Please manually edit $keyFile to remove the dashboard key."
+        Write-Warning "Please manually remove the key from $keyFile to fully revoke access."
     }
 
     # Remove User
