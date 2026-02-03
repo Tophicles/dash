@@ -262,6 +262,12 @@ $isAdmin = isAdmin();
                 <label>SSH Port (Linux Only)</label>
                 <input type="number" name="ssh_port" value="22" placeholder="22">
             </div>
+
+            <div class="server-form-group" id="windows-path-group" style="display:none;">
+                <label>Executable Path (Windows Only)</label>
+                <input type="text" name="windows_path" placeholder="C:\Path\To\Server.exe">
+                <div style="font-size:0.8rem; color:#888; margin-top:4px;">Used for Start/Restart if not running as a Service.</div>
+            </div>
         </div>
 
         <div class="server-form-group" style="margin-top: 10px;">
