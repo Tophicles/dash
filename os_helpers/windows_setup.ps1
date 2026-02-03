@@ -144,9 +144,7 @@ if ($cmd -match '^MULTIDASH_COMMAND (\w+) "([^"]+)"$') {
         }
         "START_PROCESS" {
             if (Test-Path $target) {
-                # Set working directory to the executable's folder
-                $workDir = Split-Path -Parent $target
-                Start-Process -FilePath $target -WorkingDirectory $workDir
+                Start-Process -FilePath $target
                 Write-Output "Process started"
             } else {
                 Write-Error "Executable not found: $target"
@@ -154,20 +152,9 @@ if ($cmd -match '^MULTIDASH_COMMAND (\w+) "([^"]+)"$') {
             }
         }
         "STOP_PROCESS" {
-            # Normalize target path for comparison
-            $targetPath = $target.Trim().ToLower()
-
-            # Find process by matching MainModule.FileName
-            $procs = Get-Process | Where-Object {
-                try {
-                    $_.MainModule.FileName.ToLower() -eq $targetPath
-                } catch {
-                    $false
-                }
-            }
-
-            if ($procs) {
-                $procs | Stop-Process -Force
+            $proc = Get-Process | Where-Object { $_.MainModule.FileName -eq $target }
+            if ($proc) {
+                Stop-Process -InputObject $proc -Force
                 Write-Output "Process stopped"
             } else {
                 Write-Output "Process not running"
@@ -185,8 +172,14 @@ if ($cmd -match '^MULTIDASH_COMMAND (\w+) "([^"]+)"$') {
 
             if ($procs) {
                 $procs | Stop-Process -Force
+                # Wait for processes to exit
+                foreach ($p in $procs) {
+                    $p.WaitForExit(5000)
+                }
             }
-            Start-Sleep 2
+
+            # Additional safety buffer
+            Start-Sleep -Seconds 3
 
             if (Test-Path $target) {
                 $workDir = Split-Path -Parent $target
