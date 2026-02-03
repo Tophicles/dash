@@ -99,6 +99,7 @@ function updateServerFormFields() {
     const urlInput = document.getElementById('server-url-input');
     const osSelect = document.getElementById('server-os-select');
     const sshPortGroup = document.getElementById('ssh-port-group');
+    const winPathGroup = document.getElementById('windows-path-group');
 
     if (!typeSelect || !apiKeyGroup || !tokenGroup) return;
 
@@ -118,11 +119,22 @@ function updateServerFormFields() {
     }
 
     // OS Logic
-    if (osSelect && sshPortGroup) {
-        if (osSelect.value === 'linux' || osSelect.value === 'windows') {
-            sshPortGroup.style.display = 'flex';
-        } else {
-            sshPortGroup.style.display = 'none';
+    if (osSelect) {
+        if (sshPortGroup) {
+            // Show SSH port for Linux/Windows as they support SSH
+            if (osSelect.value === 'linux' || osSelect.value === 'windows') {
+                sshPortGroup.style.display = 'flex';
+            } else {
+                sshPortGroup.style.display = 'none';
+            }
+        }
+
+        if (winPathGroup) {
+            if (osSelect.value === 'windows') {
+                winPathGroup.style.display = 'block';
+            } else {
+                winPathGroup.style.display = 'none';
+            }
         }
     }
 }
@@ -183,6 +195,46 @@ document.getElementById('server-modal').addEventListener('click', function(e) {
         closeServerModal();
     }
 });
+
+// Auto-Detect Logic
+const autoDetectBtn = document.getElementById('auto-detect-btn');
+if (autoDetectBtn) {
+    autoDetectBtn.addEventListener('click', async function() {
+        const form = document.getElementById('add-server-form');
+        const serverId = form.dataset.originalName; // Stores ID in edit mode
+        const input = document.getElementById('windows-path-input');
+
+        if (!serverId) {
+            showModalAlert('Please save the server first and ensure SSH is connected.');
+            return;
+        }
+
+        const btn = this;
+        const originalIcon = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+        try {
+            const res = await fetch(`proxy.php?id=${encodeURIComponent(serverId)}&action=ssh_find_path`);
+            const data = await res.json();
+
+            if (data.success && data.output) {
+                // Output might contain newlines or be just the path
+                const path = data.output.trim();
+                input.value = path;
+                showModalAlert('Path Detected: ' + esc(path));
+            } else {
+                const err = data.error || 'Process not found (is it running?)';
+                showModalAlert('Detection Failed: ' + esc(err));
+            }
+        } catch (e) {
+            showModalAlert('Request failed: ' + esc(e.message));
+        }
+
+        btn.disabled = false;
+        btn.innerHTML = originalIcon;
+    });
+}
 
 // Update Modal Logic
 let updatePollInterval = null;
@@ -2301,6 +2353,7 @@ function openEditServerModal(serverId) {
 
     form.querySelector('[name="os_type"]').value = server.os_type || 'linux';
     form.querySelector('[name="ssh_port"]').value = server.ssh_port || '22';
+    form.querySelector('[name="windows_path"]').value = server.windows_path || '';
 
     // Store server ID for update
     form.dataset.originalName = server.id;
@@ -2382,7 +2435,8 @@ document.getElementById('add-server-form').addEventListener('submit', async e=>{
         apiKey:f.apiKey.value,
         token:f.token.value,
         os_type: f.os_type.value,
-        ssh_port: f.ssh_port.value
+        ssh_port: f.ssh_port.value,
+        windows_path: f.windows_path.value
     };
 
     // If editing, include server ID

@@ -142,6 +142,47 @@ if ($cmd -match '^MULTIDASH_COMMAND (\w+) "([^"]+)"$') {
             $proc = Get-Process -Name $target -ErrorAction SilentlyContinue
             if ($proc) { Write-Output "active" } else { Write-Output "inactive" }
         }
+        "START_PROCESS" {
+            if (Test-Path $target) {
+                Start-Process -FilePath $target
+                Write-Output "Process started"
+            } else {
+                Write-Error "Executable not found: $target"
+                exit 1
+            }
+        }
+        "STOP_PROCESS" {
+            $proc = Get-Process | Where-Object { $_.MainModule.FileName -eq $target }
+            if ($proc) {
+                Stop-Process -InputObject $proc -Force
+                Write-Output "Process stopped"
+            } else {
+                Write-Output "Process not running"
+            }
+        }
+        "RESTART_PROCESS" {
+            $proc = Get-Process | Where-Object { $_.MainModule.FileName -eq $target }
+            if ($proc) {
+                Stop-Process -InputObject $proc -Force
+            }
+            Start-Sleep 2
+            if (Test-Path $target) {
+                Start-Process -FilePath $target
+                Write-Output "Process restarted"
+            } else {
+                Write-Error "Executable not found: $target"
+                exit 1
+            }
+        }
+        "FIND_PATH" {
+            $proc = Get-Process -Name $target -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($proc) {
+                Write-Output $proc.MainModule.FileName
+            } else {
+                Write-Error "Process not found (is it running?)"
+                exit 1
+            }
+        }
         "STATS" {
             # Windows Stats Generation
             Write-Output "OS: Windows"; Write-Output "---"

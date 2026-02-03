@@ -106,16 +106,34 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
         // Format: MULTIDASH_COMMAND ACTION "TARGET"
         // The ForceCommand on the server handles the execution.
 
+        // Check if Windows Path is configured (Process Mode)
+        $winPath = $server['windows_path'] ?? '';
+
         if ($action === 'ssh_restart') {
-            $cmd = "MULTIDASH_COMMAND RESTART \"$service\"";
+            if ($winPath) {
+                $cmd = "MULTIDASH_COMMAND RESTART_PROCESS \"$winPath\"";
+            } else {
+                $cmd = "MULTIDASH_COMMAND RESTART \"$service\"";
+            }
         } elseif ($action === 'ssh_stop') {
-            $cmd = "MULTIDASH_COMMAND STOP \"$service\"";
+            if ($winPath) {
+                // For Stop, we use the Path to identify the process if possible (cleaner in wrapper)
+                $cmd = "MULTIDASH_COMMAND STOP_PROCESS \"$winPath\"";
+            } else {
+                $cmd = "MULTIDASH_COMMAND STOP \"$service\"";
+            }
         } elseif ($action === 'ssh_start') {
-            $cmd = "MULTIDASH_COMMAND START \"$service\"";
+            if ($winPath) {
+                $cmd = "MULTIDASH_COMMAND START_PROCESS \"$winPath\"";
+            } else {
+                $cmd = "MULTIDASH_COMMAND START \"$service\"";
+            }
         } elseif ($action === 'ssh_status') {
             $cmd = "MULTIDASH_COMMAND STATUS \"$processName\"";
         } elseif ($action === 'ssh_system_stats') {
             $cmd = "MULTIDASH_COMMAND STATS \"$processName\"";
+        } elseif ($action === 'ssh_find_path') {
+            $cmd = "MULTIDASH_COMMAND FIND_PATH \"$processName\"";
         }
     }
 
