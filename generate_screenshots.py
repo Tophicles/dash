@@ -99,7 +99,8 @@ def run(playwright):
         body='{"success": true, "item": {'
              '"title": "Inception", "year": 2010, "rating": "PG-13", "runtime": "2h 28m", '
              '"resolution": "3840x2160", "container": "mkv", "audioCodec": "TrueHD", "audioChannels": "7.1", '
-             '"poster": "", "overview": "A thief who steals corporate secrets through the use of dream-sharing technology...", '
+             '"poster": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMmMyYzJjIi8+CiAgPGNpcmNsZSBjeD0iMTAwIiBjeT0iMTAwIiByPSI1MCIgZmlsbD0iI2U1YTAwZCIvPgogIDx0ZXh0IHg9IjUwJSIgeT0iODAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZmZmIiBmb250LXNpemU9IjI0IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiI+SW5jZXB0aW9uPC90ZXh0Pgo8L3N2Zz4=", '
+             '"overview": "A thief who steals corporate secrets through the use of dream-sharing technology...", '
              '"genres": "Action, Sci-Fi", "director": "Christopher Nolan", '
              '"path": "/data/media/movies/Inception (2010)/Inception.2010.2160p.mkv"'
              '}}'
@@ -138,7 +139,7 @@ def run(playwright):
     time.sleep(0.5)
 
     # 4. Add Server Modal
-    page.click("#menu-header") # Open Menu
+    page.click("#menu-toggle-btn") # Open Menu
     page.wait_for_selector("#toggle-form", state="visible")
     page.click("#toggle-form")
     page.wait_for_selector("#server-modal.visible")
@@ -149,18 +150,19 @@ def run(playwright):
     time.sleep(0.5)
 
     # 5. User Management
+    page.click("#menu-toggle-btn") # Open Menu
+    page.wait_for_selector("#users-btn", state="visible")
     page.click("#users-btn")
     page.wait_for_selector("#users-modal.visible")
     time.sleep(0.5)
     page.screenshot(path="screenshots/users.png")
     print("Captured users.png")
     page.click("#users-modal .modal-close")
-    page.click("#menu-header") # Close Menu
     time.sleep(0.5)
 
     # 6. SSH Keys Management
     # Navigate to it via top bar button
-    page.click("#menu-header") # Open Menu again
+    page.click("#menu-toggle-btn") # Open Menu again
     time.sleep(0.5)
     page.click("#ssh-keys-nav-btn")
     page.wait_for_selector("#ssh-modal.visible")
@@ -234,9 +236,20 @@ def run(playwright):
     page.click("#item-modal .modal-close")
     time.sleep(0.5)
 
-    # 11. Logs
+    # 11. Backup Modal
+    page.click("#menu-toggle-btn") # Open Menu
+    time.sleep(0.5)
+    page.click("#backup-nav-btn")
+    page.wait_for_selector("#backup-modal.visible")
+    time.sleep(0.5)
+    page.screenshot(path="screenshots/backup_modal.png")
+    print("Captured backup_modal.png")
+    page.evaluate("document.getElementById('backup-modal').classList.remove('visible')")
+    time.sleep(0.5)
+
+    # 12. Logs
     # Access logs via menu (visual only, we navigate directly for stability)
-    page.click("#menu-header")
+    page.click("#menu-toggle-btn")
     time.sleep(0.5)
 
     print("Navigating to logs...")
