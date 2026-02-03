@@ -2808,7 +2808,7 @@ async function fetchServerStats(serverId) {
                 // Process
                 const wProcParts = parts[startIdx + 4].split(' ');
                 if (wProcParts.length >= 3 && wProcParts[0] !== '0') {
-                    const wpMem = (parseInt(wProcParts[0]) / 1024 / 1024).toFixed(2);
+                    const wpMem = (parseInt(wProcParts[0]) / 1024 / 1024 / 1024).toFixed(2);
                     const wpTime = Math.floor(parseFloat(wProcParts[1]) / 3600);
                     const wpThreads = wProcParts[2];
 
