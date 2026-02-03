@@ -13,8 +13,9 @@ A lightweight, self-hosted dashboard for monitoring multiple Plex, Emby, and Jel
 *   **Server Administration:** Check for updates, install updates, and remotely restart servers via SSH (Linux) or API (Emby/Jellyfin).
 *   **Library Management:** List and trigger scans for media libraries on connected Plex, Emby, and Jellyfin servers.
 *   **User Management:** Built-in authentication with Admin and Viewer roles.
+*   **Backup & Restore:** Create and restore full system backups (ZIP) to safeguard your configuration.
 *   **Logging System:** Comprehensive system logging with a built-in "tailable" log viewer.
-*   **Detailed Media Info:** View technical details (Codecs, Resolution, Bitrate) and file paths for active sessions.
+*   **Detailed Media Info:** View rich media metadata, movie posters, technical details (Codecs, Resolution, Bitrate), and file paths for active sessions.
 *   **Mobile Friendly:** Responsive dark-mode UI ("MultiDash") that adapts to any screen size.
 *   **Secure:** Encrypted storage for API keys and tokens.
 
@@ -42,12 +43,16 @@ Check for and install server updates directly from the dashboard (Linux/SSH only
 ![Update Process](screenshots/update_process.png)
 
 ### Technical Details
-View rich metadata, technical badges (resolution, codecs), and file paths for active streams.
+View rich metadata, movie posters, technical badges (resolution, codecs), and file paths for active streams.
 ![Tech Badges](screenshots/tech_badges.png)
 
 ### SSH Key Management
 Generate and manage SSH keys for secure server administration.
 ![SSH Keys](screenshots/ssh_keys.png)
+
+### Backup & Restore
+Create full backups of your dashboard configuration (servers, users, keys) and restore them easily.
+![Backup Modal](screenshots/backup_modal.png)
 
 ### User Administration
 Manage dashboard users directly from the interface.
