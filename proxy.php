@@ -64,8 +64,8 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
         else if ($type === 'jellyfin') { $service = 'jellyfin'; $processName = 'jellyfin'; }
     } elseif ($os === 'windows') {
         // Common Windows Service Names
-        if ($type === 'plex') { $service = 'PlexService'; $processName = 'Plex Media Server'; }
-        else if ($type === 'emby') { $service = 'Emby'; $processName = 'EmbyServer'; }
+        if ($type === 'plex') { $service = 'Plex Media Server'; $processName = 'Plex Media Server'; }
+        else if ($type === 'emby') { $service = 'EmbyServer'; $processName = 'EmbyServer'; }
         else if ($type === 'jellyfin') { $service = 'JellyfinServer'; $processName = 'jellyfin'; }
     }
 
