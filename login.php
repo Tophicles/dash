@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Login - MultiDash</title>
 <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
-<link rel="stylesheet" href="assets/css/auth.css">
+<link rel="stylesheet" href="assets/css/auth.css?v=<?= time() ?>">
 </head>
 <body>
 <div class="login-container">
