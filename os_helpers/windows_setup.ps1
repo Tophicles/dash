@@ -174,37 +174,6 @@ if ($cmd -match '^MULTIDASH_COMMAND (\w+) "([^"]+)"$') {
                 exit 1
             }
         }
-        "FIND_PATH" {
-            # Try exact match
-            $proc = Get-Process -Name $target -ErrorAction SilentlyContinue | Select-Object -First 1
-
-            # Try without .exe if present, or with .exe if missing (simple toggle logic not perfect but helps)
-            if (-not $proc) {
-                if ($target -match '\.exe$') {
-                    $name = $target -replace '\.exe$', ''
-                    $proc = Get-Process -Name $name -ErrorAction SilentlyContinue | Select-Object -First 1
-                } else {
-                    $proc = Get-Process -Name "$target.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-                }
-            }
-
-            # Try wildcard match as last resort (risky but useful for detection)
-            if (-not $proc) {
-                 $proc = Get-Process | Where-Object { $_.ProcessName -like "*$target*" } | Select-Object -First 1
-            }
-
-            if ($proc) {
-                try {
-                    Write-Output $proc.MainModule.FileName
-                } catch {
-                    Write-Error "Process found but cannot read path (Admin required?)"
-                    exit 1
-                }
-            } else {
-                Write-Error "Process not found: $target"
-                exit 1
-            }
-        }
         "STATS" {
             # Windows Stats Generation
             Write-Output "OS: Windows"; Write-Output "---"
