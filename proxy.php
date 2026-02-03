@@ -132,6 +132,8 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
             $cmd = "MULTIDASH_COMMAND STATUS \"$processName\"";
         } elseif ($action === 'ssh_system_stats') {
             $cmd = "MULTIDASH_COMMAND STATS \"$processName\"";
+        } elseif ($action === 'ssh_find_path') {
+            $cmd = "MULTIDASH_COMMAND FIND_PATH \"$processName\"";
         }
     }
 
