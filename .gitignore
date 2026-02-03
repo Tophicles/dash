@@ -1,4 +1,8 @@
 activity.json
 users.json
 servers.json
+watcher_state.json
+key.php
+keys/
+db/
 *.log

@@ -27,7 +27,7 @@ if (!$serverName || !$action) {
 }
 
 // Load server config
-$serversFile = 'servers.json';
+$serversFile = DB_DIR . 'servers.json';
 if (!file_exists($serversFile)) {
     echo json_encode(['error' => 'No servers configured']);
     exit;
