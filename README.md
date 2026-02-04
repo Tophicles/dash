@@ -95,7 +95,7 @@ View detailed system and error logs with a live tail view.
 
 ## SSH Remote Control Setup
 
-To enable "Restart Server" and viewing real-time system stats via SSH, you must configure your media servers to accept secure, key-based SSH commands. **This feature supports Linux and Windows (via OpenSSH).**
+To enable "Restart Server" and viewing real-time system stats via SSH, you must configure your media servers to accept secure, key-based SSH commands. **This feature supports Linux.**
 
 ### 1. Generate Keys
 Click the **SSH Keys** button in the top menu (under "Menu") to open the key manager. Click "Generate New Key Pair" and copy the generated Public Key.
@@ -109,31 +109,7 @@ We provide a helper script to automate the secure setup process on Linux.
     curl -sL https://your-dashboard/os_helpers/linux_setup.sh | sudo bash -s -- "YOUR_PUBLIC_KEY"
     ```
 
-### 3. Windows Setup (Automated)
-**Prerequisite:** Ensure the [OpenSSH Server](https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse?tabs=gui) feature is installed and the service is running.
-
-You can install it via PowerShell:
-```powershell
-dism /online /add-capability /capabilityname:OpenSSH.Server~~~~0.0.1.0
-
-Start-Service sshd
-Set-Service sshd -StartupType Automatic
-
-New-NetFirewallRule -Name "OpenSSH-Server-In-TCP" `
-  -DisplayName "OpenSSH Server (sshd)" `
-  -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
-```
-
-1.  **Run the Unified Command:**
-    Open the server in the dashboard (ensure OS is set to **Windows** in Edit Server), click the **SSH (Disconnected)** badge, and copy the PowerShell command.
-
-    *Run this in an Administrator PowerShell window on your media server:*
-    ```powershell
-    Invoke-WebRequest https://your-dashboard/os_helpers/windows_setup.ps1 -OutFile windows_setup.ps1
-    .\windows_setup.ps1 -Install -Key 'ssh-rsa YOUR_PUBLIC_KEY'
-    ```
-
-### 4. Configure Remote Media Server (Manual Linux)
+### 3. Configure Remote Media Server (Manual Linux)
 If you prefer to configure the server manually, follow these steps:
 
 **Step 1: Create a restricted user**
