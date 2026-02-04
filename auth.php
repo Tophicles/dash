@@ -51,6 +51,7 @@ function login($username, $password) {
                 'username' => $username,
                 'role' => $users[$username]['role']
             ];
+            $_SESSION['last_activity'] = time();
             writeLog("User logged in: $username", "AUTH");
             return true;
         }
@@ -65,6 +66,17 @@ function logout() {
     writeLog("User logged out: $user", "AUTH");
     session_destroy();
     unset($_SESSION['user']);
+}
+
+// Check session timeout (30 minutes)
+function checkSessionTimeout() {
+    if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > 1800)) {
+        session_unset();
+        session_destroy();
+        header('Location: login.php?timeout=1');
+        exit;
+    }
+    $_SESSION['last_activity'] = time();
 }
 
 // Update user activity timestamp
@@ -94,12 +106,15 @@ function updateActivity() {
 }
 
 // Require login - redirect to login page if not logged in
-function requireLogin() {
+function requireLogin($updateActivity = true) {
     if (!isLoggedIn()) {
         header('Location: login.php');
         exit;
     }
-    updateActivity();
+    checkSessionTimeout();
+    if ($updateActivity) {
+        updateActivity();
+    }
 }
 
 // Require admin - return error if not admin

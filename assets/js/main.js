@@ -89,6 +89,9 @@ let refreshTimer = null;
 let currentView = 'servers'; // 'servers', 'sessions', or 'all'
 let selectedServerId = null;
 let reorderMode = false;
+let sessionTimeout = 1800; // 30 minutes
+let sessionTimerInterval = null;
+let lastHeartbeatTime = Date.now();
 // const IS_ADMIN = ... (This is defined in index.php)
 
 // Server Modal Logic (admin only)
@@ -99,6 +102,7 @@ function updateServerFormFields() {
     const urlInput = document.getElementById('server-url-input');
     const osSelect = document.getElementById('server-os-select');
     const sshPortGroup = document.getElementById('ssh-port-group');
+    const winPathGroup = document.getElementById('windows-path-group');
 
     if (!typeSelect || !apiKeyGroup || !tokenGroup) return;
 
@@ -118,11 +122,22 @@ function updateServerFormFields() {
     }
 
     // OS Logic
-    if (osSelect && sshPortGroup) {
-        if (osSelect.value === 'linux' || osSelect.value === 'windows') {
-            sshPortGroup.style.display = 'flex';
-        } else {
-            sshPortGroup.style.display = 'none';
+    if (osSelect) {
+        if (sshPortGroup) {
+            // Show SSH port for Linux/Windows as they support SSH
+            if (osSelect.value === 'linux' || osSelect.value === 'windows') {
+                sshPortGroup.style.display = 'flex';
+            } else {
+                sshPortGroup.style.display = 'none';
+            }
+        }
+
+        if (winPathGroup) {
+            if (osSelect.value === 'windows') {
+                winPathGroup.style.display = 'block';
+            } else {
+                winPathGroup.style.display = 'none';
+            }
         }
     }
 }
@@ -184,6 +199,46 @@ document.getElementById('server-modal').addEventListener('click', function(e) {
     }
 });
 
+// Auto-Detect Logic
+const autoDetectBtn = document.getElementById('auto-detect-btn');
+if (autoDetectBtn) {
+    autoDetectBtn.addEventListener('click', async function() {
+        const form = document.getElementById('add-server-form');
+        const serverId = form.dataset.originalName; // Stores ID in edit mode
+        const input = document.getElementById('windows-path-input');
+
+        if (!serverId) {
+            showModalAlert('Please save the server first and ensure SSH is connected.');
+            return;
+        }
+
+        const btn = this;
+        const originalIcon = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+        try {
+            const res = await fetch(`proxy.php?id=${encodeURIComponent(serverId)}&action=ssh_find_path`);
+            const data = await res.json();
+
+            if (data.success && data.output) {
+                // Output might contain newlines or be just the path
+                const path = data.output.trim();
+                input.value = path;
+                showModalAlert('Path Detected: ' + esc(path));
+            } else {
+                const err = data.error || 'Process not found (is it running?)';
+                showModalAlert('Detection Failed: ' + esc(err));
+            }
+        } catch (e) {
+            showModalAlert('Request failed: ' + esc(e.message));
+        }
+
+        btn.disabled = false;
+        btn.innerHTML = originalIcon;
+    });
+}
+
 // Update Modal Logic
 let updatePollInterval = null;
 let currentUpdateServerId = null;
@@ -192,6 +247,14 @@ function openUpdateModal(serverId) {
     const modal = document.getElementById('update-modal');
     modal.classList.add('visible');
     currentUpdateServerId = serverId;
+
+    // Restore UI state (in case it was used for logs)
+    const title = modal.querySelector('h2');
+    title.textContent = 'Update Server';
+    const controls = modal.querySelector('.server-form-group');
+    if (controls) controls.style.display = 'block';
+    const startBtn = document.getElementById('start-update-btn');
+    if (startBtn) startBtn.style.display = '';
 
     const logOutput = document.getElementById('update-log-output');
     logOutput.textContent = 'Ready to start update...';
@@ -1685,6 +1748,15 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
         // 2. SSH Controls Container (Start/Stop/Restart)
         headerHtml += `<span id="js-header-controls-${esc(serverId)}"></span>`;
 
+        // Windows Agent Logs
+        if (server.os_type === 'windows') {
+            headerHtml += `
+                <button class="admin-action-btn" title="View Agent Logs" onclick="viewAgentLogs('${esc(server.id)}', '${esc(server.name)}')">
+                    <i class="fa-solid fa-bug"></i>
+                </button>
+            `;
+        }
+
         // 3. Reinstall / Update (Linux + SSH)
         if ((!server.os_type || server.os_type === 'linux') && server.ssh_initialized) {
             const btnColor = server.hasUpdate ? '#4caf50' : '#888';
@@ -2204,6 +2276,39 @@ async function saveServerOrder() {
     }
 }
 
+async function viewAgentLogs(serverId, serverName) {
+    const modal = document.getElementById('update-modal'); // Reuse update modal for now or create new
+    modal.classList.add('visible');
+
+    // Reset Modal Content
+    const title = modal.querySelector('h2');
+    const logOutput = document.getElementById('update-log-output');
+    const controls = modal.querySelector('.server-form-group'); // Hide update controls
+    const startBtn = document.getElementById('start-update-btn');
+
+    title.textContent = `Agent Logs: ${serverName}`;
+    controls.style.display = 'none';
+    startBtn.style.display = 'none';
+    logOutput.textContent = 'Fetching logs...';
+
+    try {
+        const res = await fetch(`proxy.php?id=${encodeURIComponent(serverId)}&action=ssh_agent_logs`);
+        const data = await res.json();
+
+        if (data.success) {
+            logOutput.textContent = data.output || 'No logs found.';
+        } else {
+            logOutput.textContent = 'Error fetching logs: ' + (data.error || 'Unknown error');
+        }
+    } catch (e) {
+        logOutput.textContent = 'Network error: ' + e.message;
+    }
+
+    // Cleanup when closing is handled by standard modal close logic, but we might need to reset state if we reuse modal
+    // Ideally we should have a dedicated log modal, but for this quick feature reuse is okay.
+    // We just need to make sure openUpdateModal resets these changes.
+}
+
 // Load all servers
 async function loadAll(){
     const progressEl = document.getElementById('loading-progress');
@@ -2239,9 +2344,58 @@ async function loadAll(){
     }
 }
 
+// Session Timer Logic
+function startSessionTimer() {
+    if (sessionTimerInterval) clearInterval(sessionTimerInterval);
+    sessionTimeout = 1800;
+    updateSessionDisplay();
+
+    sessionTimerInterval = setInterval(() => {
+        sessionTimeout--;
+        updateSessionDisplay();
+        if (sessionTimeout <= 0) {
+            clearInterval(sessionTimerInterval);
+            window.location.reload(); // Trigger PHP logout/redirect
+        }
+    }, 1000);
+}
+
+function resetSessionTimer() {
+    sessionTimeout = 1800;
+    updateSessionDisplay();
+
+    // Throttled Heartbeat: Send "I am alive" to server if > 60s since last heartbeat
+    const now = Date.now();
+    if (now - lastHeartbeatTime > 60000) {
+        lastHeartbeatTime = now;
+        // Use a lightweight call that triggers activity update (default requireLogin(true))
+        fetch('get_user.php').catch(e => console.error('Heartbeat failed', e));
+    }
+}
+
+function updateSessionDisplay() {
+    const el = document.getElementById('session-timer-display');
+    if (!el) return;
+
+    const m = Math.floor(sessionTimeout / 60);
+    const s = sessionTimeout % 60;
+    el.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+
+    // Urgency coloring
+    if (sessionTimeout > 900) { // > 15 mins
+        el.style.color = '#81c784'; // Green
+    } else if (sessionTimeout > 300) { // 5-15 mins
+        el.style.color = '#ffb74d'; // Amber
+    } else { // < 5 mins
+        el.style.color = '#ef5350'; // Red
+        el.style.fontWeight = 'bold';
+    }
+}
+
 // Auto-refresh
 async function start(){
     const refreshSeconds = await loadConfig();
+    startSessionTimer(); // Start UI timer
 
     // Fetch server versions once
     SERVERS.forEach(async server => {
@@ -2256,7 +2410,17 @@ async function start(){
 
     if(refreshTimer) clearInterval(refreshTimer);
     await loadAll();
-    refreshTimer = setInterval(loadAll, refreshSeconds * 1000);
+    // Do NOT reset session timer on poll anymore. Only on user interaction.
+    refreshTimer = setInterval(async () => {
+        try {
+            await loadAll();
+        } catch (e) {
+            // If polling fails (e.g. 401 Unauthorized because session expired), reload to show login
+            // But loadAll catches errors internally mostly.
+            // fetchServer catches error.
+            // We rely on client timer for redirect.
+        }
+    }, refreshSeconds * 1000);
 
     // Hide loading indicator
     const loadingIndicator = document.getElementById('loading-indicator');
@@ -2301,6 +2465,7 @@ function openEditServerModal(serverId) {
 
     form.querySelector('[name="os_type"]').value = server.os_type || 'linux';
     form.querySelector('[name="ssh_port"]').value = server.ssh_port || '22';
+    form.querySelector('[name="windows_path"]').value = server.windows_path || '';
 
     // Store server ID for update
     form.dataset.originalName = server.id;
@@ -2382,7 +2547,8 @@ document.getElementById('add-server-form').addEventListener('submit', async e=>{
         apiKey:f.apiKey.value,
         token:f.token.value,
         os_type: f.os_type.value,
-        ssh_port: f.ssh_port.value
+        ssh_port: f.ssh_port.value,
+        windows_path: f.windows_path.value
     };
 
     // If editing, include server ID
@@ -2808,7 +2974,7 @@ async function fetchServerStats(serverId) {
                 // Process
                 const wProcParts = parts[startIdx + 4].split(' ');
                 if (wProcParts.length >= 3 && wProcParts[0] !== '0') {
-                    const wpMem = (parseInt(wProcParts[0]) / 1024 / 1024).toFixed(2);
+                    const wpMem = (parseInt(wProcParts[0]) / 1024 / 1024 / 1024).toFixed(2);
                     const wpTime = Math.floor(parseFloat(wProcParts[1]) / 3600);
                     const wpThreads = wProcParts[2];
 
@@ -2989,6 +3155,12 @@ function initTheme() {
 
 // Initialize UI Elements (Theme, Menu, Listeners)
 document.addEventListener('DOMContentLoaded', () => {
+    // Session Activity Tracking
+    const events = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
+    events.forEach(evt => {
+        document.addEventListener(evt, resetSessionTimer, { passive: true });
+    });
+
     // Theme Toggle Logic
     initTheme();
 

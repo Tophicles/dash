@@ -29,6 +29,7 @@ $ErrorActionPreference = "Stop"
 $UserName = "mediasvc"
 $WrapperDir = "$env:ProgramData\MultiDash"
 $WrapperFile = "$WrapperDir\ssh_wrapper.ps1"
+$LogFile = "$WrapperDir\agent.log"
 $SSHDConfig = "$env:ProgramData\ssh\sshd_config"
 $MarkerStart = "# BEGIN MEDIASVC-MULTIDASH"
 $MarkerEnd = "# END MEDIASVC-MULTIDASH"
@@ -107,6 +108,13 @@ function Install-User {
     $wrapperContent = @'
 # MultiDash Restricted Shell Wrapper
 $cmd = $env:SSH_ORIGINAL_COMMAND
+$LogFile = "$env:ProgramData\MultiDash\agent.log"
+
+function Log-Message {
+    param($Msg)
+    $ts = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    "$ts - $Msg" | Out-File -Append -FilePath $LogFile -Encoding UTF8
+}
 
 if ([string]::IsNullOrWhiteSpace($cmd)) {
     Write-Error "Access Denied: No command provided."
@@ -139,9 +147,211 @@ if ($cmd -match '^MULTIDASH_COMMAND (\w+) "([^"]+)"$') {
             Write-Output "Service restarted"
         }
         "STATUS" {
-            $svc = Get-Service -Name $target -ErrorAction SilentlyContinue
-            if ($svc -and $svc.Status -eq 'Running') { Write-Output "active" } else { Write-Output "inactive" }
+            $proc = Get-Process -Name $target -ErrorAction SilentlyContinue
+            if ($proc) { Write-Output "active" } else { Write-Output "inactive" }
         }
+        "START_PROCESS" {
+            Log-Message "Request START_PROCESS: $target"
+            if (Test-Path $target) {
+                $workDir = Split-Path -Parent $target
+                Log-Message "WorkDir: $workDir"
+
+                # Use WMI to start process detached from SSH session to prevent it closing
+                $res = Invoke-WmiMethod -Class Win32_Process -Name Create -ArgumentList $target, $workDir
+
+                if ($res.ReturnValue -eq 0) {
+                    $pid = $res.ProcessId
+                    Log-Message "Success. PID: $pid"
+                    Write-Output "Process started (PID: $pid)"
+                } else {
+                    $err = "Failed to start. WMI ReturnCode: $($res.ReturnValue)"
+                    Log-Message $err
+                    Write-Error $err
+                    exit 1
+                }
+            } else {
+                $err = "Executable not found: $target"
+                Log-Message $err
+                Write-Error $err
+                exit 1
+            }
+        }
+        "STOP_PROCESS" {
+            $proc = Get-Process | Where-Object { $_.MainModule.FileName -eq $target }
+            if ($proc) {
+                Stop-Process -InputObject $proc -Force
+                Write-Output "Process stopped"
+            } else {
+                Write-Output "Process not running"
+            }
+        }
+        "RESTART_PROCESS" {
+            Log-Message "Request RESTART_PROCESS: $target"
+            $targetPath = $target.Trim().ToLower()
+
+            $procs = Get-Process | Where-Object {
+                try {
+                    $_.MainModule.FileName.ToLower() -eq $targetPath
+                } catch {
+                    $false
+                }
+            }
+
+            if ($procs) {
+                Log-Message "Stopping $($procs.Count) process(es)..."
+                $procs | Stop-Process -Force
+                # Wait for processes to exit
+                foreach ($p in $procs) {
+                    $p.WaitForExit(5000)
+                }
+            } else {
+                Log-Message "No running process found to stop."
+            }
+
+            # Additional safety buffer
+            Start-Sleep -Seconds 3
+
+            if (Test-Path $target) {
+                $workDir = Split-Path -Parent $target
+                Log-Message "Restarting... WorkDir: $workDir"
+
+                # Use WMI to start process detached from SSH session
+                $res = Invoke-WmiMethod -Class Win32_Process -Name Create -ArgumentList $target, $workDir
+
+                if ($res.ReturnValue -eq 0) {
+                    Log-Message "Restart Success. PID: $($res.ProcessId)"
+                    Write-Output "Process restarted (PID: $($res.ProcessId))"
+                } else {
+                    $err = "Failed to restart. WMI ReturnCode: $($res.ReturnValue)"
+                    Log-Message $err
+                    Write-Error $err
+                    exit 1
+                }
+            } else {
+                $err = "Executable not found: $target"
+                Log-Message $err
+                Write-Error $err
+                exit 1
+            }
+        }
+        "LOGS" {
+            if (Test-Path $LogFile) {
+                Get-Content $LogFile | Select-Object -Last 50
+            } else {
+                Write-Output "No logs found."
+            }
+        }
+        "START_PROCESS" {
+            if (Test-Path $target) {
+                $workDir = Split-Path -Parent $target
+                # Use WMI to start process detached from SSH session to prevent it closing
+                $res = Invoke-WmiMethod -Class Win32_Process -Name Create -ArgumentList $target, $workDir
+                if ($res.ReturnValue -eq 0) {
+                    Write-Output "Process started (PID: $($res.ProcessId))"
+                } else {
+                    Write-Error "Failed to start process. WMI ReturnCode: $($res.ReturnValue)"
+                    exit 1
+                }
+            } else {
+                Write-Error "Executable not found: $target"
+                exit 1
+            }
+        }
+        "STOP_PROCESS" {
+            $proc = Get-Process | Where-Object { $_.MainModule.FileName -eq $target }
+            if ($proc) {
+                Stop-Process -InputObject $proc -Force
+                Write-Output "Process stopped"
+            } else {
+                Write-Output "Process not running"
+            }
+        }
+        "RESTART_PROCESS" {
+            $targetPath = $target.Trim().ToLower()
+            $procs = Get-Process | Where-Object {
+                try {
+                    $_.MainModule.FileName.ToLower() -eq $targetPath
+                } catch {
+                    $false
+                }
+            }
+
+            if ($procs) {
+                $procs | Stop-Process -Force
+                # Wait for processes to exit
+                foreach ($p in $procs) {
+                    $p.WaitForExit(5000)
+                }
+            }
+
+            # Additional safety buffer
+            Start-Sleep -Seconds 3
+
+            if (Test-Path $target) {
+                $workDir = Split-Path -Parent $target
+                # Use WMI to start process detached from SSH session
+                $res = Invoke-WmiMethod -Class Win32_Process -Name Create -ArgumentList $target, $workDir
+                if ($res.ReturnValue -eq 0) {
+                    Write-Output "Process restarted (PID: $($res.ProcessId))"
+                } else {
+                    Write-Error "Failed to restart process. WMI ReturnCode: $($res.ReturnValue)"
+                    exit 1
+                }
+            } else {
+                Write-Error "Executable not found: $target"
+                exit 1
+            }
+        }
+        "START_PROCESS" {
+            if (Test-Path $target) {
+                Start-Process -FilePath $target
+                Write-Output "Process started"
+            } else {
+                Write-Error "Executable not found: $target"
+                exit 1
+            }
+        }
+        "STOP_PROCESS" {
+            $proc = Get-Process | Where-Object { $_.MainModule.FileName -eq $target }
+            if ($proc) {
+                Stop-Process -InputObject $proc -Force
+                Write-Output "Process stopped"
+            } else {
+                Write-Output "Process not running"
+            }
+        }
+"RESTART_PROCESS" {
+
+    # Find running process by name OR path
+    $proc = Get-Process | Where-Object {
+        try {
+            $_.MainModule.FileName -eq $target -or
+            $_.ProcessName -ieq $target
+        } catch {
+            $false
+        }
+    } | Select-Object -First 1
+
+    if (-not $proc) {
+        Write-Error "Process not running: $target"
+        exit 1
+    }
+
+    # Capture the real executable path BEFORE stopping
+    $exePath = $proc.MainModule.FileName
+    $workDir = Split-Path -Parent $exePath
+
+    # Stop process
+    Stop-Process -Id $proc.Id -Force
+    $proc.WaitForExit(5000)
+
+    Start-Sleep -Seconds 2
+
+    # Restart
+    Start-Process -FilePath $exePath -WorkingDirectory $workDir
+
+    Write-Output "Process restarted"
+}
         "STATS" {
             # Windows Stats Generation
             Write-Output "OS: Windows"; Write-Output "---"
