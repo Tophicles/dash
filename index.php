@@ -44,6 +44,9 @@ $isAdmin = isAdmin();
           <div class="menu-item" id="theme-toggle-btn">
             <i class="fa-solid fa-moon"></i> <span>Toggle Theme</span>
           </div>
+          <div class="menu-item" style="cursor: default;">
+            <i class="fa-solid fa-hourglass-half"></i> <span>Session: <span id="session-timer-display">30:00</span></span>
+          </div>
           <?php if ($isAdmin): ?>
           <div class="menu-item" id="toggle-form">
             <i class="fa-solid fa-plus"></i> <span>Add Server</span>
