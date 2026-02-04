@@ -41,6 +41,9 @@ $isAdmin = isAdmin();
           <div class="menu-item" id="theme-toggle-btn">
             <i class="fa-solid fa-moon"></i> <span>Toggle Theme</span>
           </div>
+          <div class="menu-item" style="cursor: default;">
+            <i class="fa-solid fa-hourglass-half"></i> <span>Session: <span id="session-timer-display">30:00</span></span>
+          </div>
           <?php if ($isAdmin): ?>
           <div class="menu-item" id="toggle-form">
             <i class="fa-solid fa-plus"></i> <span>Add Server</span>
@@ -261,6 +264,12 @@ $isAdmin = isAdmin();
             <div class="server-form-group" id="ssh-port-group">
                 <label>SSH Port (Linux Only)</label>
                 <input type="number" name="ssh_port" value="22" placeholder="22">
+            </div>
+
+            <div class="server-form-group" id="windows-path-group" style="display:none;">
+                <label>Executable Path (Windows Only)</label>
+                <input type="text" name="windows_path" id="windows-path-input" placeholder="C:\Path\To\Server.exe">
+                <div style="font-size:0.8rem; color:#888; margin-top:4px;">Used for Start/Restart if not running as a Service.</div>
             </div>
         </div>
 
