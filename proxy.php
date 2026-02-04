@@ -3,7 +3,7 @@ require_once 'auth.php';
 require_once 'encryption_helper.php';
 require_once 'logging.php';
 require_once 'ssh_helper.php';
-requireLogin();
+requireLogin(false); // Do not update activity on polling
 
 // Close session to prevent locking while waiting for external APIs
 session_write_close();
@@ -97,12 +97,16 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
         }
     }
 
+    // Default timeout
+    $timeout = 10;
+    if ($action === 'ssh_agent_logs') $timeout = 15;
+
     if ($action === 'ssh_update') {
         $logFile = "/home/mediasvc/multidash_update_{$server['id']}.log";
 
         // Check allowed sudo paths for update file
         $sudoCheckCmd = "sudo -l";
-        $sudoCheckRes = executeSSHCommand($host, $port, $user, $sudoCheckCmd);
+        $sudoCheckRes = executeSSHCommand($host, $port, $user, $sudoCheckCmd, 5);
 
         $tmpDeb = "/home/mediasvc/multidash_update.deb"; // Default secure path
 
@@ -194,7 +198,7 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
     }
 
     // Execute SSH
-    $result = executeSSHCommand($host, $port, $user, $cmd);
+    $result = executeSSHCommand($host, $port, $user, $cmd, $timeout);
 
     if ($result['success']) {
         if ($action === 'ssh_status') {
