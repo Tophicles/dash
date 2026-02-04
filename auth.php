@@ -106,13 +106,15 @@ function updateActivity() {
 }
 
 // Require login - redirect to login page if not logged in
-function requireLogin() {
+function requireLogin($updateActivity = true) {
     if (!isLoggedIn()) {
         header('Location: login.php');
         exit;
     }
     checkSessionTimeout();
-    updateActivity();
+    if ($updateActivity) {
+        updateActivity();
+    }
 }
 
 // Require admin - return error if not admin

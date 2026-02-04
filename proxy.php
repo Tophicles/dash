@@ -3,7 +3,7 @@ require_once 'auth.php';
 require_once 'encryption_helper.php';
 require_once 'logging.php';
 require_once 'ssh_helper.php';
-requireLogin();
+requireLogin(false); // Do not update activity on polling
 
 // Close session to prevent locking while waiting for external APIs
 session_write_close();

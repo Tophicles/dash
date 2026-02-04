@@ -89,6 +89,9 @@ let refreshTimer = null;
 let currentView = 'servers'; // 'servers', 'sessions', or 'all'
 let selectedServerId = null;
 let reorderMode = false;
+let sessionTimeout = 1800; // 30 minutes
+let sessionTimerInterval = null;
+let lastHeartbeatTime = Date.now();
 // const IS_ADMIN = ... (This is defined in index.php)
 
 // Server Modal Logic (admin only)
@@ -2341,9 +2344,55 @@ async function loadAll(){
     }
 }
 
+// Session Timer Logic
+function startSessionTimer() {
+    if (sessionTimerInterval) clearInterval(sessionTimerInterval);
+    sessionTimeout = 1800;
+    updateSessionDisplay();
+
+    sessionTimerInterval = setInterval(() => {
+        sessionTimeout--;
+        updateSessionDisplay();
+        if (sessionTimeout <= 0) {
+            clearInterval(sessionTimerInterval);
+            window.location.reload(); // Trigger PHP logout/redirect
+        }
+    }, 1000);
+}
+
+function resetSessionTimer() {
+    sessionTimeout = 1800;
+    updateSessionDisplay();
+
+    // Throttled Heartbeat: Send "I am alive" to server if > 60s since last heartbeat
+    const now = Date.now();
+    if (now - lastHeartbeatTime > 60000) {
+        lastHeartbeatTime = now;
+        // Use a lightweight call that triggers activity update (default requireLogin(true))
+        fetch('get_user.php').catch(e => console.error('Heartbeat failed', e));
+    }
+}
+
+function updateSessionDisplay() {
+    const el = document.getElementById('session-timer-display');
+    if (!el) return;
+
+    const m = Math.floor(sessionTimeout / 60);
+    const s = sessionTimeout % 60;
+    el.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+
+    // Warning color if low
+    if (sessionTimeout < 60) {
+        el.style.color = '#ef5350';
+    } else {
+        el.style.color = '';
+    }
+}
+
 // Auto-refresh
 async function start(){
     const refreshSeconds = await loadConfig();
+    startSessionTimer(); // Start UI timer
 
     // Fetch server versions once
     SERVERS.forEach(async server => {
@@ -2358,7 +2407,17 @@ async function start(){
 
     if(refreshTimer) clearInterval(refreshTimer);
     await loadAll();
-    refreshTimer = setInterval(loadAll, refreshSeconds * 1000);
+    // Do NOT reset session timer on poll anymore. Only on user interaction.
+    refreshTimer = setInterval(async () => {
+        try {
+            await loadAll();
+        } catch (e) {
+            // If polling fails (e.g. 401 Unauthorized because session expired), reload to show login
+            // But loadAll catches errors internally mostly.
+            // fetchServer catches error.
+            // We rely on client timer for redirect.
+        }
+    }, refreshSeconds * 1000);
 
     // Hide loading indicator
     const loadingIndicator = document.getElementById('loading-indicator');
@@ -3093,6 +3152,12 @@ function initTheme() {
 
 // Initialize UI Elements (Theme, Menu, Listeners)
 document.addEventListener('DOMContentLoaded', () => {
+    // Session Activity Tracking
+    const events = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
+    events.forEach(evt => {
+        document.addEventListener(evt, resetSessionTimer, { passive: true });
+    });
+
     // Theme Toggle Logic
     initTheme();
 
