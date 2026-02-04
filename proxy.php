@@ -36,8 +36,8 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
 
     // Verify OS
     $os = $server['os_type'] ?? 'linux';
-    if ($os !== 'linux' && $os !== 'windows') {
-        echo json_encode(['success' => false, 'error' => 'SSH actions only supported on Linux and Windows']);
+    if ($os !== 'linux') {
+        echo json_encode(['success' => false, 'error' => 'SSH actions only supported on Linux']);
         exit;
     }
 
@@ -62,11 +62,6 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
         if ($type === 'plex') { $service = 'plexmediaserver'; $processName = 'Plex Media Server'; }
         else if ($type === 'emby') { $service = 'emby-server'; $processName = 'EmbyServer'; }
         else if ($type === 'jellyfin') { $service = 'jellyfin'; $processName = 'jellyfin'; }
-    } elseif ($os === 'windows') {
-        // Common Windows Service Names
-        if ($type === 'plex') { $service = 'PlexService'; $processName = 'Plex Media Server'; }
-        else if ($type === 'emby') { $service = 'Emby'; $processName = 'EmbyServer'; }
-        else if ($type === 'jellyfin') { $service = 'JellyfinServer'; $processName = 'jellyfin'; }
     }
 
     if (!$service) {
@@ -100,30 +95,9 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
                    "cat /proc/net/dev; echo '---'; " .
                    "grep 'cpu ' /proc/stat";
         }
-    } elseif ($os === 'windows') {
-        // --- Windows Commands (Safe Mode with Wrapper) ---
-        // We use a custom protocol that the server-side wrapper parses.
-        // Format: MULTIDASH_COMMAND ACTION "TARGET"
-        // The ForceCommand on the server handles the execution.
-
-        if ($action === 'ssh_restart') {
-            $cmd = "MULTIDASH_COMMAND RESTART \"$service\"";
-        } elseif ($action === 'ssh_stop') {
-            $cmd = "MULTIDASH_COMMAND STOP \"$service\"";
-        } elseif ($action === 'ssh_start') {
-            $cmd = "MULTIDASH_COMMAND START \"$service\"";
-        } elseif ($action === 'ssh_status') {
-            $cmd = "MULTIDASH_COMMAND STATUS \"$service\"";
-        } elseif ($action === 'ssh_system_stats') {
-            $cmd = "MULTIDASH_COMMAND STATS \"$processName\"";
-        }
     }
 
     if ($action === 'ssh_update') {
-        if ($os === 'windows') {
-            echo json_encode(['success' => false, 'error' => 'Updates not supported on Windows']);
-            exit;
-        }
         $logFile = "/home/mediasvc/multidash_update_{$server['id']}.log";
 
         // Check allowed sudo paths for update file
