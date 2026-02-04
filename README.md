@@ -115,8 +115,13 @@ We provide a helper script to automate the secure setup process on Linux.
 You can install it via PowerShell:
 ```powershell
 dism /online /add-capability /capabilityname:OpenSSH.Server~~~~0.0.1.0
+
 Start-Service sshd
-Set-Service -Name sshd -StartupType 'Automatic'
+Set-Service sshd -StartupType Automatic
+
+New-NetFirewallRule -Name "OpenSSH-Server-In-TCP" `
+  -DisplayName "OpenSSH Server (sshd)" `
+  -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
 ```
 
 1.  **Run the Unified Command:**
@@ -124,7 +129,8 @@ Set-Service -Name sshd -StartupType 'Automatic'
 
     *Run this in an Administrator PowerShell window on your media server:*
     ```powershell
-    Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://your-dashboard/os_helpers/windows_setup.ps1')); Install-User -Key "YOUR_PUBLIC_KEY"
+    Invoke-WebRequest https://your-dashboard/os_helpers/windows_setup.ps1 -OutFile windows_setup.ps1
+    .\windows_setup.ps1 -Install -Key 'ssh-rsa YOUR_PUBLIC_KEY'
     ```
 
 ### 4. Configure Remote Media Server (Manual Linux)

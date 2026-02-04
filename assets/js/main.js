@@ -927,7 +927,7 @@ async function openServerSetupModal(serverId, serverName) {
             if (os === 'windows') {
                 const scriptUrl = `${baseUrl}/os_helpers/windows_setup.ps1`;
                 // PowerShell Command
-                cmd = `Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('${scriptUrl}')); Install-User -Key "${data.key}"`;
+                cmd = `Invoke-WebRequest "${scriptUrl}" -OutFile windows_setup.ps1\n.\\windows_setup.ps1 -Install -Key "${data.key}"`;
             } else {
                 // Linux Command
                 const scriptUrl = `${baseUrl}/os_helpers/linux_setup.sh`;
