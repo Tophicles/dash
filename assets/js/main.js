@@ -2381,11 +2381,14 @@ function updateSessionDisplay() {
     const s = sessionTimeout % 60;
     el.textContent = `${m}:${s.toString().padStart(2, '0')}`;
 
-    // Warning color if low
-    if (sessionTimeout < 60) {
-        el.style.color = '#ef5350';
-    } else {
-        el.style.color = '';
+    // Urgency coloring
+    if (sessionTimeout > 900) { // > 15 mins
+        el.style.color = '#81c784'; // Green
+    } else if (sessionTimeout > 300) { // 5-15 mins
+        el.style.color = '#ffb74d'; // Amber
+    } else { // < 5 mins
+        el.style.color = '#ef5350'; // Red
+        el.style.fontWeight = 'bold';
     }
 }
 
