@@ -1,7 +1,7 @@
 <?php
 require_once 'auth.php';
 require_once 'logging.php';
-requireLogin();
+requireLogin(false); // Do not update activity on polling
 
 // Close session early to release lock
 session_write_close();
