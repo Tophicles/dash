@@ -117,7 +117,7 @@ You can install it via PowerShell:
 dism /online /add-capability /capabilityname:OpenSSH.Server~~~~0.0.1.0
 
 Start-Service sshd
-Set-Service -Name sshd -StartupType 'Automatic'
+Set-Service sshd -StartupType Automatic
 
 New-NetFirewallRule -Name "OpenSSH-Server-In-TCP" `
   -DisplayName "OpenSSH Server (sshd)" `
