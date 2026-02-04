@@ -15,6 +15,10 @@ if (isLoggedIn()) {
 
 $error = '';
 
+if (isset($_GET['timeout'])) {
+    $error = 'Session timed out due to inactivity';
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = $_POST['username'] ?? '';
     $password = $_POST['password'] ?? '';
