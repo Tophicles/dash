@@ -122,22 +122,11 @@ function updateServerFormFields() {
     }
 
     // OS Logic
-    if (osSelect) {
-        if (sshPortGroup) {
-            // Show SSH port for Linux/Windows as they support SSH
-            if (osSelect.value === 'linux' || osSelect.value === 'windows') {
-                sshPortGroup.style.display = 'flex';
-            } else {
-                sshPortGroup.style.display = 'none';
-            }
-        }
-
-        if (winPathGroup) {
-            if (osSelect.value === 'windows') {
-                winPathGroup.style.display = 'block';
-            } else {
-                winPathGroup.style.display = 'none';
-            }
+    if (osSelect && sshPortGroup) {
+        if (osSelect.value === 'linux') {
+            sshPortGroup.style.display = 'flex';
+        } else {
+            sshPortGroup.style.display = 'none';
         }
     }
 }
@@ -987,15 +976,9 @@ async function openServerSetupModal(serverId, serverName) {
 
             let cmd = '';
 
-            if (os === 'windows') {
-                const scriptUrl = `${baseUrl}/os_helpers/windows_setup.ps1`;
-                // PowerShell Command
-                cmd = `Invoke-WebRequest "${scriptUrl}" -OutFile windows_setup.ps1\n.\\windows_setup.ps1 -Install -Key "${data.key}"`;
-            } else {
-                // Linux Command
-                const scriptUrl = `${baseUrl}/os_helpers/linux_setup.sh`;
-                cmd = `wget -qO- "${scriptUrl}" | sudo bash -s install "${data.key}"`;
-            }
+            // Linux Command
+            const scriptUrl = `${baseUrl}/os_helpers/linux_setup.sh`;
+            cmd = `wget -qO- "${scriptUrl}" | sudo bash -s install "${data.key}"`;
 
             cmdDisplay.innerText = cmd;
             verifyBtn.disabled = false;
@@ -1024,15 +1007,9 @@ function openSSHConnectedModal(serverId, serverName) {
 
     let cmd = '';
 
-    if (os === 'windows') {
-        const scriptUrl = `${baseUrl}/os_helpers/windows_setup.ps1`;
-        // PowerShell Command
-        cmd = `Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('${scriptUrl}')); Uninstall-User`;
-    } else {
-        // Linux Command
-        const scriptUrl = `${baseUrl}/os_helpers/linux_setup.sh`;
-        cmd = `wget -qO- "${scriptUrl}" | sudo bash -s uninstall`;
-    }
+    // Linux Command
+    const scriptUrl = `${baseUrl}/os_helpers/linux_setup.sh`;
+    cmd = `wget -qO- "${scriptUrl}" | sudo bash -s uninstall`;
 
     cmdDisplay.innerText = cmd;
     modal.classList.add('visible');
@@ -1722,7 +1699,7 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
 
     // Header Center (SSH Indicator)
     headerHtml += `<div class="header-center" style="display:flex;">`;
-    if (server && (!server.os_type || server.os_type === 'linux' || server.os_type === 'windows')) {
+    if (server && (!server.os_type || server.os_type === 'linux')) {
         const sshId = `ssh-badge-${esc(server.id)}`;
         if (server.ssh_initialized) {
             headerHtml += `<span id="${sshId}" class="badge" style="background:rgba(255,255,255,0.1); color:#81c784; font-size:0.75rem; border:1px solid rgba(76,175,80,0.3); cursor:pointer;" onclick="openSSHConnectedModal('${esc(server.id)}', '${esc(serverName)}')"><i class="fa-solid fa-check"></i> SSH</span>`;
@@ -1815,7 +1792,7 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
     }
 
     // Trigger async load of controls if admin and supported OS
-    if (IS_ADMIN && server && (!server.os_type || server.os_type === 'linux' || server.os_type === 'windows')) {
+    if (IS_ADMIN && server && (!server.os_type || server.os_type === 'linux')) {
         // Initial render
         const container = document.getElementById(`js-header-controls-${esc(serverId)}`);
         if (container) {
