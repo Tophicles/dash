@@ -28,6 +28,9 @@ $isAdmin = isAdmin();
         <span class="user-desktop"><i class="fa-solid fa-user"></i> <?php echo htmlspecialchars(ucwords($user['username'])); ?> (<?php echo htmlspecialchars($user['role']); ?>)</span>
         <span class="user-mobile">MENU</span>
       </span>
+      <span class="header-badge" style="margin-left: 8px; cursor: default;" title="Session Timeout">
+        <i class="fa-solid fa-hourglass-half"></i> <span id="session-timer-display" style="padding-left: 6px;">30:00</span>
+      </span>
     </div>
     <div class="header-section center">
       <span class="header-badge" id="header-clock">--:--</span>
@@ -262,6 +265,7 @@ $isAdmin = isAdmin();
                 <label>SSH Port (Linux Only)</label>
                 <input type="number" name="ssh_port" value="22" placeholder="22">
             </div>
+
         </div>
 
         <div class="server-form-group" style="margin-top: 10px;">

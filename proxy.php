@@ -3,7 +3,7 @@ require_once 'auth.php';
 require_once 'encryption_helper.php';
 require_once 'logging.php';
 require_once 'ssh_helper.php';
-requireLogin();
+requireLogin(false); // Do not update activity on polling
 
 // Close session to prevent locking while waiting for external APIs
 session_write_close();
@@ -28,6 +28,11 @@ $action = $_GET['action'] ?? 'sessions';
 
 // Handle SSH Actions globally (for any server type)
 if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ssh_system_stats', 'ssh_update', 'ssh_update_log'])) {
+    // Update activity for user-initiated actions
+    if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_update'])) {
+        updateActivity();
+    }
+
     if (!isAdmin()) {
         http_response_code(403);
         echo json_encode(['success' => false, 'error' => 'Unauthorized']);
@@ -36,8 +41,8 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
 
     // Verify OS
     $os = $server['os_type'] ?? 'linux';
-    if ($os !== 'linux' && $os !== 'windows') {
-        echo json_encode(['success' => false, 'error' => 'SSH actions only supported on Linux and Windows']);
+    if ($os !== 'linux') {
+        echo json_encode(['success' => false, 'error' => 'SSH actions only supported on Linux']);
         exit;
     }
 
@@ -62,11 +67,6 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
         if ($type === 'plex') { $service = 'plexmediaserver'; $processName = 'Plex Media Server'; }
         else if ($type === 'emby') { $service = 'emby-server'; $processName = 'EmbyServer'; }
         else if ($type === 'jellyfin') { $service = 'jellyfin'; $processName = 'jellyfin'; }
-    } elseif ($os === 'windows') {
-        // Common Windows Service Names
-        if ($type === 'plex') { $service = 'PlexService'; $processName = 'Plex Media Server'; }
-        else if ($type === 'emby') { $service = 'Emby'; $processName = 'EmbyServer'; }
-        else if ($type === 'jellyfin') { $service = 'JellyfinServer'; $processName = 'jellyfin'; }
     }
 
     if (!$service) {
@@ -100,35 +100,17 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
                    "cat /proc/net/dev; echo '---'; " .
                    "grep 'cpu ' /proc/stat";
         }
-    } elseif ($os === 'windows') {
-        // --- Windows Commands (Safe Mode with Wrapper) ---
-        // We use a custom protocol that the server-side wrapper parses.
-        // Format: MULTIDASH_COMMAND ACTION "TARGET"
-        // The ForceCommand on the server handles the execution.
-
-        if ($action === 'ssh_restart') {
-            $cmd = "MULTIDASH_COMMAND RESTART \"$service\"";
-        } elseif ($action === 'ssh_stop') {
-            $cmd = "MULTIDASH_COMMAND STOP \"$service\"";
-        } elseif ($action === 'ssh_start') {
-            $cmd = "MULTIDASH_COMMAND START \"$service\"";
-        } elseif ($action === 'ssh_status') {
-            $cmd = "MULTIDASH_COMMAND STATUS \"$service\"";
-        } elseif ($action === 'ssh_system_stats') {
-            $cmd = "MULTIDASH_COMMAND STATS \"$processName\"";
-        }
     }
 
+    // Default timeout
+    $timeout = 10;
+
     if ($action === 'ssh_update') {
-        if ($os === 'windows') {
-            echo json_encode(['success' => false, 'error' => 'Updates not supported on Windows']);
-            exit;
-        }
         $logFile = "/home/mediasvc/multidash_update_{$server['id']}.log";
 
         // Check allowed sudo paths for update file
         $sudoCheckCmd = "sudo -l";
-        $sudoCheckRes = executeSSHCommand($host, $port, $user, $sudoCheckCmd);
+        $sudoCheckRes = executeSSHCommand($host, $port, $user, $sudoCheckCmd, 5);
 
         $tmpDeb = "/home/mediasvc/multidash_update.deb"; // Default secure path
 
@@ -220,7 +202,7 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
     }
 
     // Execute SSH
-    $result = executeSSHCommand($host, $port, $user, $cmd);
+    $result = executeSSHCommand($host, $port, $user, $cmd, $timeout);
 
     if ($result['success']) {
         if ($action === 'ssh_status') {
@@ -345,6 +327,7 @@ if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
     $apiKey = isset($server['apiKey']) ? decrypt($server['apiKey']) : '';
 
     if ($action === 'restart') {
+        updateActivity(); // User action
         $url = rtrim($baseUrl, '/') . '/System/Restart';
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);

@@ -89,6 +89,9 @@ let refreshTimer = null;
 let currentView = 'servers'; // 'servers', 'sessions', or 'all'
 let selectedServerId = null;
 let reorderMode = false;
+let sessionTimeout = 1800; // 30 minutes
+let sessionTimerInterval = null;
+let lastHeartbeatTime = Date.now();
 // const IS_ADMIN = ... (This is defined in index.php)
 
 // Server Modal Logic (admin only)
@@ -99,6 +102,7 @@ function updateServerFormFields() {
     const urlInput = document.getElementById('server-url-input');
     const osSelect = document.getElementById('server-os-select');
     const sshPortGroup = document.getElementById('ssh-port-group');
+    const winPathGroup = document.getElementById('windows-path-group');
 
     if (!typeSelect || !apiKeyGroup || !tokenGroup) return;
 
@@ -118,11 +122,18 @@ function updateServerFormFields() {
     }
 
     // OS Logic
-    if (osSelect && sshPortGroup) {
-        if (osSelect.value === 'linux' || osSelect.value === 'windows') {
-            sshPortGroup.style.display = 'flex';
-        } else {
-            sshPortGroup.style.display = 'none';
+    if (osSelect) {
+        if (sshPortGroup) {
+            // Show SSH port for Linux only
+            if (osSelect.value === 'linux') {
+                sshPortGroup.style.display = 'flex';
+            } else {
+                sshPortGroup.style.display = 'none';
+            }
+        }
+
+        if (winPathGroup) {
+            winPathGroup.style.display = 'none';
         }
     }
 }
@@ -192,6 +203,14 @@ function openUpdateModal(serverId) {
     const modal = document.getElementById('update-modal');
     modal.classList.add('visible');
     currentUpdateServerId = serverId;
+
+    // Restore UI state (in case it was used for logs)
+    const title = modal.querySelector('h2');
+    title.textContent = 'Update Server';
+    const controls = modal.querySelector('.server-form-group');
+    if (controls) controls.style.display = 'block';
+    const startBtn = document.getElementById('start-update-btn');
+    if (startBtn) startBtn.style.display = '';
 
     const logOutput = document.getElementById('update-log-output');
     logOutput.textContent = 'Ready to start update...';
@@ -924,15 +943,9 @@ async function openServerSetupModal(serverId, serverName) {
 
             let cmd = '';
 
-            if (os === 'windows') {
-                const scriptUrl = `${baseUrl}/os_helpers/windows_setup.ps1`;
-                // PowerShell Command
-                cmd = `Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('${scriptUrl}')); Install-User -Key "${data.key}"`;
-            } else {
-                // Linux Command
-                const scriptUrl = `${baseUrl}/os_helpers/linux_setup.sh`;
-                cmd = `wget -qO- "${scriptUrl}" | sudo bash -s install "${data.key}"`;
-            }
+            // Linux Command
+            const scriptUrl = `${baseUrl}/os_helpers/linux_setup.sh`;
+            cmd = `wget -qO- "${scriptUrl}" | sudo bash -s install "${data.key}"`;
 
             cmdDisplay.innerText = cmd;
             verifyBtn.disabled = false;
@@ -961,15 +974,9 @@ function openSSHConnectedModal(serverId, serverName) {
 
     let cmd = '';
 
-    if (os === 'windows') {
-        const scriptUrl = `${baseUrl}/os_helpers/windows_setup.ps1`;
-        // PowerShell Command
-        cmd = `Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('${scriptUrl}')); Uninstall-User`;
-    } else {
-        // Linux Command
-        const scriptUrl = `${baseUrl}/os_helpers/linux_setup.sh`;
-        cmd = `wget -qO- "${scriptUrl}" | sudo bash -s uninstall`;
-    }
+    // Linux Command
+    const scriptUrl = `${baseUrl}/os_helpers/linux_setup.sh`;
+    cmd = `wget -qO- "${scriptUrl}" | sudo bash -s uninstall`;
 
     cmdDisplay.innerText = cmd;
     modal.classList.add('visible');
@@ -1659,7 +1666,7 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
 
     // Header Center (SSH Indicator)
     headerHtml += `<div class="header-center" style="display:flex;">`;
-    if (server && (!server.os_type || server.os_type === 'linux' || server.os_type === 'windows')) {
+        if (server && (!server.os_type || server.os_type === 'linux')) {
         const sshId = `ssh-badge-${esc(server.id)}`;
         if (server.ssh_initialized) {
             headerHtml += `<span id="${sshId}" class="badge" style="background:rgba(255,255,255,0.1); color:#81c784; font-size:0.75rem; border:1px solid rgba(76,175,80,0.3); cursor:pointer;" onclick="openSSHConnectedModal('${esc(server.id)}', '${esc(serverName)}')"><i class="fa-solid fa-check"></i> SSH</span>`;
@@ -1743,7 +1750,7 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
     }
 
     // Trigger async load of controls if admin and supported OS
-    if (IS_ADMIN && server && (!server.os_type || server.os_type === 'linux' || server.os_type === 'windows')) {
+    if (IS_ADMIN && server && (!server.os_type || server.os_type === 'linux')) {
         // Initial render
         const container = document.getElementById(`js-header-controls-${esc(serverId)}`);
         if (container) {
@@ -2239,9 +2246,58 @@ async function loadAll(){
     }
 }
 
+// Session Timer Logic
+function startSessionTimer() {
+    if (sessionTimerInterval) clearInterval(sessionTimerInterval);
+    sessionTimeout = 1800;
+    updateSessionDisplay();
+
+    sessionTimerInterval = setInterval(() => {
+        sessionTimeout--;
+        updateSessionDisplay();
+        if (sessionTimeout <= 0) {
+            clearInterval(sessionTimerInterval);
+            window.location.reload(); // Trigger PHP logout/redirect
+        }
+    }, 1000);
+}
+
+function resetSessionTimer() {
+    sessionTimeout = 1800;
+    updateSessionDisplay();
+
+    // Throttled Heartbeat: Send "I am alive" to server if > 60s since last heartbeat
+    const now = Date.now();
+    if (now - lastHeartbeatTime > 60000) {
+        lastHeartbeatTime = now;
+        // Use a lightweight call that triggers activity update (default requireLogin(true))
+        fetch('get_user.php').catch(e => console.error('Heartbeat failed', e));
+    }
+}
+
+function updateSessionDisplay() {
+    const el = document.getElementById('session-timer-display');
+    if (!el) return;
+
+    const m = Math.floor(sessionTimeout / 60);
+    const s = sessionTimeout % 60;
+    el.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+
+    // Urgency coloring
+    if (sessionTimeout > 900) { // > 15 mins
+        el.style.color = '#81c784'; // Green
+    } else if (sessionTimeout > 300) { // 5-15 mins
+        el.style.color = '#ffb74d'; // Amber
+    } else { // < 5 mins
+        el.style.color = '#ef5350'; // Red
+        el.style.fontWeight = 'bold';
+    }
+}
+
 // Auto-refresh
 async function start(){
     const refreshSeconds = await loadConfig();
+    startSessionTimer(); // Start UI timer
 
     // Fetch server versions once
     SERVERS.forEach(async server => {
@@ -2256,7 +2312,17 @@ async function start(){
 
     if(refreshTimer) clearInterval(refreshTimer);
     await loadAll();
-    refreshTimer = setInterval(loadAll, refreshSeconds * 1000);
+    // Do NOT reset session timer on poll anymore. Only on user interaction.
+    refreshTimer = setInterval(async () => {
+        try {
+            await loadAll();
+        } catch (e) {
+            // If polling fails (e.g. 401 Unauthorized because session expired), reload to show login
+            // But loadAll catches errors internally mostly.
+            // fetchServer catches error.
+            // We rely on client timer for redirect.
+        }
+    }, refreshSeconds * 1000);
 
     // Hide loading indicator
     const loadingIndicator = document.getElementById('loading-indicator');
@@ -2301,6 +2367,7 @@ function openEditServerModal(serverId) {
 
     form.querySelector('[name="os_type"]').value = server.os_type || 'linux';
     form.querySelector('[name="ssh_port"]').value = server.ssh_port || '22';
+    form.querySelector('[name="windows_path"]').value = server.windows_path || '';
 
     // Store server ID for update
     form.dataset.originalName = server.id;
@@ -2382,7 +2449,8 @@ document.getElementById('add-server-form').addEventListener('submit', async e=>{
         apiKey:f.apiKey.value,
         token:f.token.value,
         os_type: f.os_type.value,
-        ssh_port: f.ssh_port.value
+        ssh_port: f.ssh_port.value,
+        windows_path: f.windows_path.value
     };
 
     // If editing, include server ID
@@ -2808,7 +2876,7 @@ async function fetchServerStats(serverId) {
                 // Process
                 const wProcParts = parts[startIdx + 4].split(' ');
                 if (wProcParts.length >= 3 && wProcParts[0] !== '0') {
-                    const wpMem = (parseInt(wProcParts[0]) / 1024 / 1024).toFixed(2);
+                    const wpMem = (parseInt(wProcParts[0]) / 1024 / 1024 / 1024).toFixed(2);
                     const wpTime = Math.floor(parseFloat(wProcParts[1]) / 3600);
                     const wpThreads = wProcParts[2];
 
@@ -2989,6 +3057,12 @@ function initTheme() {
 
 // Initialize UI Elements (Theme, Menu, Listeners)
 document.addEventListener('DOMContentLoaded', () => {
+    // Session Activity Tracking
+    const events = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
+    events.forEach(evt => {
+        document.addEventListener(evt, resetSessionTimer, { passive: true });
+    });
+
     // Theme Toggle Logic
     initTheme();
 
