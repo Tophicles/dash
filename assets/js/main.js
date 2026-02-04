@@ -102,7 +102,6 @@ function updateServerFormFields() {
     const urlInput = document.getElementById('server-url-input');
     const osSelect = document.getElementById('server-os-select');
     const sshPortGroup = document.getElementById('ssh-port-group');
-    const winPathGroup = document.getElementById('windows-path-group');
 
     if (!typeSelect || !apiKeyGroup || !tokenGroup) return;
 
@@ -188,45 +187,6 @@ document.getElementById('server-modal').addEventListener('click', function(e) {
     }
 });
 
-// Auto-Detect Logic
-const autoDetectBtn = document.getElementById('auto-detect-btn');
-if (autoDetectBtn) {
-    autoDetectBtn.addEventListener('click', async function() {
-        const form = document.getElementById('add-server-form');
-        const serverId = form.dataset.originalName; // Stores ID in edit mode
-        const input = document.getElementById('windows-path-input');
-
-        if (!serverId) {
-            showModalAlert('Please save the server first and ensure SSH is connected.');
-            return;
-        }
-
-        const btn = this;
-        const originalIcon = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-
-        try {
-            const res = await fetch(`proxy.php?id=${encodeURIComponent(serverId)}&action=ssh_find_path`);
-            const data = await res.json();
-
-            if (data.success && data.output) {
-                // Output might contain newlines or be just the path
-                const path = data.output.trim();
-                input.value = path;
-                showModalAlert('Path Detected: ' + esc(path));
-            } else {
-                const err = data.error || 'Process not found (is it running?)';
-                showModalAlert('Detection Failed: ' + esc(err));
-            }
-        } catch (e) {
-            showModalAlert('Request failed: ' + esc(e.message));
-        }
-
-        btn.disabled = false;
-        btn.innerHTML = originalIcon;
-    });
-}
 
 // Update Modal Logic
 let updatePollInterval = null;
@@ -1475,7 +1435,6 @@ function renderServerGrid() {
         let osIcon = 'fa-server';
         if (!server.os_type || server.os_type === 'linux') osIcon = 'fa-linux';
         else if (server.os_type === 'docker') osIcon = 'fa-docker';
-        else if (server.os_type === 'windows') osIcon = 'fa-windows';
         else if (server.os_type === 'macos') osIcon = 'fa-apple';
         else if (server.os_type === 'other') osIcon = 'fa-server';
 
@@ -1675,7 +1634,6 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
         let osIcon = 'fa-server';
         if (!server.os_type || server.os_type === 'linux') osIcon = 'fa-linux';
         else if (server.os_type === 'docker') osIcon = 'fa-docker';
-        else if (server.os_type === 'windows') osIcon = 'fa-windows';
         else if (server.os_type === 'macos') osIcon = 'fa-apple';
         else if (server.os_type === 'other') osIcon = 'fa-server';
 
@@ -1724,15 +1682,6 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
 
         // 2. SSH Controls Container (Start/Stop/Restart)
         headerHtml += `<span id="js-header-controls-${esc(serverId)}"></span>`;
-
-        // Windows Agent Logs
-        if (server.os_type === 'windows') {
-            headerHtml += `
-                <button class="admin-action-btn" title="View Agent Logs" onclick="viewAgentLogs('${esc(server.id)}', '${esc(server.name)}')">
-                    <i class="fa-solid fa-bug"></i>
-                </button>
-            `;
-        }
 
         // 3. Reinstall / Update (Linux + SSH)
         if ((!server.os_type || server.os_type === 'linux') && server.ssh_initialized) {
@@ -2253,39 +2202,6 @@ async function saveServerOrder() {
     }
 }
 
-async function viewAgentLogs(serverId, serverName) {
-    const modal = document.getElementById('update-modal'); // Reuse update modal for now or create new
-    modal.classList.add('visible');
-
-    // Reset Modal Content
-    const title = modal.querySelector('h2');
-    const logOutput = document.getElementById('update-log-output');
-    const controls = modal.querySelector('.server-form-group'); // Hide update controls
-    const startBtn = document.getElementById('start-update-btn');
-
-    title.textContent = `Agent Logs: ${serverName}`;
-    controls.style.display = 'none';
-    startBtn.style.display = 'none';
-    logOutput.textContent = 'Fetching logs...';
-
-    try {
-        const res = await fetch(`proxy.php?id=${encodeURIComponent(serverId)}&action=ssh_agent_logs`);
-        const data = await res.json();
-
-        if (data.success) {
-            logOutput.textContent = data.output || 'No logs found.';
-        } else {
-            logOutput.textContent = 'Error fetching logs: ' + (data.error || 'Unknown error');
-        }
-    } catch (e) {
-        logOutput.textContent = 'Network error: ' + e.message;
-    }
-
-    // Cleanup when closing is handled by standard modal close logic, but we might need to reset state if we reuse modal
-    // Ideally we should have a dedicated log modal, but for this quick feature reuse is okay.
-    // We just need to make sure openUpdateModal resets these changes.
-}
-
 // Load all servers
 async function loadAll(){
     const progressEl = document.getElementById('loading-progress');
@@ -2442,7 +2358,6 @@ function openEditServerModal(serverId) {
 
     form.querySelector('[name="os_type"]').value = server.os_type || 'linux';
     form.querySelector('[name="ssh_port"]').value = server.ssh_port || '22';
-    form.querySelector('[name="windows_path"]').value = server.windows_path || '';
 
     // Store server ID for update
     form.dataset.originalName = server.id;
@@ -2524,8 +2439,7 @@ document.getElementById('add-server-form').addEventListener('submit', async e=>{
         apiKey:f.apiKey.value,
         token:f.token.value,
         os_type: f.os_type.value,
-        ssh_port: f.ssh_port.value,
-        windows_path: f.windows_path.value
+        ssh_port: f.ssh_port.value
     };
 
     // If editing, include server ID
@@ -2899,72 +2813,18 @@ async function fetchServerStats(serverId) {
             const parts = data.output.split('---').map(p => p.trim());
             let uptimeStr, loadString, memString, memAvailStr, rxStr, txStr, cpuPercent, procStr;
 
-            // Detect OS by header (Added OS: Windows or OS: Linux in proxy)
+            // Detect OS by header (OS: Linux in proxy)
             // If first part is OS: Linux or just straight stats (legacy), use linux parsing
-            // Windows proxy prepends OS: Windows
 
             // Handle optional SSH banner noise by finding the OS line
             let startIdx = 0;
-            let isWindows = false;
 
-            if (data.output.includes('OS: Windows')) {
-                isWindows = true;
-                const idx = parts.findIndex(p => p.includes('OS: Windows'));
-                if (idx !== -1) startIdx = idx + 1;
-            } else if (data.output.includes('OS: Linux')) {
+            if (data.output.includes('OS: Linux')) {
                  const idx = parts.findIndex(p => p.includes('OS: Linux'));
                  if (idx !== -1) startIdx = idx + 1;
             }
 
-            if (isWindows) {
-                // Windows Parsing (Based on proxy structure)
-                // 0: Uptime (Seconds) -> 1: CPU Load -> 2: Memory -> 3: Net -> 4: Process
-                if (parts.length < startIdx + 5) {
-                    console.warn('Incomplete Windows stats');
-                    statsEl.innerHTML = '<div style="color:orange; font-size:0.8rem;">Stats incomplete</div>';
-                    return;
-                }
-
-                // Uptime
-                const upSec = parseFloat(parts[startIdx]);
-                const wd = Math.floor(upSec / 86400);
-                const wh = Math.floor((upSec % 86400) / 3600);
-                uptimeStr = (isNaN(wd)) ? 'Unknown' : `${wd}d ${wh}h`;
-
-                // CPU
-                cpuPercent = parseInt(parts[startIdx + 1]);
-
-                // Memory
-                const memParts = parts[startIdx + 2].split(' ');
-                const wMemUsed = parseInt(memParts[0]);
-                const wMemTotal = parseInt(memParts[1]);
-                const wMemAvail = wMemTotal - wMemUsed;
-                memString = `${toGB(wMemUsed)}/${toGB(wMemTotal)} GB`;
-                memAvailStr = `${toGB(wMemAvail)} GB avail`;
-                loadString = "N/A"; // No loadavg on Windows
-
-                // Net
-                const netParts = parts[startIdx + 3].split(' ');
-                rxStr = formatSpeed(parseInt(netParts[0]));
-                txStr = formatSpeed(parseInt(netParts[1]));
-
-                // Process
-                const wProcParts = parts[startIdx + 4].split(' ');
-                if (wProcParts.length >= 3 && wProcParts[0] !== '0') {
-                    const wpMem = (parseInt(wProcParts[0]) / 1024 / 1024 / 1024).toFixed(2);
-                    const wpTime = Math.floor(parseFloat(wProcParts[1]) / 3600);
-                    const wpThreads = wProcParts[2];
-
-                    let svcName = 'Process';
-                    const server = SERVERS.find(s => s.id === serverId);
-                    if (server) svcName = server.type === 'plex' ? 'Plex' : (server.type === 'emby' ? 'Emby' : 'Jellyfin');
-
-                    procStr = `${svcName} ${wpMem} GB • ${wpTime}h CPU • ${wpThreads} threads`;
-                } else {
-                    procStr = 'Service Stopped';
-                }
-
-            } else {
+            {
                 // Linux Parsing (Legacy + New Header)
                 if (parts.length < startIdx + 9) {
                      if (startIdx === 0 && parts.length < 9) {
