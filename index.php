@@ -242,11 +242,11 @@ $isAdmin = isAdmin();
         </div>
         <div class="server-form-group" id="group-apikey">
           <label>API Key (Emby/Jellyfin)</label>
-          <input type="text" name="apiKey">
+          <input type="password" name="apiKey">
         </div>
         <div class="server-form-group" id="group-token">
           <label>Token (Plex)</label>
-          <input type="text" name="token">
+          <input type="password" name="token">
         </div>
 
         <!-- OS Configuration -->
