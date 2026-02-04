@@ -29,7 +29,7 @@ $isAdmin = isAdmin();
         <span class="user-mobile">MENU</span>
       </span>
       <span class="header-badge" style="margin-left: 8px; cursor: default;" title="Session Timeout">
-        <i class="fa-solid fa-hourglass-half"></i> <span id="session-timer-display">30:00</span>
+        <i class="fa-solid fa-hourglass-half"></i> <span id="session-timer-display" style="padding-left: 6px;">30:00</span>
       </span>
     </div>
     <div class="header-section center">
