@@ -99,7 +99,6 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
 
     // Default timeout
     $timeout = 10;
-    if ($action === 'ssh_agent_logs') $timeout = 15;
 
     if ($action === 'ssh_update') {
         $logFile = "/home/mediasvc/multidash_update_{$server['id']}.log";
