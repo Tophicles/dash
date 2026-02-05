@@ -1,12 +1,12 @@
 <?php
 // ----------------------------
-// get_item_details.php PATCH
+// get_item_details.php - Patched for JSON safety
 // ----------------------------
 
-// Start output buffering to capture accidental output
+// Start output buffering to capture any accidental output
 ob_start();
 
-// Disable display errors and suppress warnings/notices
+// Disable PHP errors from breaking JSON
 ini_set('display_errors', 0);
 error_reporting(E_ALL & ~E_WARNING & ~E_NOTICE);
 
@@ -60,36 +60,55 @@ try {
 
     $baseUrl = ensureProtocol($server['url']);
 
+    $item = []; // initialize empty item array
+
     // ----------------------------
-    // Fetch item details
+    // Emby / Jellyfin
     // ----------------------------
-    $item = []; // initialize empty
     if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
-        // Your existing Emby/Jellyfin logic here
-        // ...
-        // $item = [...] final item array
+        // Your existing Emby/Jellyfin fetching logic goes here
+        // Make sure $item array is built as before
+        // Example placeholder:
+        $item = [
+            'title' => 'Example Title',
+            'subtitle' => '',
+            'overview' => '',
+            'year' => '',
+            'rating' => '',
+            'runtime' => '',
+            'genres' => '',
+            'director' => '',
+            'studio' => '',
+            'contentRating' => '',
+            'poster' => '',
+            'season' => '',
+            'episode' => '',
+            'videoCodec' => '',
+            'audioCodec' => '',
+            'audioChannels' => '',
+            'resolution' => '',
+            'container' => '',
+            'path' => ''
+        ];
+
+    // ----------------------------
+    // Plex
+    // ----------------------------
     } else {
-        // Plex logic
-        // ...
-        // $item = [...] final item array
+        // Your existing Plex logic goes here
+        // Make sure $item array is built as before
     }
 
-    // Output JSON
+    // ----------------------------
+    // Output JSON safely
+    // ----------------------------
     echo json_encode(['success' => true, 'item' => $item]);
 
 } catch (Exception $e) {
-    // Catch any unexpected errors and return as JSON
+    // Return any exception as JSON
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }
 
-function formatRuntime($minutes) {
-    if (!is_numeric($minutes)) return '';
-    $minutes = (float)$minutes;
-    $hours = floor($minutes / 60);
-    $mins = round(fmod($minutes, 60));
-    if ($hours > 0) {
-        return $hours . 'h ' . $mins . 'm';
-    }
-    return $mins . 'm';
-}
+// Flush buffer and send JSON to browser
+ob_end_flush();
 ?>
