@@ -25,9 +25,11 @@ if (!file_exists(DB_DIR)) {
             die("Error: Cannot create data directory " . DATA_DIR . ". " . ($error['message'] ?? 'Permission denied.'));
         }
     }
-    if (!@mkdir(DB_DIR, 0777, true)) {
-        $error = error_get_last();
-        die("Error: Cannot create database directory " . DB_DIR . ". " . ($error['message'] ?? 'Permission denied.'));
+    if (!file_exists(DB_DIR)) {
+        if (!@mkdir(DB_DIR, 0777, true)) {
+            $error = error_get_last();
+            die("Error: Cannot create database directory " . DB_DIR . ". " . ($error['message'] ?? 'Permission denied.'));
+        }
     }
 
     // Migration: Move existing JSON files to DB_DIR

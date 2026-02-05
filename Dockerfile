@@ -36,8 +36,15 @@ ENV CONFIG_DIR=/config
 # ----------------------------
 COPY . /var/www/html/
 
-# Ensure web files are readable
-RUN chmod -R 755 /var/www/html
+# Copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Set correct permissions
+RUN chown -R www-data:www-data /var/www/html
+
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["apache2-foreground"]
 
 # ----------------------------
 # Expose HTTP port
