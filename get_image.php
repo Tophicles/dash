@@ -50,7 +50,7 @@ function ensureProtocol($url) {
 $baseUrl = ensureProtocol($server['url']);
 
 // Build image URL
-if ($server['type'] === 'emby') {
+if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
     $imageUrl = $baseUrl . '/Items/' . urlencode($itemId) . '/Images/' . $type . '?api_key=' . $server['apiKey'];
 } else {
     // For Plex
