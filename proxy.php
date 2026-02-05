@@ -6,6 +6,7 @@ require_once 'auth.php';
 require_once 'encryption_helper.php';
 require_once 'logging.php';
 require_once 'ssh_helper.php';
+require_once 'network_helper.php';
 requireLogin(false); // Do not update activity on polling
 
 // Close session to prevent locking while waiting for external APIs
@@ -240,12 +241,9 @@ if ($server['type'] === 'plex') {
 
         // Helper to fetch JSON
         $fetch = function($u) use ($token) {
-            $ch = curl_init($u);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+            $ch = getCurlHandle($u);
             curl_setopt($ch, CURLOPT_HTTPHEADER, ["X-Plex-Token: $token", "Accept: application/json"]);
+            // Override timeout for quick info check
             curl_setopt($ch, CURLOPT_TIMEOUT, 5);
             $r = curl_exec($ch);
             curl_close($ch);
@@ -285,17 +283,12 @@ if ($server['type'] === 'plex') {
         $url = rtrim($baseUrl, '/') . '/status/sessions';
     }
 
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+    $ch = getCurlHandle($url);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
         "X-Plex-Token: $token",
         "Accept: application/json"
     ]);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+    // Timeout set by getCurlHandle is 10, which matches logic
 
     $startTime = microtime(true);
     $res = curl_exec($ch);
@@ -332,13 +325,8 @@ if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
 
     if ($action === 'restart') {
         $url = rtrim($baseUrl, '/') . '/System/Restart';
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
+        $ch = getCurlHandle($url);
         curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             "X-Emby-Token: $apiKey",
             "X-MediaBrowser-Token: $apiKey"
@@ -366,12 +354,7 @@ if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
             "X-MediaBrowser-Token: $apiKey"
         ];
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+        $ch = getCurlHandle($url);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_TIMEOUT, 5);
         $res = curl_exec($ch);
@@ -410,14 +393,8 @@ if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
         "X-MediaBrowser-Token: $apiKey" // Jellyfin compatibility
     ];
 
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+    $ch = getCurlHandle($url);
     curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
 
     $startTime = microtime(true);
     $res = curl_exec($ch);

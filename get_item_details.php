@@ -1,6 +1,7 @@
 <?php
 require_once 'auth.php';
 require_once 'encryption_helper.php';
+require_once 'network_helper.php';
 requireLogin();
 
 header('Content-Type: application/json');
@@ -54,12 +55,7 @@ try {
         // Emby API call - Get data from Sessions endpoint instead
         $sessionsUrl = $baseUrl . '/emby/Sessions?api_key=' . $server['apiKey'];
         
-        $ch = curl_init($sessionsUrl);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+        $ch = getCurlHandle($sessionsUrl);
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/json']);
         
         $sessionsResponse = curl_exec($ch);
@@ -102,12 +98,7 @@ try {
                 $metadataUrl = $baseUrl . $endpoint . '?api_key=' . $server['apiKey'];
                 error_log("Trying Emby endpoint: " . $metadataUrl);
                 
-                $ch = curl_init($metadataUrl);
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-                curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+                $ch = getCurlHandle($metadataUrl);
                 curl_setopt($ch, CURLOPT_HTTPHEADER, [
                     'Accept: application/json',
                     'X-Emby-Token: ' . $server['apiKey'],
@@ -228,12 +219,7 @@ try {
         // Plex API call
         $url = $baseUrl . '/library/metadata/' . urlencode($itemId);
         
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+        $ch = getCurlHandle($url);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Accept: application/json',
             'X-Plex-Token: ' . $server['token']
