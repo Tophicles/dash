@@ -1,4 +1,5 @@
 <?php
+error_reporting(E_ALL & ~E_DEPRECATED);
 require_once 'logging.php';
 require_once 'restore_helper.php';
 session_start();

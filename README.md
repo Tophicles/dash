@@ -1,3 +1,5 @@
+![MultiDash Logo](assets/img/logo_splash.png)
+
 # MultiDash - Media Server Dashboard
 
 A lightweight, self-hosted dashboard for monitoring multiple Plex, Emby, and Jellyfin media servers in a unified interface.

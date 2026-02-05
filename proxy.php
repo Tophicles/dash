@@ -1,5 +1,6 @@
 <?php
 // Disable display_errors to ensure JSON output is not corrupted by warnings
+error_reporting(E_ALL & ~E_DEPRECATED);
 ini_set('display_errors', 0);
 
 require_once 'auth.php';
