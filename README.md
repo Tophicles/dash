@@ -74,7 +74,7 @@ MultiDash is ready to run in Docker.
 
 1.  Clone the repository:
     ```bash
-    git clone https://github.com/yourusername/multidash.git
+    git clone https://github.com/Tophicles/dash.git
     cd multidash
     ```
 
@@ -83,7 +83,7 @@ MultiDash is ready to run in Docker.
     docker-compose up -d
     ```
 
-3.  Access the dashboard at `http://localhost:8080`.
+3.  Access the dashboard at `http://localhost:6262`.
 
 **Using Docker CLI**
 
@@ -95,7 +95,7 @@ MultiDash is ready to run in Docker.
 2.  Run the container (mounting a volume for persistence):
     ```bash
     docker run -d \
-      -p 8080:80 \
+      -p 6262:80 \
       -v multidash-config:/config \
       --name multidash \
       multidash
