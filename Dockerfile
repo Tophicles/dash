@@ -55,6 +55,3 @@ EXPOSE 80
 # Run as nobody:users (Unraid-friendly)
 # ----------------------------
 USER nobody:users
-
-# Start Apache
-CMD ["apache2-foreground"]
