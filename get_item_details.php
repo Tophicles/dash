@@ -328,8 +328,9 @@ try {
 
 function formatRuntime($minutes) {
     if (!is_numeric($minutes)) return '';
+    $minutes = (float)$minutes;
     $hours = floor($minutes / 60);
-    $mins = round($minutes % 60);
+    $mins = round(fmod($minutes, 60));
     if ($hours > 0) {
         return $hours . 'h ' . $mins . 'm';
     }
