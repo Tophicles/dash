@@ -69,9 +69,35 @@ try {
     // Emby / Jellyfin
     // ----------------------------
     if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
-        // Your existing Emby/Jellyfin fetching logic goes here
-        // Make sure $item array is built as before
-        // Example placeholder:
+        $url = $baseUrl . '/Items/' . urlencode($itemId) . '?Fields=People,Overview,MediaSources,Studios,OfficialRating,Genres,ProductionYear,RunTimeTicks,Path';
+
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+
+        $apiKey = $server['apiKey'];
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            "X-Emby-Token: $apiKey",
+            "X-MediaBrowser-Token: $apiKey",
+            "Accept: application/json"
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode !== 200) {
+            echo json_encode(['success' => false, 'error' => "Failed to fetch from {$server['type']} (HTTP $httpCode)"]);
+            exit;
+        }
+
+        $data = json_decode($response, true);
+
+        if (!$data) {
+            echo json_encode(['success' => false, 'error' => 'Invalid JSON response']);
+            exit;
+        }
+
         $item = [
             'title' => $data['Name'] ?? 'Unknown',
             'subtitle' => $data['SeriesName'] ?? '',
@@ -79,20 +105,49 @@ try {
             'year' => $data['ProductionYear'] ?? '',
             'rating' => isset($data['CommunityRating']) ? number_format((float)$data['CommunityRating'], 1) : '',
             'runtime' => isset($data['RunTimeTicks']) ? formatRuntime((float)$data['RunTimeTicks'] / 10000000 / 60) : '',
-            'genres' => '',
+            'genres' => isset($data['Genres']) ? implode(', ', $data['Genres']) : '',
             'director' => '',
-            'studio' => '',
-            'contentRating' => '',
-            'poster' => '',
-            'season' => '',
-            'episode' => '',
+            'studio' => isset($data['Studios'][0]['Name']) ? $data['Studios'][0]['Name'] : '',
+            'contentRating' => $data['OfficialRating'] ?? '',
+            'poster' => 'get_image.php?server=' . urlencode($serverName) . '&itemId=' . urlencode($itemId) . '&type=Primary',
+            'season' => $data['ParentIndexNumber'] ?? '',
+            'episode' => $data['IndexNumber'] ?? '',
             'videoCodec' => '',
             'audioCodec' => '',
             'audioChannels' => '',
             'resolution' => '',
-            'container' => '',
-            'path' => ''
+            'container' => $data['Container'] ?? '',
+            'path' => $data['Path'] ?? ''
         ];
+
+        // Director
+        if (isset($data['People'])) {
+            $directors = [];
+            foreach ($data['People'] as $person) {
+                if (($person['Type'] ?? '') === 'Director') {
+                    $directors[] = $person['Name'];
+                }
+            }
+            $item['director'] = implode(', ', $directors);
+        }
+
+        // Tech Info
+        if (isset($data['MediaSources'][0]['MediaStreams'])) {
+            foreach ($data['MediaSources'][0]['MediaStreams'] as $stream) {
+                if (($stream['Type'] ?? '') === 'Video') {
+                    $item['videoCodec'] = $stream['Codec'] ?? '';
+                    if (isset($stream['Width']) && isset($stream['Height'])) {
+                        $item['resolution'] = $stream['Width'] . 'x' . $stream['Height'];
+                    }
+                } elseif (($stream['Type'] ?? '') === 'Audio') {
+                    // Capture first audio stream
+                    if (empty($item['audioCodec'])) {
+                        $item['audioCodec'] = $stream['Codec'] ?? '';
+                        $item['audioChannels'] = $stream['Channels'] ?? '';
+                    }
+                }
+            }
+        }
 
     // ----------------------------
     // Plex
