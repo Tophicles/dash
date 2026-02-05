@@ -47,10 +47,10 @@ function ensureProtocol($url) {
     return $url;
 }
 
-$baseUrl = ensureProtocol($server['url']);
+$baseUrl = rtrim(ensureProtocol($server['url']), '/');
 
 // Build image URL
-if ($server['type'] === 'emby') {
+if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
     $imageUrl = $baseUrl . '/Items/' . urlencode($itemId) . '/Images/' . $type . '?api_key=' . $server['apiKey'];
 } else {
     // For Plex
@@ -64,6 +64,8 @@ if ($server['type'] === 'emby') {
         $ch = curl_init($metadataUrl);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Accept: application/json',
             'X-Plex-Token: ' . $server['token']
@@ -89,6 +91,8 @@ $ch = curl_init($imageUrl);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_TIMEOUT, 30);
 curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
 
 $imageData = curl_exec($ch);
 $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
