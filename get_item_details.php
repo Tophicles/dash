@@ -82,6 +82,14 @@ try {
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }
 
-// Clear output buffer to discard any accidental warnings/notices
-ob_end_clean();
+function formatRuntime($minutes) {
+    if (!is_numeric($minutes)) return '';
+    $minutes = (float)$minutes;
+    $hours = floor($minutes / 60);
+    $mins = round(fmod($minutes, 60));
+    if ($hours > 0) {
+        return $hours . 'h ' . $mins . 'm';
+    }
+    return $mins . 'm';
+}
 ?>
