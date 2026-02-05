@@ -47,7 +47,7 @@ function ensureProtocol($url) {
     return $url;
 }
 
-$baseUrl = ensureProtocol($server['url']);
+$baseUrl = rtrim(ensureProtocol($server['url']), '/');
 
 try {
     if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
@@ -57,6 +57,9 @@ try {
         $ch = curl_init($sessionsUrl);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/json']);
         
         $sessionsResponse = curl_exec($ch);
@@ -102,6 +105,9 @@ try {
                 $ch = curl_init($metadataUrl);
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
                 curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+                curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
                 curl_setopt($ch, CURLOPT_HTTPHEADER, [
                     'Accept: application/json',
                     'X-Emby-Token: ' . $server['apiKey'],
@@ -225,6 +231,9 @@ try {
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Accept: application/json',
             'X-Plex-Token: ' . $server['token']
