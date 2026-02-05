@@ -1,27 +1,39 @@
 FROM php:8.2-apache
 
+# ----------------------------
 # Install system dependencies
+# ----------------------------
 RUN apt-get update && apt-get install -y \
     libcurl4-openssl-dev \
     libzip-dev \
     zip \
     unzip \
+    git \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
+# ----------------------------
 # Install PHP extensions
+# ----------------------------
 RUN docker-php-ext-install curl zip
 
-# Enable Apache mod_rewrite
+# ----------------------------
+# Apache setup
+# ----------------------------
 RUN a2enmod rewrite
+RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
-# Create config directory
+# ----------------------------
+# Persistent config directory
+# ----------------------------
 RUN mkdir -p /config \
-    && chown -R www-data:www-data /config
+    && chmod -R 777 /config   # writable by nobody
 
-# Environment variable for config path
 ENV CONFIG_DIR=/config
 
+# ----------------------------
 # Copy application files
+# ----------------------------
 COPY . /var/www/html/
 
 # Copy entrypoint script
@@ -34,4 +46,15 @@ RUN chown -R www-data:www-data /var/www/html
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["apache2-foreground"]
 
+# ----------------------------
+# Expose HTTP port
+# ----------------------------
 EXPOSE 80
+
+# ----------------------------
+# Run as nobody:users (Unraid-friendly)
+# ----------------------------
+USER nobody:users
+
+# Start Apache
+CMD ["apache2-foreground"]
