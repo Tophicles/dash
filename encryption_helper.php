@@ -11,10 +11,30 @@ function getSecretKey() {
         // Generate a random 32-byte key and store it as a hex string in a PHP file
         $key = bin2hex(random_bytes(32));
         $content = "<?php\n// This file was automatically generated for sensitive data encryption.\n// DO NOT share this file.\nreturn '$key';\n";
-        file_put_contents($keyFile, $content);
+
+        $result = @file_put_contents($keyFile, $content);
+        if ($result === false) {
+            error_log("Encryption Helper: Failed to write key file to $keyFile");
+            http_response_code(500);
+            if (!headers_sent()) {
+                header('Content-Type: application/json');
+            }
+            die(json_encode(['error' => 'Internal Server Error: Unable to write security key to ' . $keyFile . '. Check directory permissions.']));
+        }
+
         // Set restrictive permissions if possible
         @chmod($keyFile, 0600);
     }
+
+    if (!file_exists($keyFile)) {
+         error_log("Encryption Helper: Key file missing at $keyFile");
+         http_response_code(500);
+         if (!headers_sent()) {
+             header('Content-Type: application/json');
+         }
+         die(json_encode(['error' => 'Internal Server Error: Security key file is missing.']));
+    }
+
     return require $keyFile;
 }
 
