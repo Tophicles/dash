@@ -325,6 +325,7 @@ try {
 }
 
 function formatRuntime($minutes) {
+    if (!is_numeric($minutes)) return '';
     $hours = floor($minutes / 60);
     $mins = round($minutes % 60);
     if ($hours > 0) {
