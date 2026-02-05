@@ -1,15 +1,8 @@
 <?php
-// Disable display_errors to ensure JSON output is not corrupted by warnings
-ini_set('display_errors', 0);
-
-require_once 'auth.php';
-require_once 'encryption_helper.php';
-requireLogin();
-
-// Start output buffering to capture any accidental output
+// Start output buffering immediately to capture any accidental output
 ob_start();
 
-// Disable PHP errors from breaking JSON
+// Disable display_errors to ensure JSON output is not corrupted by warnings
 ini_set('display_errors', 0);
 error_reporting(E_ALL & ~E_WARNING & ~E_NOTICE);
 
@@ -17,7 +10,6 @@ error_reporting(E_ALL & ~E_WARNING & ~E_NOTICE);
 header('Content-Type: application/json');
 
 try {
-    // Load authentication and helpers
     require_once 'auth.php';
     require_once 'encryption_helper.php';
     requireLogin();
@@ -61,7 +53,7 @@ try {
         return $url;
     }
 
-    $baseUrl = ensureProtocol($server['url']);
+    $baseUrl = rtrim(ensureProtocol($server['url']), '/');
 
     $item = []; // initialize empty item array
 
@@ -74,6 +66,9 @@ try {
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_ENCODING, ""); // Handle gzip/deflate automatically
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
 
         $apiKey = $server['apiKey'];
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
@@ -159,6 +154,8 @@ try {
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Accept: application/json',
             'X-Plex-Token: ' . $server['token']
@@ -255,7 +252,13 @@ try {
     // ----------------------------
     // Output JSON safely
     // ----------------------------
-    echo json_encode(['success' => true, 'item' => $item]);
+    $json = json_encode(['success' => true, 'item' => $item], JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR);
+
+    if ($json === false) {
+        throw new Exception("JSON Encoding Error: " . json_last_error_msg());
+    }
+
+    echo $json;
 
 } catch (Exception $e) {
     // Return any exception as JSON
