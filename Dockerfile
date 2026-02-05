@@ -4,8 +4,6 @@ FROM php:8.2-apache
 RUN apt-get update && apt-get install -y \
     libcurl4-openssl-dev \
     libzip-dev \
-    openssh-client \
-    git \
     zip \
     unzip \
     && rm -rf /var/lib/apt/lists/*
@@ -17,16 +15,19 @@ RUN docker-php-ext-install curl zip
 RUN a2enmod rewrite
 
 # Create config directory
-RUN mkdir -p /config && chown -R www-data:www-data /config
+RUN mkdir -p /config \
+    && chown -R www-data:www-data /config
 
-# Set environment variable
+# Environment variable for config path
 ENV CONFIG_DIR=/config
 
 # Copy application files
 COPY . /var/www/html/
 
-# Set permissions
+# Set correct permissions
 RUN chown -R www-data:www-data /var/www/html
 
-# Expose port 80
+# Drop privileges explicitly
+USER www-data
+
 EXPOSE 80
