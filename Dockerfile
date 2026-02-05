@@ -24,10 +24,14 @@ ENV CONFIG_DIR=/config
 # Copy application files
 COPY . /var/www/html/
 
+# Copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Set correct permissions
 RUN chown -R www-data:www-data /var/www/html
 
-# Drop privileges explicitly
-USER www-data
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["apache2-foreground"]
 
 EXPOSE 80
