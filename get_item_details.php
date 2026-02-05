@@ -1,4 +1,7 @@
 <?php
+// Disable display_errors to ensure JSON output is not corrupted by warnings
+ini_set('display_errors', 0);
+
 require_once 'auth.php';
 require_once 'encryption_helper.php';
 requireLogin();
@@ -132,8 +135,8 @@ try {
             'subtitle' => $data['SeriesName'] ?? '',
             'overview' => $data['Overview'] ?? '',
             'year' => $data['ProductionYear'] ?? '',
-            'rating' => isset($data['CommunityRating']) ? number_format($data['CommunityRating'], 1) : '',
-            'runtime' => isset($data['RunTimeTicks']) ? formatRuntime($data['RunTimeTicks'] / 10000000 / 60) : '',
+            'rating' => isset($data['CommunityRating']) ? number_format((float)$data['CommunityRating'], 1) : '',
+            'runtime' => isset($data['RunTimeTicks']) ? formatRuntime((float)$data['RunTimeTicks'] / 10000000 / 60) : '',
             'genres' => '',
             'director' => '',
             'studio' => '',
@@ -253,8 +256,8 @@ try {
             'subtitle' => $metadata['grandparentTitle'] ?? '',
             'overview' => $metadata['summary'] ?? '',
             'year' => $metadata['year'] ?? '',
-            'rating' => isset($metadata['rating']) ? number_format($metadata['rating'], 1) : '',
-            'runtime' => isset($metadata['duration']) ? formatRuntime($metadata['duration'] / 1000 / 60) : '',
+            'rating' => isset($metadata['rating']) ? number_format((float)$metadata['rating'], 1) : '',
+            'runtime' => isset($metadata['duration']) ? formatRuntime((float)$metadata['duration'] / 1000 / 60) : '',
             'genres' => '',
             'director' => '',
             'studio' => $metadata['studio'] ?? '',
@@ -325,8 +328,10 @@ try {
 }
 
 function formatRuntime($minutes) {
+    if (!is_numeric($minutes)) return '';
+    $minutes = (float)$minutes;
     $hours = floor($minutes / 60);
-    $mins = round($minutes % 60);
+    $mins = round(fmod($minutes, 60));
     if ($hours > 0) {
         return $hours . 'h ' . $mins . 'm';
     }

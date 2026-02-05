@@ -1,4 +1,7 @@
 <?php
+// Disable display_errors to ensure JSON output is not corrupted by warnings
+ini_set('display_errors', 0);
+
 require_once 'auth.php';
 require_once 'encryption_helper.php';
 require_once 'logging.php';
