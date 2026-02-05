@@ -75,7 +75,7 @@ MultiDash is ready to run in Docker.
 1.  Clone the repository:
     ```bash
     git clone https://github.com/Tophicles/dash.git
-    cd multidash
+    cd dash
     ```
 
 2.  Start the container:
