@@ -14,6 +14,9 @@ RUN docker-php-ext-install curl zip
 # Enable Apache mod_rewrite
 RUN a2enmod rewrite
 
+# Suppress Apache ServerName warning
+RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
+
 # Create config directory
 RUN mkdir -p /config \
     && chown -R www-data:www-data /config
