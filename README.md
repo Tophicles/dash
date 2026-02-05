@@ -64,6 +64,43 @@ View detailed system and error logs with a live tail view.
 
 ## Installation
 
+### Docker Installation (Recommended)
+
+MultiDash is ready to run in Docker.
+
+**Using Docker Compose**
+
+1.  Clone the repository:
+    ```bash
+    git clone https://github.com/yourusername/multidash.git
+    cd multidash
+    ```
+
+2.  Start the container:
+    ```bash
+    docker-compose up -d
+    ```
+
+3.  Access the dashboard at `http://localhost:8080`.
+
+**Using Docker CLI**
+
+1.  Build the image:
+    ```bash
+    docker build -t multidash .
+    ```
+
+2.  Run the container (mounting a volume for persistence):
+    ```bash
+    docker run -d \
+      -p 8080:80 \
+      -v multidash-config:/config \
+      --name multidash \
+      multidash
+    ```
+
+### Manual Installation
+
 ### Prerequisites
 *   Web server (Apache/Nginx) with PHP 7.4+
 *   Write permissions for the installation directory (for JSON databases and logs)
