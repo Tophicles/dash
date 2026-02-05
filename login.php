@@ -42,6 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
 <div class="login-container">
+  <img src="assets/img/logo_splash.png" alt="MultiDash Logo" class="login-logo">
   <h1>MultiDash</h1>
   
   <?php if ($error): ?>
