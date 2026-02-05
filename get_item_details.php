@@ -1,4 +1,5 @@
 <?php
+error_reporting(E_ALL & ~E_DEPRECATED);
 require_once 'auth.php';
 require_once 'encryption_helper.php';
 requireLogin();
@@ -325,11 +326,10 @@ try {
 }
 
 function formatRuntime($minutes) {
-    $hours = floor($minutes / 60);
-    $mins = round($minutes % 60);
+    $hours = (int)floor($minutes / 60);
+    $mins = (int)round($minutes % 60);
     if ($hours > 0) {
-        return $hours . 'h ' . $mins . 'm';
+        return (int)$hours . 'h ' . $mins . 'm';
     }
     return $mins . 'm';
-}
-?>
+}?>
