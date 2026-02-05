@@ -1,6 +1,6 @@
 FROM php:8.2-apache
 
-# Install system dependencies
+# Install dependencies
 RUN apt-get update && apt-get install -y \
     libcurl4-openssl-dev \
     libzip-dev \
@@ -8,33 +8,28 @@ RUN apt-get update && apt-get install -y \
     unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions
+# PHP extensions
 RUN docker-php-ext-install curl zip
 
-# Enable Apache mod_rewrite
+# Apache setup
 RUN a2enmod rewrite
+RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf  # suppress warning
 
-# Suppress Apache ServerName warning
-RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
-
-# Create config directory
+# Create a persistent config directory
 RUN mkdir -p /config \
     && chown -R www-data:www-data /config
 
-# Environment variable for config path
+# Set environment variable
 ENV CONFIG_DIR=/config
 
-# Copy application files
+# Copy app files
 COPY . /var/www/html/
 
-# Copy entrypoint script
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-
-# Set correct permissions
+# Set permissions for www-data
 RUN chown -R www-data:www-data /var/www/html
 
-ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["apache2-foreground"]
+# Drop privileges
+USER www-data
 
+# Expose HTTP port
 EXPOSE 80
