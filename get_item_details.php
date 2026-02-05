@@ -1,152 +1,223 @@
 <?php
-// Start output buffering immediately to capture any accidental output
-ob_start();
+require_once 'auth.php';
+require_once 'encryption_helper.php';
+requireLogin();
 
-// Disable display_errors to ensure JSON output is not corrupted by warnings
-ini_set('display_errors', 0);
-error_reporting(E_ALL & ~E_WARNING & ~E_NOTICE);
-
-// Always return JSON header
 header('Content-Type: application/json');
 
+$serverName = $_GET['server'] ?? '';
+$itemId = $_GET['itemId'] ?? '';
+
+if (empty($serverName) || empty($itemId)) {
+    echo json_encode(['success' => false, 'error' => 'Missing server or itemId']);
+    exit;
+}
+
+// Load server configuration
+$serversFile = DB_DIR . 'servers.json';
+if (!file_exists($serversFile)) {
+    echo json_encode(['success' => false, 'error' => 'servers.json not found']);
+    exit;
+}
+
+$config = json_decode(file_get_contents($serversFile), true);
+$server = null;
+
+foreach ($config['servers'] as $s) {
+    if ($s['name'] === $serverName) {
+        $server = $s;
+        break;
+    }
+}
+
+if (!$server) {
+    echo json_encode(['success' => false, 'error' => 'Server not found']);
+    exit;
+}
+
+// Decrypt keys before use
+if (isset($server['apiKey'])) $server['apiKey'] = decrypt($server['apiKey']);
+if (isset($server['token'])) $server['token'] = decrypt($server['token']);
+
+// Ensure URL has protocol
+function ensureProtocol($url) {
+    if (!preg_match("~^(?:f|ht)tps?://~i", $url)) {
+        return "http://" . $url;
+    }
+    return $url;
+}
+
+$baseUrl = ensureProtocol($server['url']);
+
 try {
-    require_once 'auth.php';
-    require_once 'encryption_helper.php';
-    requireLogin();
-
-    $serverName = $_GET['server'] ?? '';
-    $itemId = $_GET['itemId'] ?? '';
-
-    if (empty($serverName) || empty($itemId)) {
-        echo json_encode(['success' => false, 'error' => 'Missing server or itemId']);
-        exit;
-    }
-
-    // Load server configuration
-    $serversFile = DB_DIR . 'servers.json';
-    if (!file_exists($serversFile)) {
-        echo json_encode(['success' => false, 'error' => 'servers.json not found']);
-        exit;
-    }
-
-    $config = json_decode(file_get_contents($serversFile), true);
-    $server = null;
-    foreach ($config['servers'] as $s) {
-        if ($s['name'] === $serverName) {
-            $server = $s;
-            break;
-        }
-    }
-
-    if (!$server) {
-        echo json_encode(['success' => false, 'error' => 'Server not found']);
-        exit;
-    }
-
-    // Decrypt keys if present
-    if (isset($server['apiKey'])) $server['apiKey'] = decrypt($server['apiKey']);
-    if (isset($server['token'])) $server['token'] = decrypt($server['token']);
-
-    // Ensure URL has protocol
-    function ensureProtocol($url) {
-        if (!preg_match("~^(?:f|ht)tps?://~i", $url)) return "http://" . $url;
-        return $url;
-    }
-
-    $baseUrl = rtrim(ensureProtocol($server['url']), '/');
-
-    $item = []; // initialize empty item array
-
-    // ----------------------------
-    // Emby / Jellyfin
-    // ----------------------------
     if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
-        $url = $baseUrl . '/Items/' . urlencode($itemId) . '?Fields=People,Overview,MediaSources,Studios,OfficialRating,Genres,ProductionYear,RunTimeTicks,Path';
-
-        $ch = curl_init($url);
+        // Emby API call - Get data from Sessions endpoint instead
+        $sessionsUrl = $baseUrl . '/emby/Sessions?api_key=' . $server['apiKey'];
+        
+        $ch = curl_init($sessionsUrl);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-        curl_setopt($ch, CURLOPT_ENCODING, ""); // Handle gzip/deflate automatically
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-
-        $apiKey = $server['apiKey'];
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            "X-Emby-Token: $apiKey",
-            "X-MediaBrowser-Token: $apiKey",
-            "Accept: application/json"
-        ]);
-
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Accept: application/json']);
+        
+        $sessionsResponse = curl_exec($ch);
         curl_close($ch);
-
-        if ($httpCode !== 200) {
-            echo json_encode(['success' => false, 'error' => "Failed to fetch from {$server['type']} (HTTP $httpCode)"]);
-            exit;
+        
+        $sessions = json_decode($sessionsResponse, true);
+        $data = null;
+        
+        // Find the session with this item and use NowPlayingItem data directly
+        foreach ($sessions as $session) {
+            if (isset($session['NowPlayingItem']['Id']) && $session['NowPlayingItem']['Id'] === $itemId) {
+                $data = $session['NowPlayingItem'];
+                break;
+            }
         }
-
-        $data = json_decode($response, true);
-
+        
         if (!$data) {
-            echo json_encode(['success' => false, 'error' => 'Invalid JSON response']);
+            echo json_encode(['success' => false, 'error' => 'Item not found in active sessions']);
             exit;
         }
-
+        
+        // For Emby, the session NowPlayingItem doesn't have full metadata
+        // For TV shows: get metadata from the Series level
+        // For movies: get metadata from the item itself
+        
+        $metadataUrl = null;
+        
+        // For TV shows, try to get series metadata
+        // For movies, the session data should have everything we need
+        if (isset($data['SeriesId']) && !empty($data['SeriesId'])) {
+            // TV Show - try multiple endpoints
+            $endpoints = [
+                '/Shows/' . urlencode($data['SeriesId']),
+                '/emby/Shows/' . urlencode($data['SeriesId']),
+                '/Items/' . urlencode($data['SeriesId']),
+                '/emby/Items/' . urlencode($data['SeriesId'])
+            ];
+            
+            foreach ($endpoints as $endpoint) {
+                $metadataUrl = $baseUrl . $endpoint . '?api_key=' . $server['apiKey'];
+                error_log("Trying Emby endpoint: " . $metadataUrl);
+                
+                $ch = curl_init($metadataUrl);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                    'Accept: application/json',
+                    'X-Emby-Token: ' . $server['apiKey'],
+                    'X-MediaBrowser-Token: ' . $server['apiKey']
+                ]);
+                
+                $metadataResponse = curl_exec($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+                
+                if ($httpCode === 200) {
+                    error_log("Success with endpoint: " . $endpoint);
+                    $metadataData = json_decode($metadataResponse, true);
+                    if ($metadataData) {
+                        if (isset($metadataData['Genres'])) $data['Genres'] = $metadataData['Genres'];
+                        if (isset($metadataData['Studios'])) $data['Studios'] = $metadataData['Studios'];
+                        if (isset($metadataData['People'])) $data['People'] = $metadataData['People'];
+                        if (isset($metadataData['OfficialRating'])) $data['OfficialRating'] = $metadataData['OfficialRating'];
+                    }
+                    break;
+                }
+            }
+        }
+        
+        // Build item details
         $item = [
             'title' => $data['Name'] ?? 'Unknown',
             'subtitle' => $data['SeriesName'] ?? '',
             'overview' => $data['Overview'] ?? '',
             'year' => $data['ProductionYear'] ?? '',
-            'rating' => isset($data['CommunityRating']) ? number_format((float)$data['CommunityRating'], 1) : '',
-            'runtime' => isset($data['RunTimeTicks']) ? formatRuntime((float)$data['RunTimeTicks'] / 10000000 / 60) : '',
-            'genres' => isset($data['Genres']) ? implode(', ', $data['Genres']) : '',
+            'rating' => isset($data['CommunityRating']) ? number_format($data['CommunityRating'], 1) : '',
+            'runtime' => isset($data['RunTimeTicks']) ? formatRuntime($data['RunTimeTicks'] / 10000000 / 60) : '',
+            'genres' => '',
             'director' => '',
-            'studio' => isset($data['Studios'][0]['Name']) ? $data['Studios'][0]['Name'] : '',
+            'studio' => '',
             'contentRating' => $data['OfficialRating'] ?? '',
-            'poster' => 'get_image.php?server=' . urlencode($serverName) . '&itemId=' . urlencode($itemId) . '&type=Primary',
+            'poster' => '',
             'season' => $data['ParentIndexNumber'] ?? '',
             'episode' => $data['IndexNumber'] ?? '',
             'videoCodec' => '',
             'audioCodec' => '',
             'audioChannels' => '',
             'resolution' => '',
-            'container' => $data['Container'] ?? '',
-            'path' => $data['Path'] ?? ''
+            'container' => '',
+            'path' => ''
         ];
-
-        // Director
-        if (isset($data['People'])) {
-            $directors = [];
+        
+        // Get genres - try Genres array first, then GenreItems
+        if (isset($data['Genres']) && is_array($data['Genres']) && count($data['Genres']) > 0) {
+            $item['genres'] = implode(', ', $data['Genres']);
+        } elseif (isset($data['GenreItems']) && is_array($data['GenreItems']) && count($data['GenreItems']) > 0) {
+            // GenreItems is an array of objects with 'Name' field
+            $genres = array_map(function($g) { return $g['Name'] ?? ''; }, $data['GenreItems']);
+            $item['genres'] = implode(', ', array_filter($genres));
+        }
+        
+        // Get studio (it's an array of objects in Emby)
+        if (isset($data['Studios']) && is_array($data['Studios']) && count($data['Studios']) > 0) {
+            if (isset($data['Studios'][0]['Name'])) {
+                $item['studio'] = $data['Studios'][0]['Name'];
+            } elseif (is_string($data['Studios'][0])) {
+                $item['studio'] = $data['Studios'][0];
+            }
+        }
+        
+        // Get director from People
+        if (isset($data['People']) && is_array($data['People'])) {
             foreach ($data['People'] as $person) {
-                if (($person['Type'] ?? '') === 'Director') {
-                    $directors[] = $person['Name'];
+                if (isset($person['Type']) && $person['Type'] === 'Director') {
+                    $item['director'] = $person['Name'];
+                    break;
                 }
             }
-            $item['director'] = implode(', ', $directors);
+        }
+        
+        // Get poster image - use relative URL to avoid mixed content
+        // For TV episodes, use the series poster instead of episode thumbnail
+        $posterItemId = $itemId;
+        if ($data['Type'] === 'Episode' && isset($data['SeriesId'])) {
+            $posterItemId = $data['SeriesId'];
+        }
+        
+        if (isset($data['ImageTags']['Primary']) || ($data['Type'] === 'Episode' && isset($data['SeriesId']))) {
+            $item['poster'] = 'get_image.php?server=' . urlencode($serverName) . '&itemId=' . urlencode($posterItemId) . '&type=Primary';
         }
 
-        // Tech Info
-        if (isset($data['MediaSources'][0]['MediaStreams'])) {
-            foreach ($data['MediaSources'][0]['MediaStreams'] as $stream) {
+        // Extract File Info (Path, Codecs)
+        if (isset($data['Path'])) {
+             $item['path'] = $data['Path'];
+        } elseif (isset($data['MediaSources'][0]['Path'])) {
+             $item['path'] = $data['MediaSources'][0]['Path'];
+        }
+
+        if (isset($data['Container'])) {
+             $item['container'] = $data['Container'];
+        } elseif (isset($data['MediaSources'][0]['Container'])) {
+             $item['container'] = $data['MediaSources'][0]['Container'];
+        }
+
+        $streams = $data['MediaStreams'] ?? ($data['MediaSources'][0]['MediaStreams'] ?? []);
+        if (!empty($streams)) {
+            foreach ($streams as $stream) {
                 if (($stream['Type'] ?? '') === 'Video') {
                     $item['videoCodec'] = $stream['Codec'] ?? '';
                     if (isset($stream['Width']) && isset($stream['Height'])) {
                         $item['resolution'] = $stream['Width'] . 'x' . $stream['Height'];
                     }
                 } elseif (($stream['Type'] ?? '') === 'Audio') {
-                    // Capture first audio stream
-                    if (empty($item['audioCodec'])) {
+                     if (empty($item['audioCodec']) || ($stream['IsDefault'] ?? false)) {
                         $item['audioCodec'] = $stream['Codec'] ?? '';
                         $item['audioChannels'] = $stream['Channels'] ?? '';
-                    }
+                     }
                 }
             }
         }
-
-    // ----------------------------
-    // Plex
-    // ----------------------------
+        
     } else {
         // Plex API call
         $url = $baseUrl . '/library/metadata/' . urlencode($itemId);
@@ -154,8 +225,6 @@ try {
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Accept: application/json',
             'X-Plex-Token: ' . $server['token']
@@ -184,8 +253,8 @@ try {
             'subtitle' => $metadata['grandparentTitle'] ?? '',
             'overview' => $metadata['summary'] ?? '',
             'year' => $metadata['year'] ?? '',
-            'rating' => isset($metadata['rating']) ? number_format((float)$metadata['rating'], 1) : '',
-            'runtime' => isset($metadata['duration']) ? formatRuntime((float)$metadata['duration'] / 1000 / 60) : '',
+            'rating' => isset($metadata['rating']) ? number_format($metadata['rating'], 1) : '',
+            'runtime' => isset($metadata['duration']) ? formatRuntime($metadata['duration'] / 1000 / 60) : '',
             'genres' => '',
             'director' => '',
             'studio' => $metadata['studio'] ?? '',
@@ -248,28 +317,16 @@ try {
             }
         }
     }
-
-    // ----------------------------
-    // Output JSON safely
-    // ----------------------------
-    $json = json_encode(['success' => true, 'item' => $item], JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR);
-
-    if ($json === false) {
-        throw new Exception("JSON Encoding Error: " . json_last_error_msg());
-    }
-
-    echo $json;
-
+    
+    echo json_encode(['success' => true, 'item' => $item]);
+    
 } catch (Exception $e) {
-    // Return any exception as JSON
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }
 
 function formatRuntime($minutes) {
-    if (!is_numeric($minutes)) return '';
-    $minutes = (float)$minutes;
     $hours = floor($minutes / 60);
-    $mins = round(fmod($minutes, 60));
+    $mins = round($minutes % 60);
     if ($hours > 0) {
         return $hours . 'h ' . $mins . 'm';
     }
