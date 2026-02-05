@@ -1,35 +1,53 @@
 FROM php:8.2-apache
 
-# Install dependencies
+# ----------------------------
+# Install system dependencies
+# ----------------------------
 RUN apt-get update && apt-get install -y \
     libcurl4-openssl-dev \
     libzip-dev \
     zip \
     unzip \
+    git \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# PHP extensions
+# ----------------------------
+# Install PHP extensions
+# ----------------------------
 RUN docker-php-ext-install curl zip
 
+# ----------------------------
 # Apache setup
+# ----------------------------
 RUN a2enmod rewrite
-RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf  # suppress warning
+RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
-# Create a persistent config directory
+# ----------------------------
+# Persistent config directory
+# ----------------------------
 RUN mkdir -p /config \
-    && chown -R www-data:www-data /config
+    && chmod -R 777 /config   # writable by nobody
 
-# Set environment variable
 ENV CONFIG_DIR=/config
 
-# Copy app files
+# ----------------------------
+# Copy application files
+# ----------------------------
 COPY . /var/www/html/
 
-# Set permissions for www-data
-RUN chown -R www-data:www-data /var/www/html
+# Ensure web files are readable
+RUN chmod -R 755 /var/www/html
 
-# Drop privileges
-USER www-data
-
+# ----------------------------
 # Expose HTTP port
+# ----------------------------
 EXPOSE 80
+
+# ----------------------------
+# Run as nobody:users (Unraid-friendly)
+# ----------------------------
+USER nobody:users
+
+# Start Apache
+CMD ["apache2-foreground"]
