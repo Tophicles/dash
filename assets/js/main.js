@@ -3078,6 +3078,14 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        const adminFeedbackBtn = document.getElementById('admin-feedback-btn');
+        if (adminFeedbackBtn) {
+            adminFeedbackBtn.addEventListener('click', () => {
+                openAdminFeedbackModal();
+                if (menuDropdown) menuDropdown.classList.remove('visible');
+            });
+        }
+
         const panicBtn = document.getElementById('panic-btn');
         if (panicBtn) {
             panicBtn.addEventListener('click', async () => {
@@ -3131,6 +3139,14 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     }
+
+    const feedbackBtn = document.getElementById('feedback-btn');
+    if (feedbackBtn) {
+        feedbackBtn.addEventListener('click', () => {
+             openFeedbackModal();
+             if (menuDropdown) menuDropdown.classList.remove('visible');
+        });
+    }
 });
 
 // Donate Modal Logic
@@ -3160,4 +3176,139 @@ function processDonation() {
     const amount = document.getElementById('donate-amount').value || 5;
     window.open(`https://paypal.me/tophicles/${amount}`, '_blank');
     closeDonateModal();
+}
+
+// Feedback Logic
+function openFeedbackModal() {
+    document.getElementById('feedback-modal').classList.add('visible');
+    document.getElementById('feedback-form').reset();
+}
+
+function closeFeedbackModal() {
+    document.getElementById('feedback-modal').classList.remove('visible');
+}
+
+document.getElementById('feedback-modal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeFeedbackModal();
+});
+
+document.getElementById('feedback-form')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = this.querySelector('button[type="submit"]');
+    const originalText = btn.innerText;
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
+
+    const formData = new FormData(this);
+    const data = {
+        type: formData.get('type'),
+        message: formData.get('message')
+    };
+
+    try {
+        const res = await fetch('manage_feedback.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        const result = await res.json();
+
+        if (result.success) {
+            showModalAlert('Feedback sent successfully. Thank you!');
+            closeFeedbackModal();
+        } else {
+            showModalAlert('Error: ' + (result.error || 'Unknown error'));
+        }
+    } catch (e) {
+        showModalAlert('Failed to send feedback: ' + e.message);
+    }
+
+    btn.disabled = false;
+    btn.innerText = originalText;
+});
+
+// Admin Feedback Logic
+function openAdminFeedbackModal() {
+    document.getElementById('admin-feedback-modal').classList.add('visible');
+    loadFeedbackList();
+}
+
+function closeAdminFeedbackModal() {
+    document.getElementById('admin-feedback-modal').classList.remove('visible');
+}
+
+document.getElementById('admin-feedback-modal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeAdminFeedbackModal();
+});
+
+async function loadFeedbackList() {
+    const container = document.getElementById('admin-feedback-list');
+    if (!container) return;
+
+    container.innerHTML = '<div style="text-align:center; color:var(--muted); padding:20px;"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</div>';
+
+    try {
+        const res = await fetch('manage_feedback.php');
+        const data = await res.json();
+
+        if (data.success) {
+            if (data.feedback.length === 0) {
+                container.innerHTML = '<div style="text-align:center; color:var(--muted); padding:20px;">No feedback received yet.</div>';
+                return;
+            }
+
+            container.innerHTML = data.feedback.map(item => {
+                const typeColors = {
+                    'suggestion': '#2196f3',
+                    'bug': '#ef5350',
+                    'other': '#9e9e9e'
+                };
+                const color = typeColors[item.type] || '#9e9e9e';
+
+                return `
+                <div class="feedback-item" style="background:rgba(255,255,255,0.05); padding:15px; border-radius:8px; border:1px solid rgba(255,255,255,0.1);">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                        <div>
+                            <span style="font-weight:bold; color:var(--text);">${esc(item.user)}</span>
+                            <span style="font-size:0.8rem; color:var(--muted); margin-left:8px;">${esc(item.date)}</span>
+                        </div>
+                        <span style="background:${color}; color:white; padding:2px 8px; border-radius:4px; font-size:0.75rem; font-weight:bold; text-transform:uppercase;">${esc(item.type)}</span>
+                    </div>
+                    <div style="white-space:pre-wrap; color:var(--text); line-height:1.5;">${esc(item.message)}</div>
+                    <div style="display:flex; justify-content:flex-end; margin-top:10px;">
+                        <button class="btn danger" style="padding:4px 10px; font-size:0.8rem;" onclick="deleteFeedback('${esc(item.id)}')">
+                            <i class="fa-solid fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        } else {
+            container.innerHTML = '<div style="text-align:center; color:#ef5350; padding:20px;">Failed to load feedback</div>';
+        }
+    } catch (e) {
+        container.innerHTML = '<div style="text-align:center; color:#ef5350; padding:20px;">Error loading feedback</div>';
+    }
+}
+
+async function deleteFeedback(id) {
+    if (!await showModalConfirm('Delete this feedback entry?')) return;
+
+    try {
+        const res = await fetch('manage_feedback.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ action: 'delete', id: id })
+        });
+        const result = await res.json();
+
+        if (result.success) {
+            loadFeedbackList();
+        } else {
+            showModalAlert('Failed to delete: ' + (result.error || 'Unknown error'));
+        }
+    } catch (e) {
+        showModalAlert('Error: ' + e.message);
+    }
 }
