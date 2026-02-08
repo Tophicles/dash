@@ -36,6 +36,9 @@ $isAdmin = isAdmin();
       <span class="header-badge" id="header-clock">--:--</span>
     </div>
     <div class="header-section right" id="header-clock-btn">
+      <button class="btn header-btn" id="feedback-btn" title="Feedback" style="margin-right: 8px;">
+          <i class="fa-regular fa-comment-dots"></i> <span class="btn-text">Feedback</span>
+      </button>
       <button class="btn header-btn" id="donate-btn" title="Donate">
           <i class="fa-solid fa-heart"></i> <span class="btn-text">Donate</span>
       </button>

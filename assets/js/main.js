@@ -3172,42 +3172,52 @@ function processDonation() {
 
 // Feedback Logic
 function openFeedbackModal() {
-    document.getElementById('feedback-modal').classList.add('visible');
-    document.getElementById('feedback-form').reset();
+    const modal = document.getElementById('feedback-modal');
+    if (modal) {
+        modal.classList.add('visible');
+        document.getElementById('feedback-form').reset();
+    }
 }
 
 function closeFeedbackModal() {
-    document.getElementById('feedback-modal').classList.remove('visible');
+    const modal = document.getElementById('feedback-modal');
+    if (modal) modal.classList.remove('visible');
 }
 
-document.getElementById('feedback-modal')?.addEventListener('click', function(e) {
-    if (e.target === this) closeFeedbackModal();
-});
+const feedbackModal = document.getElementById('feedback-modal');
+if (feedbackModal) {
+    feedbackModal.addEventListener('click', function(e) {
+        if (e.target === this) closeFeedbackModal();
+    });
+}
 
-document.getElementById('feedback-form')?.addEventListener('submit', function(e) {
-    e.preventDefault();
+const feedbackForm = document.getElementById('feedback-form');
+if (feedbackForm) {
+    feedbackForm.addEventListener('submit', function(e) {
+        e.preventDefault();
 
-    const formData = new FormData(this);
-    const type = formData.get('type');
-    const message = formData.get('message');
+        const formData = new FormData(this);
+        const type = formData.get('type');
+        const message = formData.get('message');
 
-    // Construct GitHub Issue URL
-    // Repository: Tophicles/dash
-    const repoUrl = 'https://github.com/Tophicles/dash/issues/new';
+        // Construct GitHub Issue URL
+        // Repository: Tophicles/dash
+        const repoUrl = 'https://github.com/Tophicles/dash/issues/new';
 
-    // Format Title: [Type] Feedback
-    // Capitalize type first letter
-    const typeLabel = type.charAt(0).toUpperCase() + type.slice(1);
-    const title = `[${typeLabel}] Feedback`;
+        // Format Title: [Type] Feedback
+        // Capitalize type first letter
+        const typeLabel = type.charAt(0).toUpperCase() + type.slice(1);
+        const title = `[${typeLabel}] Feedback`;
 
-    // Construct body with metadata hint
-    const body = `${message}\n\n---\nSubmitted via MultiDash Feedback Form`;
+        // Construct body with metadata hint
+        const body = `${message}\n\n---\nSubmitted via MultiDash Feedback Form`;
 
-    const url = `${repoUrl}?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
+        const url = `${repoUrl}?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
 
-    // Open in new tab
-    window.open(url, '_blank');
+        // Open in new tab
+        window.open(url, '_blank');
 
-    // Close modal
-    closeFeedbackModal();
-});
+        // Close modal
+        closeFeedbackModal();
+    });
+}
