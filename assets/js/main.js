@@ -3132,3 +3132,32 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
+
+// Donate Modal Logic
+function openDonateModal() {
+    const modal = document.getElementById('donate-modal');
+    if (modal) modal.classList.add('visible');
+}
+
+function closeDonateModal() {
+    const modal = document.getElementById('donate-modal');
+    if (modal) modal.classList.remove('visible');
+}
+
+const donateModal = document.getElementById('donate-modal');
+if (donateModal) {
+    donateModal.addEventListener('click', function(e) {
+        if (e.target === this) closeDonateModal();
+    });
+}
+
+const donateBtn = document.getElementById('donate-btn');
+if (donateBtn) {
+    donateBtn.addEventListener('click', openDonateModal);
+}
+
+function processDonation() {
+    const amount = document.getElementById('donate-amount').value || 5;
+    window.open(`https://paypal.me/tophicles/${amount}`, '_blank');
+    closeDonateModal();
+}
