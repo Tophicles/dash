@@ -1744,3 +1744,51 @@ form button:hover { background:#45a049; }
     font-family: monospace;
     min-height: 1.2em;
 }
+
+/* Donate Input Styling */
+.donate-input-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto;
+  position: relative;
+  width: fit-content;
+}
+
+.currency-symbol {
+  font-size: 2rem;
+  color: var(--accent);
+  margin-right: 8px;
+  font-weight: 300;
+}
+
+.donate-input {
+  background: rgba(0,0,0,0.3);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  font-size: 2.5rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 10px 15px;
+  width: 140px;
+  transition: all 0.3s ease;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.donate-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.2), inset 0 2px 4px rgba(0,0,0,0.2);
+  transform: scale(1.05);
+}
+
+/* Hide number spinner controls */
+.donate-input::-webkit-inner-spin-button,
+.donate-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.donate-input {
+  -moz-appearance: textfield;
+}
