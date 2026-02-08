@@ -91,11 +91,11 @@ $isAdmin = isAdmin();
     <p style="color: var(--muted); margin-bottom: 20px; line-height: 1.6;">
         This is a private project maintained with love. Donations help cover server costs and fuel further development. Thank you!
     </p>
-    <div class="server-form-group">
-      <label>Amount (USD)</label>
-      <div class="url-input-group">
-          <span style="padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-right: none; border-radius: 6px 0 0 6px;">$</span>
-          <input type="number" id="donate-amount" value="5" min="1" step="1" style="border-radius: 0 6px 6px 0;">
+    <div class="server-form-group" style="text-align: center; margin-bottom: 30px;">
+      <label style="display: block; margin-bottom: 15px; font-size: 1.1rem; color: var(--text);">Donation Amount (USD)</label>
+      <div class="donate-input-wrapper">
+          <span class="currency-symbol">$</span>
+          <input type="number" id="donate-amount" value="5" min="1" step="1" class="donate-input">
       </div>
     </div>
     <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
