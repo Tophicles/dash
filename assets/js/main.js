@@ -3131,6 +3131,14 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     }
+
+    const feedbackBtn = document.getElementById('feedback-btn');
+    if (feedbackBtn) {
+        feedbackBtn.addEventListener('click', () => {
+             openFeedbackModal();
+             if (menuDropdown) menuDropdown.classList.remove('visible');
+        });
+    }
 });
 
 // Donate Modal Logic
@@ -3160,4 +3168,56 @@ function processDonation() {
     const amount = document.getElementById('donate-amount').value || 5;
     window.open(`https://paypal.me/tophicles/${amount}`, '_blank');
     closeDonateModal();
+}
+
+// Feedback Logic
+function openFeedbackModal() {
+    const modal = document.getElementById('feedback-modal');
+    if (modal) {
+        modal.classList.add('visible');
+        document.getElementById('feedback-form').reset();
+    }
+}
+
+function closeFeedbackModal() {
+    const modal = document.getElementById('feedback-modal');
+    if (modal) modal.classList.remove('visible');
+}
+
+const feedbackModal = document.getElementById('feedback-modal');
+if (feedbackModal) {
+    feedbackModal.addEventListener('click', function(e) {
+        if (e.target === this) closeFeedbackModal();
+    });
+}
+
+const feedbackForm = document.getElementById('feedback-form');
+if (feedbackForm) {
+    feedbackForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+        const type = formData.get('type');
+        const message = formData.get('message');
+
+        // Construct GitHub Issue URL
+        // Repository: Tophicles/dash
+        const repoUrl = 'https://github.com/Tophicles/dash/issues/new';
+
+        // Format Title: [Type] Feedback
+        // Capitalize type first letter
+        const typeLabel = type.charAt(0).toUpperCase() + type.slice(1);
+        const title = `[${typeLabel}] Feedback`;
+
+        // Construct body with metadata hint
+        const body = `${message}\n\n---\nSubmitted via MultiDash Feedback Form`;
+
+        const url = `${repoUrl}?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
+
+        // Open in new tab
+        window.open(url, '_blank');
+
+        // Close modal
+        closeFeedbackModal();
+    });
 }

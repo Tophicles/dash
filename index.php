@@ -36,6 +36,9 @@ $isAdmin = isAdmin();
       <span class="header-badge" id="header-clock">--:--</span>
     </div>
     <div class="header-section right" id="header-clock-btn">
+      <button class="btn header-btn" id="feedback-btn" title="Feedback" style="margin-right: 8px;">
+          <i class="fa-regular fa-comment-dots"></i> <span class="btn-text">Feedback</span>
+      </button>
       <button class="btn header-btn" id="donate-btn" title="Donate">
           <i class="fa-solid fa-heart"></i> <span class="btn-text">Donate</span>
       </button>
@@ -80,6 +83,36 @@ $isAdmin = isAdmin();
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Feedback Modal (GitHub Issues) -->
+<div id="feedback-modal" class="modal">
+  <div class="modal-content" style="max-width: 500px;">
+    <span class="modal-close" onclick="closeFeedbackModal()">&times;</span>
+    <h2 style="margin-bottom: 20px;"><i class="fa-brands fa-github"></i> Project Feedback</h2>
+    <p style="color:var(--muted); margin-bottom:20px; line-height: 1.5;">
+        Submit bugs or feature requests directly to the project's GitHub repository.
+        This ensures the developer sees it and can track progress.
+    </p>
+    <form id="feedback-form">
+        <div class="server-form-group">
+            <label>Feedback Type</label>
+            <select name="type" id="feedback-type">
+                <option value="suggestion">Feature Request / Suggestion</option>
+                <option value="bug">Bug Report</option>
+                <option value="other">General Feedback</option>
+            </select>
+        </div>
+        <div class="server-form-group">
+            <label>Message / Details</label>
+            <textarea name="message" id="feedback-message" rows="6" required style="width:100%; background:rgba(0,0,0,0.2); border:1px solid var(--border); color:var(--text); padding:10px; border-radius:6px; resize:vertical; box-sizing: border-box;" placeholder="Describe your suggestion or bug..."></textarea>
+        </div>
+        <div style="display:flex; justify-content:flex-end; margin-top:15px; gap: 10px;">
+            <button type="button" class="btn" onclick="closeFeedbackModal()">Cancel</button>
+            <button type="submit" class="btn primary"><i class="fa-solid fa-up-right-from-square"></i> Open GitHub Issue</button>
+        </div>
+    </form>
   </div>
 </div>
 
