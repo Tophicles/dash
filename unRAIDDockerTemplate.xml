@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>MultiDash</Name>
+  <Repository>tophicles/dash:prod-latest</Repository>
+  <Registry/>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>bash</Shell>
+  <Privileged>false</Privileged>
+  <Support/>
+  <Project/>
+  <ReadMe/>
+  <Overview/>
+  <Category>Tools:Dashboard</Category>
+  <WebUI>http://[IP]:[PORT:6262]</WebUI>
+  <TemplateURL/>
+  <Icon>https://raw.githubusercontent.com/Tophicles/dash/main/assets/img/logo_splash.png</Icon>
+  <ExtraParams/>
+  <PostArgs/>
+  <CPUset/>
+  <DateInstalled>1770536572</DateInstalled>
+  <DonateText/>
+  <DonateLink/>
+  <Requires/>
+  <Config Name="WEb" Target="80" Default="" Mode="tcp" Description="" Type="Port" Display="always" Required="false" Mask="false">6262</Config>
+  <Config Name="config" Target="/config" Default="" Mode="rw,slave" Description="" Type="Path" Display="always" Required="false" Mask="false">/mnt/user/appdata/multidash/</Config>
+  <Config Name="Host Key 1" Target="CONFIG_DIR" Default="" Mode="" Description="" Type="Variable" Display="always" Required="false" Mask="false">/config</Config>
+  <TailscaleStateDir/>
+</Container>
