@@ -76,6 +76,9 @@ $isAdmin = isAdmin();
             <i class="fa-solid fa-radiation"></i> <span>Panic! (Reset)</span>
           </div>
           <?php endif; ?>
+          <div class="menu-item" id="feedback-btn">
+            <i class="fa-regular fa-comment-dots"></i> <span>Feedback</span>
+          </div>
           <div class="menu-divider"></div>
           <div class="menu-item danger" onclick="window.location.href='logout.php'">
             <i class="fa-solid fa-right-from-bracket"></i> <span>Logout</span>
