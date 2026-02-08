@@ -60,9 +60,6 @@ $isAdmin = isAdmin();
           <div class="menu-item" id="users-btn">
             <i class="fa-solid fa-users"></i> <span>Manage Users</span>
           </div>
-          <div class="menu-item" id="admin-feedback-btn">
-            <i class="fa-solid fa-comments"></i> <span>User Feedback</span>
-          </div>
           <div class="menu-item" id="ssh-keys-nav-btn">
             <i class="fa-solid fa-key"></i> <span>SSH Keys</span>
           </div>
@@ -89,48 +86,33 @@ $isAdmin = isAdmin();
   </div>
 </div>
 
-<!-- Feedback Modal (Submit) -->
+<!-- Feedback Modal (GitHub Issues) -->
 <div id="feedback-modal" class="modal">
   <div class="modal-content" style="max-width: 500px;">
     <span class="modal-close" onclick="closeFeedbackModal()">&times;</span>
-    <h2 style="margin-bottom: 20px;">Send Feedback</h2>
-    <p style="color:var(--muted); margin-bottom:20px;">
-        Suggestions, bug reports, or just general feedback.
+    <h2 style="margin-bottom: 20px;"><i class="fa-brands fa-github"></i> Project Feedback</h2>
+    <p style="color:var(--muted); margin-bottom:20px; line-height: 1.5;">
+        Submit bugs or feature requests directly to the project's GitHub repository.
+        This ensures the developer sees it and can track progress.
     </p>
     <form id="feedback-form">
         <div class="server-form-group">
             <label>Feedback Type</label>
             <select name="type" id="feedback-type">
-                <option value="suggestion">Suggestion</option>
+                <option value="suggestion">Feature Request / Suggestion</option>
                 <option value="bug">Bug Report</option>
-                <option value="other">Other</option>
+                <option value="other">General Feedback</option>
             </select>
         </div>
         <div class="server-form-group">
-            <label>Message</label>
-            <textarea name="message" id="feedback-message" rows="5" required style="width:100%; background:rgba(0,0,0,0.2); border:1px solid var(--border); color:var(--text); padding:10px; border-radius:6px; resize:vertical; box-sizing: border-box;"></textarea>
+            <label>Message / Details</label>
+            <textarea name="message" id="feedback-message" rows="6" required style="width:100%; background:rgba(0,0,0,0.2); border:1px solid var(--border); color:var(--text); padding:10px; border-radius:6px; resize:vertical; box-sizing: border-box;" placeholder="Describe your suggestion or bug..."></textarea>
         </div>
-        <div style="display:flex; justify-content:flex-end; margin-top:10px;">
-            <button type="submit" class="btn primary">Submit Feedback</button>
+        <div style="display:flex; justify-content:flex-end; margin-top:15px; gap: 10px;">
+            <button type="button" class="btn" onclick="closeFeedbackModal()">Cancel</button>
+            <button type="submit" class="btn primary"><i class="fa-solid fa-up-right-from-square"></i> Open GitHub Issue</button>
         </div>
     </form>
-  </div>
-</div>
-
-<!-- Admin Feedback Modal (View) -->
-<div id="admin-feedback-modal" class="modal">
-  <div class="modal-content" style="max-width: 700px;">
-    <span class="modal-close" onclick="closeAdminFeedbackModal()">&times;</span>
-    <h2 style="margin-bottom: 20px;">User Feedback</h2>
-
-    <div id="admin-feedback-list" style="display:flex; flex-direction:column; gap:10px; max-height:60vh; overflow-y:auto;">
-        <!-- Feedback items will be injected here -->
-        <div style="text-align:center; color:var(--muted); padding:20px;">Loading...</div>
-    </div>
-
-    <div style="display:flex; justify-content:flex-end; margin-top:20px;">
-        <button class="btn" onclick="closeAdminFeedbackModal()">Close</button>
-    </div>
   </div>
 </div>
 
