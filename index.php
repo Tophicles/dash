@@ -36,6 +36,9 @@ $isAdmin = isAdmin();
       <span class="header-badge" id="header-clock">--:--</span>
     </div>
     <div class="header-section right" id="header-clock-btn">
+      <button class="btn header-btn" id="donate-btn" title="Donate">
+          <i class="fa-solid fa-heart"></i> <span class="btn-text">Donate</span>
+      </button>
       <div class="menu-container">
         <button class="btn header-btn" id="menu-toggle-btn" title="Menu">
           <i class="fa-solid fa-bars"></i> <span class="btn-text">MENU</span>
@@ -76,6 +79,29 @@ $isAdmin = isAdmin();
           </div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Donate Modal -->
+<div id="donate-modal" class="modal">
+  <div class="modal-content" style="max-width: 400px;">
+    <span class="modal-close" onclick="closeDonateModal()">&times;</span>
+    <h2 style="margin-bottom: 20px;"><i class="fa-solid fa-heart" style="color: #e91e63;"></i> Support Project</h2>
+    <p style="color: var(--muted); margin-bottom: 20px; line-height: 1.6;">
+        This is a private project maintained with love. Donations help cover server costs and fuel further development. Thank you!
+    </p>
+    <div class="server-form-group">
+      <label>Amount (USD)</label>
+      <div class="url-input-group">
+          <span style="padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-right: none; border-radius: 6px 0 0 6px;">$</span>
+          <input type="number" id="donate-amount" value="5" min="1" step="1" style="border-radius: 0 6px 6px 0;">
+      </div>
+    </div>
+    <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+      <button class="btn primary" onclick="processDonation()" style="width: 100%;">
+        <i class="fa-brands fa-paypal"></i> Donate via PayPal
+      </button>
     </div>
   </div>
 </div>
