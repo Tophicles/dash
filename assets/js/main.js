@@ -1,3 +1,12 @@
+// Helper to check if a response was redirected to login.php (session expired)
+function checkSessionExpiry(res) {
+    if (res && res.url && res.url.includes('login.php')) {
+        window.location.href = 'login.php?timeout=1';
+        return true;
+    }
+    return false;
+}
+
 // Helper to escape HTML and prevent XSS
 function esc(str) {
     if (str === null || str === undefined) return '';
@@ -89,8 +98,6 @@ let refreshTimer = null;
 let currentView = 'servers'; // 'servers', 'sessions', or 'all'
 let selectedServerId = null;
 let reorderMode = false;
-let sessionTimeout = 1800; // 30 minutes
-let sessionTimerInterval = null;
 let lastHeartbeatTime = Date.now();
 // const IS_ADMIN = ... (This is defined in index.php)
 
@@ -485,6 +492,7 @@ document.getElementById('back-btn').addEventListener('click', function() {
 // Load config via PHP to handle decryption and permissions
 async function loadConfig() {
     const res = await fetch('get_config.php?_=' + Date.now());
+    if (checkSessionExpiry(res)) return;
     const config = await res.json();
     SERVERS = config.servers.filter(s=>s.enabled).sort((a,b)=> {
         // First sort by type (emby before plex)
@@ -544,6 +552,8 @@ async function fetchServer(server){
             signal: controller.signal
         });
         clearTimeout(timeoutId);
+
+        if (checkSessionExpiry(res)) return [];
 
         if(!res.ok) return [];
         const data = await res.json();
@@ -1309,6 +1319,7 @@ async function fetchDashboardUsers() {
 
     try {
         const res = await fetch('get_active_users.php?_=' + Date.now());
+        if (checkSessionExpiry(res)) return;
         if (!res.ok) throw new Error('API Error');
         const data = await res.json();
         renderDashboardUsers(data.users || []);
@@ -2237,58 +2248,22 @@ async function loadAll(){
     }
 }
 
-// Session Timer Logic
-function startSessionTimer() {
-    if (sessionTimerInterval) clearInterval(sessionTimerInterval);
-    sessionTimeout = 1800;
-    updateSessionDisplay();
-
-    sessionTimerInterval = setInterval(() => {
-        sessionTimeout--;
-        updateSessionDisplay();
-        if (sessionTimeout <= 0) {
-            clearInterval(sessionTimerInterval);
-            window.location.reload(); // Trigger PHP logout/redirect
-        }
-    }, 1000);
-}
-
+// Session Activity / Heartbeat
 function resetSessionTimer() {
-    sessionTimeout = 1800;
-    updateSessionDisplay();
-
     // Throttled Heartbeat: Send "I am alive" to server if > 60s since last heartbeat
     const now = Date.now();
     if (now - lastHeartbeatTime > 60000) {
         lastHeartbeatTime = now;
         // Use a lightweight call that triggers activity update (default requireLogin(true))
-        fetch('get_user.php').catch(e => console.error('Heartbeat failed', e));
-    }
-}
-
-function updateSessionDisplay() {
-    const el = document.getElementById('session-timer-display');
-    if (!el) return;
-
-    const m = Math.floor(sessionTimeout / 60);
-    const s = sessionTimeout % 60;
-    el.textContent = `${m}:${s.toString().padStart(2, '0')}`;
-
-    // Urgency coloring
-    if (sessionTimeout > 900) { // > 15 mins
-        el.style.color = '#81c784'; // Green
-    } else if (sessionTimeout > 300) { // 5-15 mins
-        el.style.color = '#ffb74d'; // Amber
-    } else { // < 5 mins
-        el.style.color = '#ef5350'; // Red
-        el.style.fontWeight = 'bold';
+        fetch('get_user.php').then(res => {
+            checkSessionExpiry(res);
+        }).catch(e => console.error('Heartbeat failed', e));
     }
 }
 
 // Auto-refresh
 async function start(){
     const refreshSeconds = await loadConfig();
-    startSessionTimer(); // Start UI timer
 
     // Fetch server versions once
     SERVERS.forEach(async server => {

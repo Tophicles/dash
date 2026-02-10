@@ -28,9 +28,6 @@ $isAdmin = isAdmin();
         <span class="user-desktop"><i class="fa-solid fa-user"></i> <?php echo htmlspecialchars(ucwords($user['username'])); ?> (<?php echo htmlspecialchars($user['role']); ?>)</span>
         <span class="user-mobile">MENU</span>
       </span>
-      <span class="header-badge" style="margin-left: 8px; cursor: default;" title="Session Timeout">
-        <i class="fa-solid fa-hourglass-half"></i> <span id="session-timer-display" style="padding-left: 6px;">30:00</span>
-      </span>
     </div>
     <div class="header-section center">
       <span class="header-badge" id="header-clock">--:--</span>
@@ -49,9 +46,6 @@ $isAdmin = isAdmin();
         <div class="menu-dropdown" id="menu-dropdown">
           <div class="menu-item" id="theme-toggle-btn">
             <i class="fa-solid fa-moon"></i> <span>Toggle Theme</span>
-          </div>
-          <div class="menu-item" style="cursor: default;">
-            <i class="fa-solid fa-hourglass-half"></i> <span>Session: <span id="session-timer-display">30:00</span></span>
           </div>
           <?php if ($isAdmin): ?>
           <div class="menu-item" id="toggle-form">
@@ -76,9 +70,6 @@ $isAdmin = isAdmin();
             <i class="fa-solid fa-radiation"></i> <span>Panic! (Reset)</span>
           </div>
           <?php endif; ?>
-          <div class="menu-item" id="feedback-btn">
-            <i class="fa-regular fa-comment-dots"></i> <span>Feedback</span>
-          </div>
           <div class="menu-divider"></div>
           <div class="menu-item danger" onclick="window.location.href='logout.php'">
             <i class="fa-solid fa-right-from-bracket"></i> <span>Logout</span>
