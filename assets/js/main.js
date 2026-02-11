@@ -1578,7 +1578,11 @@ function openMediaUserModal(u) {
                 <div class="active-session-top">
                     <div class="history-item-details">
                         <div class="history-item-title">${esc(activeSession.title)}</div>
-                        <div class="history-item-meta">${activeSession.progress || '0'}% complete</div>
+                        ${activeSession.series ? `<div class="history-item-subtitle" style="font-size: 0.85rem; color: var(--muted);">${esc(activeSession.series)}</div>` : ''}
+                        <div class="history-item-meta">
+                            ${(activeSession.season !== undefined && activeSession.season !== null && activeSession.episode !== undefined && activeSession.episode !== null) ? `S${String(activeSession.season).padStart(2, '0')}E${String(activeSession.episode).padStart(2, '0')} • ` : ''}
+                            ${activeSession.progress || '0'}% complete
+                        </div>
                     </div>
                     <button class="btn primary" id="user-modal-jump-btn">
                         <i class="fa-solid fa-external-link-alt"></i> Jump to Server
@@ -1699,11 +1703,18 @@ function renderMediaUserHistory(history, append = false, u = null) {
 
         const itemEl = document.createElement('div');
         itemEl.className = 'history-item';
+
+        let epInfo = '';
+        if (item.season !== undefined && item.season !== null && item.episode !== undefined && item.episode !== null) {
+            epInfo = `S${String(item.season).padStart(2, '0')}E${String(item.episode).padStart(2, '0')} • `;
+        }
+
         itemEl.innerHTML = `
             <img src="${esc(item.image)}" class="history-item-image" onerror="this.src='assets/img/favicon.svg';">
             <div class="history-item-details">
                 <div class="history-item-title">${esc(item.title)}</div>
-                <div class="history-item-meta">${esc(item.type)} • ${dateStr}</div>
+                ${item.series ? `<div class="history-item-subtitle" style="font-size: 0.85rem; color: var(--muted);">${esc(item.series)}</div>` : ''}
+                <div class="history-item-meta">${epInfo}${esc(item.type)} • ${dateStr}</div>
             </div>
         `;
         listContainer.appendChild(itemEl);
