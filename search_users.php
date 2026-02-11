@@ -54,9 +54,11 @@ foreach ($servers as $server) {
             $users = json_decode($response, true);
             if (is_array($users)) {
                 foreach ($users as $u) {
+                    $name = $u['Name'] ?? 'Unknown';
+                    if ($name === null || $name === 'null') $name = 'Unknown';
                     $allUsers[] = [
                         'id' => $u['Id'] ?? '',
-                        'name' => $u['Name'] ?? 'Unknown',
+                        'name' => $name,
                         'lastLogin' => $u['LastLoginDate'] ?? null,
                         'serverId' => $server['id'],
                         'serverName' => $server['name'],
@@ -90,9 +92,11 @@ foreach ($servers as $server) {
             $data = json_decode($response, true);
             $accounts = $data['MediaContainer']['Account'] ?? [];
             foreach ($accounts as $acc) {
+                $name = $acc['name'] ?? $acc['title'] ?? 'Unknown';
+                if ($name === null || $name === 'null') $name = 'Unknown';
                 $allUsers[] = [
                     'id' => $acc['id'] ?? '',
-                    'name' => $acc['name'] ?? 'Unknown',
+                    'name' => $name,
                     'lastLogin' => null, // Plex doesn't provide this here
                     'serverId' => $server['id'],
                     'serverName' => $server['name'],

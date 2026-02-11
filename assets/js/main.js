@@ -1183,8 +1183,11 @@ function renderOnlineUsers(filterText = '') {
             // Find server type
             const server = SERVERS.find(s => s.name === session.server);
             const type = server ? server.type : 'emby';
+            let name = session.user || 'Unknown';
+            if (name === 'null' || name === null) name = 'Unknown';
+
             onlineUsers.push({
-                name: session.user,
+                name: name,
                 type: type,
                 serverId: server ? server.id : null,
                 serverName: server ? server.name : ''
@@ -1220,20 +1223,34 @@ function renderOnlineUsers(filterText = '') {
         const badge = document.createElement('div');
         badge.className = `online-user-badge server-${esc(u.type)}`;
         badge.style.cursor = 'pointer';
-        badge.innerHTML = `<i class="fa-solid fa-user"></i> ${esc(u.name)}`;
+        badge.title = 'View User Details';
+        badge.innerHTML = `<i class="fa-solid fa-user"></i> <span>${esc(u.name)}</span>`;
 
         if (u.serverId) {
-            badge.addEventListener('click', (e) => {
+            // Add a jump icon specifically for the server
+            const jumpIcon = document.createElement('i');
+            jumpIcon.className = 'fa-solid fa-external-link-alt';
+            jumpIcon.style.marginLeft = '8px';
+            jumpIcon.style.fontSize = '0.75rem';
+            jumpIcon.style.opacity = '0.8';
+            jumpIcon.title = `Jump to ${esc(u.serverName)}`;
+            jumpIcon.onclick = (e) => {
+                e.stopPropagation();
+                showSessionsView(u.serverId, u.serverName, u.name);
+            };
+            badge.appendChild(jumpIcon);
+
+            badge.onclick = (e) => {
                 e.stopPropagation(); // Prevent toggling the list if clicking a badge
                 // Try to find the detailed user object to open the modal
                 const mediaUser = ALL_MEDIA_USERS.find(mu => mu.name === u.name && mu.serverId == u.serverId);
                 if (mediaUser) {
                     openMediaUserModal(mediaUser);
                 } else {
-                    // If not loaded yet or not found, jump to server view as fallback
+                    // Fallback to server view if user details not found/loaded
                     showSessionsView(u.serverId, u.serverName, u.name);
                 }
-            });
+            };
         }
 
         container.appendChild(badge);
@@ -1422,13 +1439,28 @@ function renderUserSearchResults(users) {
         item.className = 'user-search-item';
 
         // Determine if watching
-        const sessions = ALL_SESSIONS[u.serverName] || [];
+        const serverName = u.serverName || 'Unknown Server';
+        const serverType = u.serverType || 'emby';
+        const sessions = ALL_SESSIONS[serverName] || [];
         const isWatching = sessions.some(s => s.user === u.name);
 
-        const serverBadgeClass = `badge server-${esc(u.serverType)}`;
+        const serverBadgeClass = `badge server-${esc(serverType)}`;
         let badgeColor = '#4caf50';
-        if (u.serverType === 'plex') badgeColor = '#ffc107';
-        if (u.serverType === 'jellyfin') badgeColor = '#aa00aa';
+        if (serverType === 'plex') badgeColor = '#ffc107';
+        if (serverType === 'jellyfin') badgeColor = '#aa00aa';
+
+        let jumpButton = null;
+        if (isWatching) {
+            jumpButton = document.createElement('div');
+            jumpButton.className = 'user-search-jump';
+            jumpButton.title = 'Jump to Server';
+            jumpButton.innerHTML = '<i class="fa-solid fa-external-link-alt"></i>';
+            jumpButton.onclick = (e) => {
+                e.stopPropagation();
+                closeUserSearchModal();
+                showSessionsView(u.serverId, u.serverName);
+            };
+        }
 
         let jumpButton = null;
         if (isWatching) {
@@ -1447,7 +1479,7 @@ function renderUserSearchResults(users) {
             <i class="fa-solid fa-user user-search-icon"></i>
             <div class="user-search-name">${esc(u.name)}</div>
             <div class="user-search-server-badge">
-                <span class="${serverBadgeClass}" style="background: ${badgeColor}; color: ${u.serverType === 'plex' ? 'black' : 'white'};">${esc(u.serverName)}</span>
+                <span class="${serverBadgeClass}" style="background: ${badgeColor}; color: ${u.serverType === 'plex' ? 'black' : 'white'}; cursor: pointer;" title="Jump to Server">${esc(u.serverName)}</span>
             </div>
             <div class="user-search-status">
                 <span class="user-status-badge ${isWatching ? 'watching' : 'idle'}">
@@ -1457,6 +1489,16 @@ function renderUserSearchResults(users) {
             ${jumpButton}
         `;
         if (jumpButton) item.appendChild(jumpButton);
+
+        // Server badge specific click
+        const badgeSpan = item.querySelector('.user-search-server-badge span');
+        if (badgeSpan) {
+            badgeSpan.onclick = (e) => {
+                e.stopPropagation();
+                closeUserSearchModal();
+                showSessionsView(u.serverId, u.serverName);
+            };
+        }
 
         item.onclick = () => {
             closeUserSearchModal();
@@ -1541,20 +1583,20 @@ function openMediaUserModal(u) {
         </div>
 
         <div class="user-detail-section" id="user-history-section">
-            <h3><i class="fa-solid fa-history"></i> Watch History</h3>
+            <h3><i class="fa-solid fa-clock-rotate-left"></i> Watch History</h3>
             <div style="text-align:center; padding: 20px; color: var(--muted);">
                 <i class="fa-solid fa-spinner fa-spin"></i> Loading history...
             </div>
         </div>
 
-        ${(u.serverType === 'emby' || u.serverType === 'jellyfin') && IS_ADMIN ? `
+        ${(u.serverType === 'emby' || u.serverType === 'jellyfin') && IS_ADMIN && u.id ? `
         <div class="user-detail-section">
             <h3><i class="fa-solid fa-key"></i> Administration</h3>
             <div class="password-change-box">
                 <label style="display:block; margin-bottom: 10px; font-size: 0.9rem;">Change Media Server Password</label>
                 <div style="display:flex; gap: 10px;">
                     <input type="password" id="new-media-password" placeholder="New Password" style="flex:1;">
-                    <button class="btn primary" onclick="changeMediaUserPassword('${u.serverId}', '${u.id}')">Update</button>
+                    <button class="btn primary" id="user-modal-update-btn">Update</button>
                 </div>
                 <p style="font-size: 0.8rem; color: var(--muted); margin-top: 8px;">
                     <i class="fa-solid fa-circle-info"></i> This updates the user's password directly on the ${esc(u.serverType)} server.
@@ -1574,6 +1616,13 @@ function openMediaUserModal(u) {
         };
     }
 
+    const updateBtn = document.getElementById('user-modal-update-btn');
+    if (updateBtn) {
+        updateBtn.onclick = () => {
+            changeMediaUserPassword(u.serverId, u.id);
+        };
+    }
+
     // Fetch full details and history
     fetch(`get_media_user_details.php?serverId=${u.serverId}&userId=${u.id}`)
         .then(res => res.json())
@@ -1582,7 +1631,7 @@ function openMediaUserModal(u) {
                 renderMediaUserHistory(data.history);
             } else {
                 document.getElementById('user-history-section').innerHTML = `
-                    <h3><i class="fa-solid fa-history"></i> Watch History</h3>
+                    <h3><i class="fa-solid fa-clock-rotate-left"></i> Watch History</h3>
                     <p style="color: var(--danger);">${esc(data.error || 'Failed to load history')}</p>
                 `;
             }
@@ -1590,7 +1639,7 @@ function openMediaUserModal(u) {
         .catch(err => {
             console.error('Failed to fetch user details:', err);
             document.getElementById('user-history-section').innerHTML = `
-                <h3><i class="fa-solid fa-history"></i> Watch History</h3>
+                <h3><i class="fa-solid fa-clock-rotate-left"></i> Watch History</h3>
                 <p style="color: var(--danger);">Failed to connect to dashboard API</p>
             `;
         });
@@ -1602,15 +1651,22 @@ function renderMediaUserHistory(history) {
 
     if (!history || history.length === 0) {
         section.innerHTML = `
-            <h3><i class="fa-solid fa-history"></i> Watch History</h3>
+            <h3><i class="fa-solid fa-clock-rotate-left"></i> Watch History</h3>
             <p style="color: var(--muted); text-align: center; padding: 10px;">No recent history found.</p>
         `;
         return;
     }
 
-    let html = `<h3><i class="fa-solid fa-history"></i> Watch History</h3><div class="history-list">`;
+    let html = `<h3><i class="fa-solid fa-clock-rotate-left"></i> Watch History</h3><div class="history-list">`;
     history.forEach(item => {
-        const dateStr = item.date ? new Date(item.date).toLocaleDateString() + ' ' + new Date(item.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Unknown Date';
+        let dateStr = 'Unknown Date';
+        if (item.date) {
+            const date = new Date(item.date);
+            if (!isNaN(date.getTime())) {
+                dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            }
+        }
+
         html += `
             <div class="history-item">
                 <img src="${esc(item.image)}" class="history-item-image" onerror="this.src='assets/img/favicon.svg';">

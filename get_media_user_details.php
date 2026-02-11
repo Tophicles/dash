@@ -63,13 +63,15 @@ if ($type === 'emby' || $type === 'jellyfin') {
     ]);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     $res = curl_exec($ch);
-    if (curl_getinfo($ch, CURLINFO_HTTP_CODE) === 200) {
-        $response['details'] = json_decode($res, true);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    if ($httpCode === 200 && $res) {
+        $response['details'] = json_decode($res, true) ?: [];
     }
     curl_close($ch);
 
     // 2. Get Watch History
-    $url = "$baseUrl/Users/$userId/Items?Recursive=true&IncludeItemTypes=Movie,Episode&SortBy=DatePlayed&SortOrder=Descending&Filters=IsPlayed&Limit=10&Fields=PrimaryImageAspectRatio,DateCreated";
+    // Added DateLastPlayed just in case
+    $url = "$baseUrl/Users/$userId/Items?Recursive=true&IncludeItemTypes=Movie,Episode&SortBy=DatePlayed&SortOrder=Descending&Filters=IsPlayed&Limit=10&Fields=PrimaryImageAspectRatio,DateCreated,LastPlayedDate,DateLastPlayed";
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 5);
@@ -80,19 +82,21 @@ if ($type === 'emby' || $type === 'jellyfin') {
     ]);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     $res = curl_exec($ch);
-    if (curl_getinfo($ch, CURLINFO_HTTP_CODE) === 200) {
-        $data = json_decode($res, true);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    if ($httpCode === 200 && $res) {
+        $data = json_decode($res, true) ?: [];
         $items = $data['Items'] ?? [];
         foreach ($items as $item) {
             $title = $item['Name'] ?? 'Unknown';
             if (isset($item['SeriesName'])) {
                 $title = $item['SeriesName'] . ' - ' . $title;
             }
+            $playedDate = $item['LastPlayedDate'] ?? $item['DateLastPlayed'] ?? null;
             $response['history'][] = [
                 'id' => $item['Id'],
                 'title' => $title,
                 'type' => $item['Type'],
-                'date' => $item['LastPlayedDate'] ?? null,
+                'date' => $playedDate,
                 'image' => "get_image.php?serverId=$serverId&serverType=$type&id=" . ($item['Id']) . "&type=Primary"
             ];
         }
@@ -101,9 +105,6 @@ if ($type === 'emby' || $type === 'jellyfin') {
 
 } elseif ($type === 'plex') {
     $token = isset($server['token']) ? decrypt($server['token']) : '';
-
-    // 1. Details (Plex doesn't have a single-user detail endpoint easily, so we skip or use what we have)
-    // We can't really get much more than name and ID without more complex calls.
 
     // 2. Get Watch History
     $url = "$baseUrl/status/sessions/history/all?accountID=$userId&sort=viewedAt:desc&container-start=0&container-size=10";
@@ -116,8 +117,9 @@ if ($type === 'emby' || $type === 'jellyfin') {
     ]);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     $res = curl_exec($ch);
-    if (curl_getinfo($ch, CURLINFO_HTTP_CODE) === 200) {
-        $data = json_decode($res, true);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    if ($httpCode === 200 && $res) {
+        $data = json_decode($res, true) ?: [];
         $metadata = $data['MediaContainer']['Metadata'] ?? [];
         foreach ($metadata as $item) {
             $title = $item['title'] ?? 'Unknown';
@@ -134,7 +136,7 @@ if ($type === 'emby' || $type === 'jellyfin') {
                 'id' => $item['ratingKey'],
                 'title' => $title,
                 'type' => $item['type'],
-                'date' => isset($item['viewedAt']) ? date('c', $item['viewedAt']) : null,
+                'date' => isset($item['viewedAt']) ? date('c', (int)$item['viewedAt']) : null,
                 'image' => "get_image.php?serverId=$serverId&serverType=$type&id=$imgId&type=thumb"
             ];
         }

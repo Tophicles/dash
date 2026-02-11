@@ -29,7 +29,7 @@ if (!file_exists($serversFile)) {
 $config = json_decode(file_get_contents($serversFile), true);
 $server = null;
 foreach ($config['servers'] as $s) {
-    if ((string)$s['id'] === (string)$serverId) {
+    if ((string)($s['id'] ?? '') === (string)$serverId) {
         $server = $s;
         break;
     }
@@ -53,10 +53,11 @@ if (!preg_match('/^https?:\/\//', $baseUrl)) {
 $apiKey = isset($server['apiKey']) ? decrypt($server['apiKey']) : '';
 
 // Jellyfin/Emby Password Change API
-$url = "$baseUrl/Users/$userId/Password";
+// Use urlencode for userId just in case
+$url = $baseUrl . '/Users/' . urlencode($userId) . '/Password';
 
 $postData = json_encode([
-    'CurrentPassword' => '', // Try empty first, as admin key might allow this
+    'CurrentPassword' => '',
     'NewPassword' => $newPassword,
     'ResetPassword' => false
 ]);
@@ -76,6 +77,7 @@ curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 
 $res = curl_exec($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+$curlError = curl_error($ch);
 curl_close($ch);
 
 if ($httpCode === 204 || $httpCode === 200) {
@@ -83,9 +85,13 @@ if ($httpCode === 204 || $httpCode === 200) {
     echo json_encode(['success' => true]);
 } else {
     $error = "HTTP $httpCode";
-    $data = json_decode($res, true);
-    if (isset($data['Message'])) $error = $data['Message'];
+    if ($curlError) {
+        $error = "Connection Error: $curlError";
+    } else {
+        $data = json_decode($res, true);
+        if (isset($data['Message'])) $error = $data['Message'];
+    }
 
     writeLog("Failed to change password for media user ID '$userId' on '{$server['name']}': $error", "ERROR");
-    echo json_encode(['success' => false, 'error' => $error, 'debug' => $res]);
+    echo json_encode(['success' => false, 'error' => $error]);
 }
