@@ -253,6 +253,19 @@ $isAdmin = isAdmin();
   <div id="sessions" class="session-grid"></div>
 </div>
 
+<!-- Media User Modal -->
+<div id="media-user-modal" class="modal">
+  <div class="modal-content" style="max-width: 600px;">
+    <span class="modal-close" onclick="closeMediaUserModal()">&times;</span>
+    <div id="media-user-modal-body">
+        <div style="text-align:center; padding: 40px;">
+            <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: var(--accent);"></i>
+            <p style="margin-top: 15px; color: var(--muted);">Loading user details...</p>
+        </div>
+    </div>
+  </div>
+</div>
+
 <!-- User Search Modal -->
 <div id="user-search-modal" class="modal">
   <div class="modal-content" style="max-width: 650px;">

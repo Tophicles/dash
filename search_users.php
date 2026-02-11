@@ -54,8 +54,12 @@ foreach ($servers as $server) {
             $users = json_decode($response, true);
             if (is_array($users)) {
                 foreach ($users as $u) {
+                    $name = $u['Name'] ?? 'Unknown';
+                    if ($name === null || $name === 'null') $name = 'Unknown';
                     $allUsers[] = [
-                        'name' => $u['Name'] ?? 'Unknown',
+                        'id' => $u['Id'] ?? '',
+                        'name' => $name,
+                        'lastLogin' => $u['LastLoginDate'] ?? null,
                         'serverId' => $server['id'],
                         'serverName' => $server['name'],
                         'serverType' => $type
@@ -88,8 +92,12 @@ foreach ($servers as $server) {
             $data = json_decode($response, true);
             $accounts = $data['MediaContainer']['Account'] ?? [];
             foreach ($accounts as $acc) {
+                $name = $acc['name'] ?? $acc['title'] ?? 'Unknown';
+                if ($name === null || $name === 'null') $name = 'Unknown';
                 $allUsers[] = [
-                    'name' => $acc['name'] ?? 'Unknown',
+                    'id' => $acc['id'] ?? '',
+                    'name' => $name,
+                    'lastLogin' => null, // Plex doesn't provide this here
                     'serverId' => $server['id'],
                     'serverName' => $server['name'],
                     'serverType' => $type
@@ -104,10 +112,10 @@ usort($allUsers, function($a, $b) {
     return strcasecmp($a['name'], $b['name']);
 });
 
-// Remove duplicates (same name on same server)
+// Remove duplicates (same name and ID on same server)
 $allUsers = array_values(array_filter($allUsers, function($v, $k) use ($allUsers) {
     for ($i = 0; $i < $k; $i++) {
-        if ($allUsers[$i]['name'] === $v['name'] && $allUsers[$i]['serverId'] === $v['serverId']) {
+        if ($allUsers[$i]['name'] === $v['name'] && $allUsers[$i]['id'] === $v['id'] && $allUsers[$i]['serverId'] === $v['serverId']) {
             return false;
         }
     }
