@@ -10,6 +10,8 @@ header('Content-Type: application/json');
 
 $serverId = $_GET['serverId'] ?? '';
 $userId = $_GET['userId'] ?? '';
+$offset = isset($_GET['offset']) ? (int)$_GET['offset'] : 0;
+$limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 10;
 
 if (!$serverId || !$userId) {
     echo json_encode(['success' => false, 'error' => 'Missing serverId or userId']);
@@ -71,7 +73,7 @@ if ($type === 'emby' || $type === 'jellyfin') {
 
     // 2. Get Watch History
     // Added UserData to fields and EnableUserData=true to ensure dates are returned
-    $url = "$baseUrl/Users/$userId/Items?Recursive=true&IncludeItemTypes=Movie,Episode&SortBy=DatePlayed&SortOrder=Descending&Filters=IsPlayed&Limit=10&Fields=PrimaryImageAspectRatio,DateCreated,LastPlayedDate,DateLastPlayed,UserData,DatePlayed,PlayedDate&EnableUserData=true";
+    $url = "$baseUrl/Users/$userId/Items?Recursive=true&IncludeItemTypes=Movie,Episode&SortBy=DatePlayed&SortOrder=Descending&Filters=IsPlayed&StartIndex=$offset&Limit=$limit&Fields=PrimaryImageAspectRatio,DateCreated,LastPlayedDate,DateLastPlayed,UserData,DatePlayed,PlayedDate&EnableUserData=true";
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 5);
@@ -92,7 +94,7 @@ if ($type === 'emby' || $type === 'jellyfin') {
                 $title = $item['SeriesName'] . ' - ' . $title;
             }
             // Check UserData first, then top level, then other potential date fields
-            $playedDate = $item['UserData']['LastPlayedDate'] ?? $item['LastPlayedDate'] ?? $item['DateLastPlayed'] ?? $item['DatePlayed'] ?? $item['PlayedDate'] ?? null;
+            $playedDate = $item['UserData']['LastPlayedDate'] ?? $item['LastPlayedDate'] ?? $item['DateLastPlayed'] ?? $item['DatePlayed'] ?? $item['PlayedDate'] ?? $item['PremiereDate'] ?? $item['DateCreated'] ?? null;
             $response['history'][] = [
                 'id' => $item['Id'],
                 'title' => $title,
@@ -108,7 +110,7 @@ if ($type === 'emby' || $type === 'jellyfin') {
     $token = isset($server['token']) ? decrypt($server['token']) : '';
 
     // 2. Get Watch History
-    $url = "$baseUrl/status/sessions/history/all?accountID=$userId&sort=viewedAt:desc&container-start=0&container-size=10";
+    $url = "$baseUrl/status/sessions/history/all?accountID=$userId&sort=viewedAt:desc&container-start=$offset&container-size=$limit";
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 5);
