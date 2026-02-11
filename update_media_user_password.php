@@ -63,7 +63,7 @@ $apiKey = isset($server['apiKey']) ? decrypt($server['apiKey']) : '';
 $url = $baseUrl . '/Users/' . urlencode($userId) . '/Password';
 
 $postData = json_encode([
-    'CurrentPassword' => '',
+    'CurrentPassword' => null,
     'NewPassword' => $newPassword,
     'ResetPassword' => true
 ]);
