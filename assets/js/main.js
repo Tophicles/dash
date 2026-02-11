@@ -1355,6 +1355,95 @@ function renderDashboardUsers(users) {
     });
 }
 
+// User Search Modal Logic
+let ALL_MEDIA_USERS = [];
+
+async function fetchMediaUsers() {
+    const container = document.getElementById("user-search-results");
+    if (!container) return;
+
+    // Show loading state
+    container.innerHTML = '<div style="text-align:center; color: #888; padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Fetching users from all servers...</div>';
+
+    try {
+        const res = await fetch('search_users.php?_=' + Date.now());
+        if (checkSessionExpiry(res)) return;
+        if (!res.ok) throw new Error('API Error');
+        const data = await res.json();
+
+        if (data.success) {
+            ALL_MEDIA_USERS = data.users || [];
+            renderUserSearchResults(ALL_MEDIA_USERS);
+        } else {
+            container.innerHTML = `<div style="text-align:center; color: #ef5350; padding: 20px;">Error: ${esc(data.error)}</div>`;
+        }
+    } catch (e) {
+        console.error('Error fetching media users:', e);
+        container.innerHTML = '<div style="text-align:center; color: #ef5350; padding: 20px;">Failed to connect to backend</div>';
+    }
+}
+
+function renderUserSearchResults(users) {
+    const container = document.getElementById("user-search-results");
+    if (!container) return;
+
+    if (!users || users.length === 0) {
+        container.innerHTML = '<div style="text-align:center; color:var(--muted); padding: 20px;">No matching users found</div>';
+        return;
+    }
+
+    container.innerHTML = '';
+    users.forEach(u => {
+        const item = document.createElement('div');
+        item.style.cssText = 'background: rgba(255,255,255,0.05); padding: 12px 15px; border-radius: 8px; display: flex; align-items: center; gap: 12px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: background 0.2s;';
+
+        // Hover effects
+        item.onmouseenter = () => item.style.background = 'rgba(255,255,255,0.1)';
+        item.onmouseleave = () => item.style.background = 'rgba(255,255,255,0.05)';
+
+        const serverBadgeClass = `badge server-${esc(u.serverType)}`;
+        let badgeColor = '#4caf50';
+        if (u.serverType === 'plex') badgeColor = '#ffc107';
+        if (u.serverType === 'jellyfin') badgeColor = '#aa00aa';
+
+        item.innerHTML = `
+            <i class="fa-solid fa-user" style="color: #2196f3; font-size: 1.1rem;"></i>
+            <div style="flex: 1;">
+                <div style="font-weight: 600; font-size: 1rem;">${esc(u.name)}</div>
+                <div style="font-size: 0.8rem; color: var(--muted);">${esc(u.serverName)}</div>
+            </div>
+            <span class="${serverBadgeClass}" style="background: ${badgeColor}; color: ${u.serverType === 'plex' ? 'black' : 'white'}; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: 700;">${esc(u.serverType.toUpperCase())}</span>
+        `;
+
+        item.onclick = () => {
+            closeUserSearchModal();
+            showSessionsView(u.serverId, u.serverName);
+        };
+
+        container.appendChild(item);
+    });
+}
+
+function openUserSearchModal() {
+    const modal = document.getElementById('user-search-modal');
+    if (!modal) return;
+    modal.classList.add('visible');
+
+    // Clear and focus input
+    const input = document.getElementById('user-search-input');
+    if (input) {
+        input.value = '';
+        setTimeout(() => input.focus(), 100);
+    }
+
+    fetchMediaUsers();
+}
+
+function closeUserSearchModal() {
+    const modal = document.getElementById('user-search-modal');
+    if (modal) modal.classList.remove('visible');
+}
+
 // Render server cards
 function renderServerGrid() {
     // Get search filter
@@ -3114,6 +3203,34 @@ document.addEventListener('DOMContentLoaded', () => {
              if (menuDropdown) menuDropdown.classList.remove('visible');
         });
     }
+
+    // User Search Modal Listeners
+    const userSearchBtn = document.getElementById('user-search-nav-btn');
+    if (userSearchBtn) {
+        userSearchBtn.addEventListener('click', () => {
+            openUserSearchModal();
+        });
+    }
+
+    const userSearchInput = document.getElementById('user-search-input');
+    if (userSearchInput) {
+        userSearchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            if (!query) {
+                renderUserSearchResults(ALL_MEDIA_USERS);
+                return;
+            }
+            const filtered = ALL_MEDIA_USERS.filter(u =>
+                u.name.toLowerCase().includes(query) ||
+                u.serverName.toLowerCase().includes(query)
+            );
+            renderUserSearchResults(filtered);
+        });
+    }
+
+    document.getElementById('user-search-modal')?.addEventListener('click', function(e) {
+        if (e.target === this) closeUserSearchModal();
+    });
 });
 
 // Donate Modal Logic
