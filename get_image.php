@@ -6,11 +6,12 @@ require_once 'encryption_helper.php';
 requireLogin();
 
 $serverName = $_GET['server'] ?? '';
-$itemId = $_GET['itemId'] ?? '';
+$serverId = $_GET['serverId'] ?? '';
+$itemId = $_GET['itemId'] ?? $_GET['id'] ?? '';
 $type = $_GET['type'] ?? 'Primary';
 $path = $_GET['path'] ?? ''; // For Plex direct paths
 
-if (empty($serverName) || (empty($itemId) && empty($path))) {
+if ((empty($serverName) && empty($serverId)) || (empty($itemId) && empty($path))) {
     http_response_code(400);
     exit;
 }
@@ -26,7 +27,11 @@ $config = json_decode(file_get_contents($serversFile), true);
 $server = null;
 
 foreach ($config['servers'] as $s) {
-    if ($s['name'] === $serverName) {
+    if ($serverId && (string)($s['id'] ?? '') === (string)$serverId) {
+        $server = $s;
+        break;
+    }
+    if ($serverName && $s['name'] === $serverName) {
         $server = $s;
         break;
     }
