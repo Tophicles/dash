@@ -1219,8 +1219,7 @@ function renderOnlineUsers(filterText = '') {
     }
 
     if (label) {
-        const isHidden = container.classList.contains('hidden');
-        label.textContent = `${onlineUsers.length} NOW WATCHING ${isHidden ? '+' : '-'}`;
+        label.textContent = `${onlineUsers.length} NOW WATCHING`;
     }
 
     if (onlineUsers.length === 0) {
@@ -1285,8 +1284,7 @@ function toggleSection(labelId, contentSelector) {
     }
 }
 
-// Initialize toggles
-toggleSection('online-users-label', '#online-users .user-list-content');
+// Initialize toggles (online-users is now non-collapsible)
 
 // Top Bar Header Logic
 function updateClock() {
@@ -1446,50 +1444,73 @@ function renderUserSearchResults(users) {
     }
 
     container.innerHTML = '';
+
+    // Group users by name
+    const grouped = {};
     users.forEach(u => {
-        const item = document.createElement('div');
-        item.className = 'user-search-item';
+        if (!grouped[u.name]) grouped[u.name] = [];
+        grouped[u.name].push(u);
+    });
 
-        // Determine if watching
-        const serverName = u.serverName || 'Unknown Server';
-        const serverType = u.serverType || 'emby';
-        const sessions = ALL_SESSIONS[serverName] || [];
-        const isWatching = sessions.some(s => s.user === u.name);
+    Object.keys(grouped).sort().forEach(username => {
+        const userEntries = grouped[username];
 
-        const serverBadgeClass = `badge server-${esc(serverType)}`;
-        let badgeColor = '#4caf50';
-        if (serverType === 'plex') badgeColor = '#ffc107';
-        if (serverType === 'jellyfin') badgeColor = '#aa00aa';
+        const groupEl = document.createElement('div');
+        groupEl.className = 'user-search-group';
 
-        item.innerHTML = `
-            <i class="fa-solid fa-user user-search-icon"></i>
-            <div class="user-search-name">${esc(u.name)}</div>
-            <div class="user-search-server-badge">
-                <span class="${serverBadgeClass}" style="background: ${badgeColor}; color: ${u.serverType === 'plex' ? 'black' : 'white'}; cursor: pointer;" title="Jump to Server">${esc(u.serverName)}</span>
-            </div>
-            <div class="user-search-status">
-                <span class="user-status-badge ${isWatching ? 'watching' : 'idle'}">
-                    <i class="fa-solid fa-circle"></i> ${isWatching ? 'Watching' : 'Idle'}
-                </span>
-            </div>
-        `;
+        const headerEl = document.createElement('div');
+        headerEl.className = 'user-search-group-header';
+        headerEl.innerHTML = `<i class="fa-solid fa-user"></i> <span>${esc(username)}</span>`;
+        groupEl.appendChild(headerEl);
 
-        // Server badge specific click
-        const badgeSpan = item.querySelector('.user-search-server-badge span');
-        if (badgeSpan) {
-            badgeSpan.onclick = (e) => {
-                e.stopPropagation();
+        const serversList = document.createElement('div');
+        serversList.className = 'user-search-group-servers';
+
+        userEntries.forEach(u => {
+            const serverItem = document.createElement('div');
+            serverItem.className = 'user-search-server-item';
+
+            const serverName = u.serverName || 'Unknown Server';
+            const serverType = u.serverType || 'emby';
+            const sessions = ALL_SESSIONS[serverName] || [];
+            const isWatching = sessions.some(s => s.user === u.name);
+
+            const serverBadgeClass = `badge server-${esc(serverType)}`;
+            let badgeColor = '#4caf50';
+            if (serverType === 'plex') badgeColor = '#ffc107';
+            if (serverType === 'jellyfin') badgeColor = '#aa00aa';
+
+            serverItem.innerHTML = `
+                <div class="user-search-server-badge">
+                    <span class="${serverBadgeClass}" style="background: ${badgeColor}; color: ${u.serverType === 'plex' ? 'black' : 'white'}; cursor: pointer;" title="Jump to Server">${esc(u.serverName)}</span>
+                </div>
+                <div class="user-search-status">
+                    <span class="user-status-badge ${isWatching ? 'watching' : 'idle'}">
+                        <i class="fa-solid fa-circle"></i> ${isWatching ? 'Watching' : 'Idle'}
+                    </span>
+                </div>
+            `;
+
+            // Server badge specific click
+            const badgeSpan = serverItem.querySelector('.user-search-server-badge span');
+            if (badgeSpan) {
+                badgeSpan.onclick = (e) => {
+                    e.stopPropagation();
+                    closeUserSearchModal();
+                    showSessionsView(u.serverId, u.serverName);
+                };
+            }
+
+            serverItem.onclick = () => {
                 closeUserSearchModal();
-                showSessionsView(u.serverId, u.serverName);
+                openMediaUserModal(u);
             };
-        }
 
-        item.onclick = () => {
-            closeUserSearchModal();
-            openMediaUserModal(u);
-        };
+            serversList.appendChild(serverItem);
+        });
 
-        container.appendChild(item);
+        groupEl.appendChild(serversList);
+        container.appendChild(groupEl);
     });
 }
 
@@ -1553,14 +1574,19 @@ function openMediaUserModal(u) {
         ${activeSession ? `
         <div class="user-detail-section">
             <h3><i class="fa-solid fa-play"></i> Currently Watching</h3>
-            <div class="history-item" style="background: var(--bg-hover);">
-                <div class="history-item-details">
-                    <div class="history-item-title">${esc(activeSession.title)}</div>
-                    <div class="history-item-meta">${activeSession.progress || '0'}% complete</div>
+            <div class="history-item active-session-item">
+                <div class="active-session-top">
+                    <div class="history-item-details">
+                        <div class="history-item-title">${esc(activeSession.title)}</div>
+                        <div class="history-item-meta">${activeSession.progress || '0'}% complete</div>
+                    </div>
+                    <button class="btn primary" id="user-modal-jump-btn">
+                        <i class="fa-solid fa-external-link-alt"></i> Jump to Server
+                    </button>
                 </div>
-                <button class="btn primary" id="user-modal-jump-btn">
-                    <i class="fa-solid fa-external-link-alt"></i> Jump to Server
-                </button>
+                <div class="progress-bar" style="margin-top: 0; background: rgba(255,255,255,0.1);">
+                    <div class="progress" style="width: ${activeSession.progress || 0}%;"></div>
+                </div>
             </div>
         </div>
         ` : ''}

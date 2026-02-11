@@ -232,8 +232,8 @@ $isAdmin = isAdmin();
   <div id="server-grid" class="server-grid"></div>
   <div class="user-lists-container">
     <div id="online-users" class="online-users">
-      <div class="list-label" id="online-users-label">Now Watching +</div>
-      <div class="user-list-content hidden">
+      <div class="list-label" id="online-users-label">Now Watching</div>
+      <div class="user-list-content">
         <span style="color:var(--muted);font-size:0.9rem;">No users online</span>
       </div>
     </div>
@@ -279,6 +279,7 @@ $isAdmin = isAdmin();
     <div id="user-search-results" style="display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; padding-right: 5px;">
         <div style="text-align:center; color: #888; padding: 20px;">Open search to load users...</div>
     </div>
+
 
     <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
         <button class="btn" onclick="closeUserSearchModal()">Close</button>
