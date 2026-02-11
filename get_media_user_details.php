@@ -4,6 +4,7 @@ ini_set('display_errors', 0);
 
 require_once 'auth.php';
 require_once 'encryption_helper.php';
+require_once 'logging.php';
 requireLogin();
 
 header('Content-Type: application/json');
@@ -12,6 +13,10 @@ $serverId = $_GET['serverId'] ?? '';
 $userId = $_GET['userId'] ?? '';
 $offset = isset($_GET['offset']) ? (int)$_GET['offset'] : 0;
 $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 10;
+
+// Cap the limit to a reasonable maximum to prevent server strain
+if ($limit > 50) $limit = 50;
+if ($limit < 1) $limit = 1;
 
 if (!$serverId || !$userId) {
     echo json_encode(['success' => false, 'error' => 'Missing serverId or userId']);
@@ -53,23 +58,28 @@ $response = [
 if ($type === 'emby' || $type === 'jellyfin') {
     $apiKey = isset($server['apiKey']) ? decrypt($server['apiKey']) : '';
 
-    // 1. Get User Details
-    $url = "$baseUrl/Users/$userId";
-    $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        "X-Emby-Token: $apiKey",
-        "X-MediaBrowser-Token: $apiKey",
-        "Accept: application/json"
-    ]);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    $res = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    if ($httpCode === 200 && $res) {
-        $response['details'] = json_decode($res, true) ?: [];
+    // 1. Get User Details (only on first page)
+    if ($offset === 0) {
+        $url = "$baseUrl/Users/$userId";
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            "X-Emby-Token: $apiKey",
+            "X-MediaBrowser-Token: $apiKey",
+            "Accept: application/json"
+        ]);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        $res = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        if ($httpCode === 200 && $res) {
+            $response['details'] = json_decode($res, true) ?: [];
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            writeLog("Error decoding Emby/Jellyfin user details for $userId: " . json_last_error_msg(), "ERROR");
+        }
+        }
+        curl_close($ch);
     }
-    curl_close($ch);
 
     // 2. Get Watch History
     // Added UserData to fields and EnableUserData=true to ensure dates are returned
@@ -87,6 +97,9 @@ if ($type === 'emby' || $type === 'jellyfin') {
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     if ($httpCode === 200 && $res) {
         $data = json_decode($res, true) ?: [];
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            writeLog("Error decoding Emby/Jellyfin watch history for $userId: " . json_last_error_msg(), "ERROR");
+        }
         $items = $data['Items'] ?? [];
         foreach ($items as $item) {
             $title = $item['Name'] ?? 'Unknown';
@@ -116,13 +129,18 @@ if ($type === 'emby' || $type === 'jellyfin') {
     curl_setopt($ch, CURLOPT_TIMEOUT, 5);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
         "X-Plex-Token: $token",
-        "Accept: application/json"
+        "Accept: application/json",
+        "X-Plex-Container-Start: $offset",
+        "X-Plex-Container-Size: $limit"
     ]);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     $res = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     if ($httpCode === 200 && $res) {
         $data = json_decode($res, true) ?: [];
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            writeLog("Error decoding Plex watch history for $userId: " . json_last_error_msg(), "ERROR");
+        }
         $metadata = $data['MediaContainer']['Metadata'] ?? [];
         foreach ($metadata as $item) {
             $title = $item['title'] ?? 'Unknown';

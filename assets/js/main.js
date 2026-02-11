@@ -1600,6 +1600,11 @@ function fetchHistory(u) {
                     `;
                 } else {
                     showModalAlert('Failed to load more history');
+                    const btn = document.getElementById('load-more-history-btn');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = 'Load More';
+                    }
                 }
             }
         })
@@ -1610,6 +1615,12 @@ function fetchHistory(u) {
                     <h3><i class="fa-solid fa-clock-rotate-left"></i> Watch History</h3>
                     <p style="color: var(--danger);">Failed to connect to dashboard API</p>
                 `;
+            } else {
+                const btn = document.getElementById('load-more-history-btn');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = 'Load More';
+                }
             }
         });
 }
