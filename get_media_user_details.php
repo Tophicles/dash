@@ -83,7 +83,7 @@ if ($type === 'emby' || $type === 'jellyfin') {
 
     // 2. Get Watch History
     // Added UserData to fields and EnableUserData=true to ensure dates are returned
-    $url = "$baseUrl/Users/$userId/Items?Recursive=true&IncludeItemTypes=Movie,Episode&SortBy=DatePlayed&SortOrder=Descending&Filters=IsPlayed&StartIndex=$offset&Limit=$limit&Fields=PrimaryImageAspectRatio,DateCreated,LastPlayedDate,DateLastPlayed,UserData,DatePlayed,PlayedDate&EnableUserData=true";
+    $url = "$baseUrl/Users/$userId/Items?Recursive=true&IncludeItemTypes=Movie,Episode&SortBy=DatePlayed&SortOrder=Descending&Filters=IsPlayed&StartIndex=$offset&Limit=$limit&Fields=PrimaryImageAspectRatio,DateCreated,LastPlayedDate,DateLastPlayed,UserData,DatePlayed,PlayedDate,SeriesName,ParentIndexNumber,IndexNumber&EnableUserData=true";
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 5);
@@ -102,15 +102,14 @@ if ($type === 'emby' || $type === 'jellyfin') {
         }
         $items = $data['Items'] ?? [];
         foreach ($items as $item) {
-            $title = $item['Name'] ?? 'Unknown';
-            if (isset($item['SeriesName'])) {
-                $title = $item['SeriesName'] . ' - ' . $title;
-            }
             // Check UserData first, then top level, then other potential date fields
             $playedDate = $item['UserData']['LastPlayedDate'] ?? $item['LastPlayedDate'] ?? $item['DateLastPlayed'] ?? $item['DatePlayed'] ?? $item['PlayedDate'] ?? $item['PremiereDate'] ?? $item['DateCreated'] ?? null;
             $response['history'][] = [
                 'id' => $item['Id'],
-                'title' => $title,
+                'title' => $item['Name'] ?? 'Unknown',
+                'series' => $item['SeriesName'] ?? null,
+                'season' => $item['ParentIndexNumber'] ?? null,
+                'episode' => $item['IndexNumber'] ?? null,
                 'type' => $item['Type'],
                 'date' => $playedDate,
                 'image' => "get_image.php?serverId=$serverId&serverType=$type&id=" . ($item['Id']) . "&type=Primary"
@@ -143,11 +142,6 @@ if ($type === 'emby' || $type === 'jellyfin') {
         }
         $metadata = $data['MediaContainer']['Metadata'] ?? [];
         foreach ($metadata as $item) {
-            $title = $item['title'] ?? 'Unknown';
-            if (isset($item['grandparentTitle'])) {
-                $title = $item['grandparentTitle'] . ' - ' . $title;
-            }
-
             $imgId = $item['ratingKey'] ?? '';
             if (isset($item['grandparentRatingKey'])) {
                 $imgId = $item['grandparentRatingKey'];
@@ -156,7 +150,10 @@ if ($type === 'emby' || $type === 'jellyfin') {
             $viewedAt = $item['viewedAt'] ?? $item['lastViewedAt'] ?? null;
             $response['history'][] = [
                 'id' => $item['ratingKey'],
-                'title' => $title,
+                'title' => $item['title'] ?? 'Unknown',
+                'series' => $item['grandparentTitle'] ?? null,
+                'season' => $item['parentIndex'] ?? null,
+                'episode' => $item['index'] ?? null,
                 'type' => $item['type'],
                 'date' => $viewedAt ? date('c', (int)$viewedAt) : null,
                 'image' => "get_image.php?serverId=$serverId&serverType=$type&id=$imgId&type=thumb"
