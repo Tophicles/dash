@@ -1225,7 +1225,14 @@ function renderOnlineUsers(filterText = '') {
         if (u.serverId) {
             badge.addEventListener('click', (e) => {
                 e.stopPropagation(); // Prevent toggling the list if clicking a badge
-                showSessionsView(u.serverId, u.serverName, u.name);
+                // Try to find the detailed user object to open the modal
+                const mediaUser = ALL_MEDIA_USERS.find(mu => mu.name === u.name && mu.serverId == u.serverId);
+                if (mediaUser) {
+                    openMediaUserModal(mediaUser);
+                } else {
+                    // If not loaded yet or not found, jump to server view as fallback
+                    showSessionsView(u.serverId, u.serverName, u.name);
+                }
             });
         }
 
@@ -1423,13 +1430,17 @@ function renderUserSearchResults(users) {
         if (u.serverType === 'plex') badgeColor = '#ffc107';
         if (u.serverType === 'jellyfin') badgeColor = '#aa00aa';
 
-        let jumpButton = '';
+        let jumpButton = null;
         if (isWatching) {
-            jumpButton = `
-                <div class="user-search-jump" onclick="event.stopPropagation(); closeUserSearchModal(); showSessionsView('${u.serverId}', '${u.serverName}');" title="Jump to Server">
-                    <i class="fa-solid fa-external-link-alt"></i>
-                </div>
-            `;
+            jumpButton = document.createElement('div');
+            jumpButton.className = 'user-search-jump';
+            jumpButton.title = 'Jump to Server';
+            jumpButton.innerHTML = '<i class="fa-solid fa-external-link-alt"></i>';
+            jumpButton.onclick = (e) => {
+                e.stopPropagation();
+                closeUserSearchModal();
+                showSessionsView(u.serverId, u.serverName);
+            };
         }
 
         item.innerHTML = `
@@ -1445,8 +1456,10 @@ function renderUserSearchResults(users) {
             </div>
             ${jumpButton}
         `;
+        if (jumpButton) item.appendChild(jumpButton);
 
         item.onclick = () => {
+            closeUserSearchModal();
             openMediaUserModal(u);
         };
 
@@ -1515,7 +1528,7 @@ function openMediaUserModal(u) {
                     <div class="history-item-title">${esc(activeSession.title)}</div>
                     <div class="history-item-meta">${activeSession.progress || '0'}% complete</div>
                 </div>
-                <button class="btn primary" onclick="closeMediaUserModal(); closeUserSearchModal(); showSessionsView('${u.serverId}', '${u.serverName}');">
+                <button class="btn primary" id="user-modal-jump-btn">
                     <i class="fa-solid fa-external-link-alt"></i> Jump to Server
                 </button>
             </div>
@@ -1550,6 +1563,16 @@ function openMediaUserModal(u) {
         </div>
         ` : ''}
     `;
+
+    // Set up jump button listener to avoid inline JS escaping issues
+    const jumpBtn = document.getElementById('user-modal-jump-btn');
+    if (jumpBtn) {
+        jumpBtn.onclick = () => {
+            closeMediaUserModal();
+            closeUserSearchModal();
+            showSessionsView(u.serverId, u.serverName);
+        };
+    }
 
     // Fetch full details and history
     fetch(`get_media_user_details.php?serverId=${u.serverId}&userId=${u.id}`)
@@ -1590,7 +1613,7 @@ function renderMediaUserHistory(history) {
         const dateStr = item.date ? new Date(item.date).toLocaleDateString() + ' ' + new Date(item.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Unknown Date';
         html += `
             <div class="history-item">
-                <img src="${item.image}" class="history-item-image" onerror="this.src='assets/img/favicon.svg';">
+                <img src="${esc(item.image)}" class="history-item-image" onerror="this.src='assets/img/favicon.svg';">
                 <div class="history-item-details">
                     <div class="history-item-title">${esc(item.title)}</div>
                     <div class="history-item-meta">${esc(item.type)} • ${dateStr}</div>
@@ -3433,6 +3456,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('media-user-modal')?.addEventListener('click', function(e) {
         if (e.target === this) closeMediaUserModal();
     });
+
+    // Initial load of media users to support User Modals from dashboard badges
+    fetchMediaUsers();
 });
 
 // Donate Modal Logic
