@@ -70,8 +70,8 @@ if ($type === 'emby' || $type === 'jellyfin') {
     curl_close($ch);
 
     // 2. Get Watch History
-    // Added DateLastPlayed just in case
-    $url = "$baseUrl/Users/$userId/Items?Recursive=true&IncludeItemTypes=Movie,Episode&SortBy=DatePlayed&SortOrder=Descending&Filters=IsPlayed&Limit=10&Fields=PrimaryImageAspectRatio,DateCreated,LastPlayedDate,DateLastPlayed";
+    // Added UserData to fields to get LastPlayedDate from it
+    $url = "$baseUrl/Users/$userId/Items?Recursive=true&IncludeItemTypes=Movie,Episode&SortBy=DatePlayed&SortOrder=Descending&Filters=IsPlayed&Limit=10&Fields=PrimaryImageAspectRatio,DateCreated,LastPlayedDate,DateLastPlayed,UserData";
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 5);
@@ -91,7 +91,8 @@ if ($type === 'emby' || $type === 'jellyfin') {
             if (isset($item['SeriesName'])) {
                 $title = $item['SeriesName'] . ' - ' . $title;
             }
-            $playedDate = $item['LastPlayedDate'] ?? $item['DateLastPlayed'] ?? null;
+            // Check UserData first, then top level
+            $playedDate = $item['UserData']['LastPlayedDate'] ?? $item['LastPlayedDate'] ?? $item['DateLastPlayed'] ?? null;
             $response['history'][] = [
                 'id' => $item['Id'],
                 'title' => $title,
