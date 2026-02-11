@@ -70,8 +70,8 @@ if ($type === 'emby' || $type === 'jellyfin') {
     curl_close($ch);
 
     // 2. Get Watch History
-    // Added DateLastPlayed just in case
-    $url = "$baseUrl/Users/$userId/Items?Recursive=true&IncludeItemTypes=Movie,Episode&SortBy=DatePlayed&SortOrder=Descending&Filters=IsPlayed&Limit=10&Fields=PrimaryImageAspectRatio,DateCreated,LastPlayedDate,DateLastPlayed";
+    // Added UserData to fields and EnableUserData=true to ensure dates are returned
+    $url = "$baseUrl/Users/$userId/Items?Recursive=true&IncludeItemTypes=Movie,Episode&SortBy=DatePlayed&SortOrder=Descending&Filters=IsPlayed&Limit=10&Fields=PrimaryImageAspectRatio,DateCreated,LastPlayedDate,DateLastPlayed,UserData,DatePlayed,PlayedDate&EnableUserData=true";
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 5);
@@ -91,7 +91,8 @@ if ($type === 'emby' || $type === 'jellyfin') {
             if (isset($item['SeriesName'])) {
                 $title = $item['SeriesName'] . ' - ' . $title;
             }
-            $playedDate = $item['LastPlayedDate'] ?? $item['DateLastPlayed'] ?? null;
+            // Check UserData first, then top level, then other potential date fields
+            $playedDate = $item['UserData']['LastPlayedDate'] ?? $item['LastPlayedDate'] ?? $item['DateLastPlayed'] ?? $item['DatePlayed'] ?? $item['PlayedDate'] ?? null;
             $response['history'][] = [
                 'id' => $item['Id'],
                 'title' => $title,
@@ -132,11 +133,12 @@ if ($type === 'emby' || $type === 'jellyfin') {
                 $imgId = $item['grandparentRatingKey'];
             }
 
+            $viewedAt = $item['viewedAt'] ?? $item['lastViewedAt'] ?? null;
             $response['history'][] = [
                 'id' => $item['ratingKey'],
                 'title' => $title,
                 'type' => $item['type'],
-                'date' => isset($item['viewedAt']) ? date('c', (int)$item['viewedAt']) : null,
+                'date' => $viewedAt ? date('c', (int)$viewedAt) : null,
                 'image' => "get_image.php?serverId=$serverId&serverType=$type&id=$imgId&type=thumb"
             ];
         }

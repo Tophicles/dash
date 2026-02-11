@@ -1473,7 +1473,6 @@ function renderUserSearchResults(users) {
                     <i class="fa-solid fa-circle"></i> ${isWatching ? 'Watching' : 'Idle'}
                 </span>
             </div>
-            ${jumpButton}
         `;
         if (searchJumpBtn) item.appendChild(searchJumpBtn);
 
@@ -1576,21 +1575,6 @@ function openMediaUserModal(u) {
             </div>
         </div>
 
-        ${(u.serverType === 'emby' || u.serverType === 'jellyfin') && IS_ADMIN && u.id ? `
-        <div class="user-detail-section">
-            <h3><i class="fa-solid fa-key"></i> Administration</h3>
-            <div class="password-change-box">
-                <label style="display:block; margin-bottom: 10px; font-size: 0.9rem;">Change Media Server Password</label>
-                <div style="display:flex; gap: 10px;">
-                    <input type="password" id="new-media-password" placeholder="New Password" style="flex:1;">
-                    <button class="btn primary" id="user-modal-update-btn">Update</button>
-                </div>
-                <p style="font-size: 0.8rem; color: var(--muted); margin-top: 8px;">
-                    <i class="fa-solid fa-circle-info"></i> This updates the user's password directly on the ${esc(u.serverType)} server.
-                </p>
-            </div>
-        </div>
-        ` : ''}
     `;
 
     // Set up jump button listener to avoid inline JS escaping issues
@@ -1603,12 +1587,6 @@ function openMediaUserModal(u) {
         };
     }
 
-    const updateBtn = document.getElementById('user-modal-update-btn');
-    if (updateBtn) {
-        updateBtn.onclick = () => {
-            changeMediaUserPassword(u.serverId, u.id);
-        };
-    }
 
     // Fetch full details and history
     fetch(`get_media_user_details.php?serverId=${u.serverId}&userId=${u.id}`)
@@ -1644,7 +1622,7 @@ function renderMediaUserHistory(history) {
         return;
     }
 
-    let html = `<h3><i class="fa-solid fa-clock-rotate-left"></i> Watch History</h3><div class="history-list">`;
+    let html = `<h3><i class="fa-solid fa-clock-rotate-left"></i> Watch History</h3><div class="history-list-container"><div class="history-list">`;
     history.forEach(item => {
         let dateStr = 'Unknown Date';
         if (item.date) {
@@ -1664,7 +1642,7 @@ function renderMediaUserHistory(history) {
             </div>
         `;
     });
-    html += `</div>`;
+    html += `</div></div>`;
     section.innerHTML = html;
 }
 
@@ -1673,38 +1651,6 @@ function closeMediaUserModal() {
     if (modal) modal.classList.remove('visible');
 }
 
-function changeMediaUserPassword(serverId, userId) {
-    const newPassword = document.getElementById('new-media-password')?.value;
-    if (!newPassword) {
-        showModalAlert('Validation Error', 'Please enter a new password.');
-        return;
-    }
-
-    if (newPassword.length < 1) {
-        showModalAlert('Validation Error', 'Password cannot be empty.');
-        return;
-    }
-
-    fetch('update_media_user_password.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ serverId, userId, newPassword })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            showModalAlert('Success', 'Password updated successfully on the media server.');
-            const input = document.getElementById('new-media-password');
-            if (input) input.value = '';
-        } else {
-            showModalAlert('Error', data.error || 'Failed to update password.');
-        }
-    })
-    .catch(err => {
-        console.error('Password update error:', err);
-        showModalAlert('Error', 'Failed to communicate with the dashboard server.');
-    });
-}
 
 // Render server cards
 function renderServerGrid() {
