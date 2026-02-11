@@ -1225,7 +1225,14 @@ function renderOnlineUsers(filterText = '') {
         if (u.serverId) {
             badge.addEventListener('click', (e) => {
                 e.stopPropagation(); // Prevent toggling the list if clicking a badge
-                showSessionsView(u.serverId, u.serverName, u.name);
+                // Try to find the detailed user object to open the modal
+                const mediaUser = ALL_MEDIA_USERS.find(mu => mu.name === u.name && mu.serverId == u.serverId);
+                if (mediaUser) {
+                    openMediaUserModal(mediaUser);
+                } else {
+                    // If not loaded yet or not found, jump to server view as fallback
+                    showSessionsView(u.serverId, u.serverName, u.name);
+                }
             });
         }
 
@@ -1423,6 +1430,19 @@ function renderUserSearchResults(users) {
         if (u.serverType === 'plex') badgeColor = '#ffc107';
         if (u.serverType === 'jellyfin') badgeColor = '#aa00aa';
 
+        let jumpButton = null;
+        if (isWatching) {
+            jumpButton = document.createElement('div');
+            jumpButton.className = 'user-search-jump';
+            jumpButton.title = 'Jump to Server';
+            jumpButton.innerHTML = '<i class="fa-solid fa-external-link-alt"></i>';
+            jumpButton.onclick = (e) => {
+                e.stopPropagation();
+                closeUserSearchModal();
+                showSessionsView(u.serverId, u.serverName);
+            };
+        }
+
         item.innerHTML = `
             <i class="fa-solid fa-user user-search-icon"></i>
             <div class="user-search-name">${esc(u.name)}</div>
@@ -1435,10 +1455,11 @@ function renderUserSearchResults(users) {
                 </span>
             </div>
         `;
+        if (jumpButton) item.appendChild(jumpButton);
 
         item.onclick = () => {
             closeUserSearchModal();
-            showSessionsView(u.serverId, u.serverName);
+            openMediaUserModal(u);
         };
 
         container.appendChild(item);
@@ -1463,6 +1484,182 @@ function openUserSearchModal() {
 function closeUserSearchModal() {
     const modal = document.getElementById('user-search-modal');
     if (modal) modal.classList.remove('visible');
+}
+
+function openMediaUserModal(u) {
+    const modal = document.getElementById('media-user-modal');
+    const body = document.getElementById('media-user-modal-body');
+    if (!modal || !body) return;
+
+    modal.classList.add('visible');
+
+    // Initial loading state with basic info
+    const sessions = ALL_SESSIONS[u.serverName] || [];
+    const activeSession = sessions.find(s => s.user === u.name);
+    const isWatching = !!activeSession;
+
+    let lastSeenStr = 'Never';
+    if (u.lastLogin) {
+        lastSeenStr = new Date(u.lastLogin).toLocaleString();
+    }
+
+    body.innerHTML = `
+        <div class="user-detail-header">
+            <div class="user-detail-avatar">
+                <i class="fa-solid fa-user"></i>
+            </div>
+            <div class="user-detail-info">
+                <h2>${esc(u.name)}</h2>
+                <p>${esc(u.serverName)} (${esc(u.serverType)})</p>
+                <div style="margin-top: 8px;">
+                    <span class="user-status-badge ${isWatching ? 'watching' : 'idle'}">
+                        <i class="fa-solid fa-circle"></i> ${isWatching ? 'Watching' : 'Idle'}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        ${activeSession ? `
+        <div class="user-detail-section">
+            <h3><i class="fa-solid fa-play"></i> Currently Watching</h3>
+            <div class="history-item" style="background: var(--bg-hover);">
+                <div class="history-item-details">
+                    <div class="history-item-title">${esc(activeSession.title)}</div>
+                    <div class="history-item-meta">${activeSession.progress || '0'}% complete</div>
+                </div>
+                <button class="btn primary" id="user-modal-jump-btn">
+                    <i class="fa-solid fa-external-link-alt"></i> Jump to Server
+                </button>
+            </div>
+        </div>
+        ` : ''}
+
+        <div class="user-detail-section">
+            <h3><i class="fa-solid fa-clock"></i> Last Activity</h3>
+            <p style="margin:0; color: var(--text);">${lastSeenStr}</p>
+        </div>
+
+        <div class="user-detail-section" id="user-history-section">
+            <h3><i class="fa-solid fa-history"></i> Watch History</h3>
+            <div style="text-align:center; padding: 20px; color: var(--muted);">
+                <i class="fa-solid fa-spinner fa-spin"></i> Loading history...
+            </div>
+        </div>
+
+        ${(u.serverType === 'emby' || u.serverType === 'jellyfin') && IS_ADMIN ? `
+        <div class="user-detail-section">
+            <h3><i class="fa-solid fa-key"></i> Administration</h3>
+            <div class="password-change-box">
+                <label style="display:block; margin-bottom: 10px; font-size: 0.9rem;">Change Media Server Password</label>
+                <div style="display:flex; gap: 10px;">
+                    <input type="password" id="new-media-password" placeholder="New Password" style="flex:1;">
+                    <button class="btn primary" onclick="changeMediaUserPassword('${u.serverId}', '${u.id}')">Update</button>
+                </div>
+                <p style="font-size: 0.8rem; color: var(--muted); margin-top: 8px;">
+                    <i class="fa-solid fa-circle-info"></i> This updates the user's password directly on the ${esc(u.serverType)} server.
+                </p>
+            </div>
+        </div>
+        ` : ''}
+    `;
+
+    // Set up jump button listener to avoid inline JS escaping issues
+    const jumpBtn = document.getElementById('user-modal-jump-btn');
+    if (jumpBtn) {
+        jumpBtn.onclick = () => {
+            closeMediaUserModal();
+            closeUserSearchModal();
+            showSessionsView(u.serverId, u.serverName);
+        };
+    }
+
+    // Fetch full details and history
+    fetch(`get_media_user_details.php?serverId=${u.serverId}&userId=${u.id}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                renderMediaUserHistory(data.history);
+            } else {
+                document.getElementById('user-history-section').innerHTML = `
+                    <h3><i class="fa-solid fa-history"></i> Watch History</h3>
+                    <p style="color: var(--danger);">${esc(data.error || 'Failed to load history')}</p>
+                `;
+            }
+        })
+        .catch(err => {
+            console.error('Failed to fetch user details:', err);
+            document.getElementById('user-history-section').innerHTML = `
+                <h3><i class="fa-solid fa-history"></i> Watch History</h3>
+                <p style="color: var(--danger);">Failed to connect to dashboard API</p>
+            `;
+        });
+}
+
+function renderMediaUserHistory(history) {
+    const section = document.getElementById('user-history-section');
+    if (!section) return;
+
+    if (!history || history.length === 0) {
+        section.innerHTML = `
+            <h3><i class="fa-solid fa-history"></i> Watch History</h3>
+            <p style="color: var(--muted); text-align: center; padding: 10px;">No recent history found.</p>
+        `;
+        return;
+    }
+
+    let html = `<h3><i class="fa-solid fa-history"></i> Watch History</h3><div class="history-list">`;
+    history.forEach(item => {
+        const dateStr = item.date ? new Date(item.date).toLocaleDateString() + ' ' + new Date(item.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Unknown Date';
+        html += `
+            <div class="history-item">
+                <img src="${esc(item.image)}" class="history-item-image" onerror="this.src='assets/img/favicon.svg';">
+                <div class="history-item-details">
+                    <div class="history-item-title">${esc(item.title)}</div>
+                    <div class="history-item-meta">${esc(item.type)} • ${dateStr}</div>
+                </div>
+            </div>
+        `;
+    });
+    html += `</div>`;
+    section.innerHTML = html;
+}
+
+function closeMediaUserModal() {
+    const modal = document.getElementById('media-user-modal');
+    if (modal) modal.classList.remove('visible');
+}
+
+function changeMediaUserPassword(serverId, userId) {
+    const newPassword = document.getElementById('new-media-password')?.value;
+    if (!newPassword) {
+        showModalAlert('Validation Error', 'Please enter a new password.');
+        return;
+    }
+
+    if (newPassword.length < 1) {
+        showModalAlert('Validation Error', 'Password cannot be empty.');
+        return;
+    }
+
+    fetch('update_media_user_password.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ serverId, userId, newPassword })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showModalAlert('Success', 'Password updated successfully on the media server.');
+            const input = document.getElementById('new-media-password');
+            if (input) input.value = '';
+        } else {
+            showModalAlert('Error', data.error || 'Failed to update password.');
+        }
+    })
+    .catch(err => {
+        console.error('Password update error:', err);
+        showModalAlert('Error', 'Failed to communicate with the dashboard server.');
+    });
 }
 
 // Render server cards
@@ -3254,6 +3451,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('user-search-modal')?.addEventListener('click', function(e) {
         if (e.target === this) closeUserSearchModal();
     });
+
+    document.getElementById('media-user-modal')?.addEventListener('click', function(e) {
+        if (e.target === this) closeMediaUserModal();
+    });
+
+    // Initial load of media users to support User Modals from dashboard badges
+    fetchMediaUsers();
 });
 
 // Donate Modal Logic
