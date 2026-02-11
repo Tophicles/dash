@@ -1792,3 +1792,73 @@ form button:hover { background:#45a049; }
 .donate-input {
   -moz-appearance: textfield;
 }
+
+/* User Search Enhanced Styling */
+.user-search-item {
+    background: rgba(255,255,255,0.05);
+    padding: 18px 24px;
+    border-radius: 12px;
+    display: grid;
+    grid-template-columns: 48px 1.5fr 1fr 1fr;
+    align-items: center;
+    gap: 20px;
+    border: 1px solid rgba(255,255,255,0.1);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: 8px;
+}
+.user-search-item:hover {
+    background: rgba(255,255,255,0.1);
+    transform: translateX(4px);
+    border-color: rgba(255,255,255,0.2);
+}
+.user-search-server-badge, .user-search-status {
+    display: flex;
+    justify-content: flex-start;
+}
+.user-search-icon {
+    color: #2196f3;
+    font-size: 1.3rem;
+    background: rgba(33, 150, 243, 0.1);
+    padding: 12px;
+    border-radius: 50%;
+}
+.user-search-name {
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: var(--text);
+}
+.user-status-badge {
+    font-size: 0.8rem;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid transparent;
+}
+.user-status-badge i {
+    font-size: 0.6rem;
+}
+.user-status-badge.watching {
+    background: rgba(76, 175, 80, 0.15);
+    color: #81c784;
+    border-color: rgba(76, 175, 80, 0.3);
+}
+.user-status-badge.idle {
+    background: rgba(158, 158, 158, 0.1);
+    color: #9e9e9e;
+    border-color: rgba(158, 158, 158, 0.2);
+}
+
+/* Modal result badges override */
+#user-search-results .badge {
+    font-size: 0.85rem;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}

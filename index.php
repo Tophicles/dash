@@ -33,6 +33,9 @@ $isAdmin = isAdmin();
       <span class="header-badge" id="header-clock">--:--</span>
     </div>
     <div class="header-section right" id="header-clock-btn">
+      <button class="btn header-btn" id="user-search-nav-btn" title="Media Users" style="margin-right: 8px;">
+          <i class="fa-solid fa-users"></i> <span class="btn-text">Users</span>
+      </button>
       <button class="btn header-btn" id="feedback-btn" title="Feedback" style="margin-right: 8px;">
           <i class="fa-regular fa-comment-dots"></i> <span class="btn-text">Feedback</span>
       </button>
@@ -248,6 +251,26 @@ $isAdmin = isAdmin();
     <input type="text" id="session-search" placeholder="Filter sessions...">
   </div>
   <div id="sessions" class="session-grid"></div>
+</div>
+
+<!-- User Search Modal -->
+<div id="user-search-modal" class="modal">
+  <div class="modal-content" style="max-width: 650px;">
+    <span class="modal-close" onclick="closeUserSearchModal()">&times;</span>
+    <h2 style="margin-bottom: 20px;"><i class="fa-solid fa-users"></i> Media Users</h2>
+
+    <div class="search-container" style="margin-bottom: 15px;">
+        <input type="text" id="user-search-input" placeholder="Start typing a name..." autocomplete="off">
+    </div>
+
+    <div id="user-search-results" style="display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; padding-right: 5px;">
+        <div style="text-align:center; color: #888; padding: 20px;">Open search to load users...</div>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+        <button class="btn" onclick="closeUserSearchModal()">Close</button>
+    </div>
+  </div>
 </div>
 
 <!-- Active Sessions Modal -->
