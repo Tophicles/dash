@@ -55,7 +55,9 @@ foreach ($servers as $server) {
             if (is_array($users)) {
                 foreach ($users as $u) {
                     $allUsers[] = [
+                        'id' => $u['Id'] ?? '',
                         'name' => $u['Name'] ?? 'Unknown',
+                        'lastLogin' => $u['LastLoginDate'] ?? null,
                         'serverId' => $server['id'],
                         'serverName' => $server['name'],
                         'serverType' => $type
@@ -89,7 +91,9 @@ foreach ($servers as $server) {
             $accounts = $data['MediaContainer']['Account'] ?? [];
             foreach ($accounts as $acc) {
                 $allUsers[] = [
+                    'id' => $acc['id'] ?? '',
                     'name' => $acc['name'] ?? 'Unknown',
+                    'lastLogin' => null, // Plex doesn't provide this here
                     'serverId' => $server['id'],
                     'serverName' => $server['name'],
                     'serverType' => $type
@@ -104,10 +108,10 @@ usort($allUsers, function($a, $b) {
     return strcasecmp($a['name'], $b['name']);
 });
 
-// Remove duplicates (same name on same server)
+// Remove duplicates (same name and ID on same server)
 $allUsers = array_values(array_filter($allUsers, function($v, $k) use ($allUsers) {
     for ($i = 0; $i < $k; $i++) {
-        if ($allUsers[$i]['name'] === $v['name'] && $allUsers[$i]['serverId'] === $v['serverId']) {
+        if ($allUsers[$i]['name'] === $v['name'] && $allUsers[$i]['id'] === $v['id'] && $allUsers[$i]['serverId'] === $v['serverId']) {
             return false;
         }
     }
