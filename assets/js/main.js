@@ -1425,11 +1425,11 @@ function renderUserSearchResults(users) {
 
         item.innerHTML = `
             <i class="fa-solid fa-user user-search-icon"></i>
-            <div style="flex: 1;">
-                <div class="user-search-name">${esc(u.name)}</div>
-            </div>
-            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+            <div class="user-search-name">${esc(u.name)}</div>
+            <div class="user-search-server-badge">
                 <span class="${serverBadgeClass}" style="background: ${badgeColor}; color: ${u.serverType === 'plex' ? 'black' : 'white'};">${esc(u.serverName)}</span>
+            </div>
+            <div class="user-search-status">
                 <span class="user-status-badge ${isWatching ? 'watching' : 'idle'}">
                     <i class="fa-solid fa-circle"></i> ${isWatching ? 'Watching' : 'Idle'}
                 </span>

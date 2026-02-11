@@ -1796,51 +1796,51 @@ form button:hover { background:#45a049; }
 /* User Search Enhanced Styling */
 .user-search-item {
     background: rgba(255,255,255,0.05);
-    padding: 14px 18px;
-    border-radius: 10px;
-    display: flex;
+    padding: 18px 24px;
+    border-radius: 12px;
+    display: grid;
+    grid-template-columns: 48px 1.5fr 1fr 1fr;
     align-items: center;
-    gap: 14px;
+    gap: 20px;
     border: 1px solid rgba(255,255,255,0.1);
     cursor: pointer;
     transition: all 0.2s ease;
-    margin-bottom: 4px;
+    margin-bottom: 8px;
 }
 .user-search-item:hover {
     background: rgba(255,255,255,0.1);
     transform: translateX(4px);
     border-color: rgba(255,255,255,0.2);
 }
+.user-search-server-badge, .user-search-status {
+    display: flex;
+    justify-content: flex-start;
+}
 .user-search-icon {
     color: #2196f3;
-    font-size: 1.2rem;
+    font-size: 1.3rem;
     background: rgba(33, 150, 243, 0.1);
-    padding: 10px;
+    padding: 12px;
     border-radius: 50%;
 }
 .user-search-name {
     font-weight: 700;
-    font-size: 1.05rem;
+    font-size: 1.2rem;
     color: var(--text);
 }
-.user-search-server {
-    font-size: 0.8rem;
-    color: var(--muted);
-    margin-top: 2px;
-}
 .user-status-badge {
-    font-size: 0.65rem;
-    padding: 2px 8px;
-    border-radius: 10px;
+    font-size: 0.8rem;
+    padding: 4px 12px;
+    border-radius: 12px;
     font-weight: 700;
     text-transform: uppercase;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     border: 1px solid transparent;
 }
 .user-status-badge i {
-    font-size: 0.5rem;
+    font-size: 0.6rem;
 }
 .user-status-badge.watching {
     background: rgba(76, 175, 80, 0.15);
@@ -1855,9 +1855,10 @@ form button:hover { background:#45a049; }
 
 /* Modal result badges override */
 #user-search-results .badge {
-    font-size: 0.6rem;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-weight: 800;
+    font-size: 0.85rem;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-weight: 700;
     letter-spacing: 0.02em;
+    white-space: nowrap;
 }

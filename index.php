@@ -33,8 +33,8 @@ $isAdmin = isAdmin();
       <span class="header-badge" id="header-clock">--:--</span>
     </div>
     <div class="header-section right" id="header-clock-btn">
-      <button class="btn header-btn" id="user-search-nav-btn" title="Search Media Users" style="margin-right: 8px;">
-          <i class="fa-solid fa-magnifying-glass"></i> <span class="btn-text">Search</span>
+      <button class="btn header-btn" id="user-search-nav-btn" title="Media Users" style="margin-right: 8px;">
+          <i class="fa-solid fa-users"></i> <span class="btn-text">Users</span>
       </button>
       <button class="btn header-btn" id="feedback-btn" title="Feedback" style="margin-right: 8px;">
           <i class="fa-regular fa-comment-dots"></i> <span class="btn-text">Feedback</span>
@@ -255,9 +255,9 @@ $isAdmin = isAdmin();
 
 <!-- User Search Modal -->
 <div id="user-search-modal" class="modal">
-  <div class="modal-content" style="max-width: 500px;">
+  <div class="modal-content" style="max-width: 650px;">
     <span class="modal-close" onclick="closeUserSearchModal()">&times;</span>
-    <h2 style="margin-bottom: 20px;"><i class="fa-solid fa-magnifying-glass"></i> Search Media Users</h2>
+    <h2 style="margin-bottom: 20px;"><i class="fa-solid fa-users"></i> Media Users</h2>
 
     <div class="search-container" style="margin-bottom: 15px;">
         <input type="text" id="user-search-input" placeholder="Start typing a name..." autocomplete="off">
