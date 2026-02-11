@@ -1219,8 +1219,7 @@ function renderOnlineUsers(filterText = '') {
     }
 
     if (label) {
-        const isHidden = container.classList.contains('hidden');
-        label.textContent = `${onlineUsers.length} NOW WATCHING ${isHidden ? '+' : '-'}`;
+        label.textContent = `${onlineUsers.length} NOW WATCHING`;
     }
 
     if (onlineUsers.length === 0) {
@@ -1285,8 +1284,7 @@ function toggleSection(labelId, contentSelector) {
     }
 }
 
-// Initialize toggles
-toggleSection('online-users-label', '#online-users .user-list-content');
+// Initialize toggles (online-users is now non-collapsible)
 
 // Top Bar Header Logic
 function updateClock() {
