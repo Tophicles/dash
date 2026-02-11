@@ -565,6 +565,12 @@ async function fetchServer(server){
                 series: s.NowPlayingItem.SeriesName||"",
                 position: s.PlayState.PositionTicks/10000,
                 duration: s.NowPlayingItem.RunTimeTicks/10000,
+                progress: (() => {
+                    const pos = s.PlayState.PositionTicks/10000;
+                    const dur = s.NowPlayingItem.RunTimeTicks/10000;
+                    if (!dur || dur <= 0 || !isFinite(dur)) return 0;
+                    return Math.min(100, Math.floor((pos / dur) * 100));
+                })(),
                 paused: s.PlayState.IsPaused,
                 itemId: s.NowPlayingItem.Id,
                 season: s.NowPlayingItem.ParentIndexNumber,
@@ -584,6 +590,12 @@ async function fetchServer(server){
                 series: m.grandparentTitle||"",
                 position: m.viewOffset||0,
                 duration: m.duration||0,
+                progress: (() => {
+                    const pos = m.viewOffset||0;
+                    const dur = m.duration||0;
+                    if (!dur || dur <= 0 || !isFinite(dur)) return 0;
+                    return Math.min(100, Math.floor((pos / dur) * 100));
+                })(),
                 paused: m.Player?.state!=="playing",
                 itemId: m.ratingKey,
                 season: m.parentIndex,
