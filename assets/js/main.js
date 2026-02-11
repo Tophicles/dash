@@ -1449,19 +1449,6 @@ function renderUserSearchResults(users) {
         if (serverType === 'plex') badgeColor = '#ffc107';
         if (serverType === 'jellyfin') badgeColor = '#aa00aa';
 
-        let searchJumpBtn = null;
-        if (isWatching) {
-            searchJumpBtn = document.createElement('div');
-            searchJumpBtn.className = 'user-search-jump';
-            searchJumpBtn.title = 'Jump to Server';
-            searchJumpBtn.innerHTML = '<i class="fa-solid fa-external-link-alt"></i>';
-            searchJumpBtn.onclick = (e) => {
-                e.stopPropagation();
-                closeUserSearchModal();
-                showSessionsView(u.serverId, u.serverName);
-            };
-        }
-
         item.innerHTML = `
             <i class="fa-solid fa-user user-search-icon"></i>
             <div class="user-search-name">${esc(u.name)}</div>
@@ -1474,7 +1461,6 @@ function renderUserSearchResults(users) {
                 </span>
             </div>
         `;
-        if (searchJumpBtn) item.appendChild(searchJumpBtn);
 
         // Server badge specific click
         const badgeSpan = item.querySelector('.user-search-server-badge span');
@@ -1515,12 +1501,16 @@ function closeUserSearchModal() {
     if (modal) modal.classList.remove('visible');
 }
 
+let currentHistoryOffset = 0;
+const historyLimit = 10;
+
 function openMediaUserModal(u) {
     const modal = document.getElementById('media-user-modal');
     const body = document.getElementById('media-user-modal-body');
     if (!modal || !body) return;
 
     modal.classList.add('visible');
+    currentHistoryOffset = 0;
 
     // Initial loading state with basic info
     const sessions = ALL_SESSIONS[u.serverName] || [];
@@ -1589,32 +1579,46 @@ function openMediaUserModal(u) {
 
 
     // Fetch full details and history
-    fetch(`get_media_user_details.php?serverId=${u.serverId}&userId=${u.id}`)
+    fetchHistory(u);
+}
+
+function fetchHistory(u) {
+    const section = document.getElementById('user-history-section');
+    const limit = historyLimit;
+    const offset = currentHistoryOffset;
+
+    fetch(`get_media_user_details.php?serverId=${u.serverId}&userId=${u.id}&offset=${offset}&limit=${limit}`)
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                renderMediaUserHistory(data.history);
+                renderMediaUserHistory(data.history, offset > 0, u);
             } else {
-                document.getElementById('user-history-section').innerHTML = `
-                    <h3><i class="fa-solid fa-clock-rotate-left"></i> Watch History</h3>
-                    <p style="color: var(--danger);">${esc(data.error || 'Failed to load history')}</p>
-                `;
+                if (offset === 0) {
+                    section.innerHTML = `
+                        <h3><i class="fa-solid fa-clock-rotate-left"></i> Watch History</h3>
+                        <p style="color: var(--danger);">${esc(data.error || 'Failed to load history')}</p>
+                    `;
+                } else {
+                    showModalAlert('Failed to load more history');
+                }
             }
         })
         .catch(err => {
             console.error('Failed to fetch user details:', err);
-            document.getElementById('user-history-section').innerHTML = `
-                <h3><i class="fa-solid fa-clock-rotate-left"></i> Watch History</h3>
-                <p style="color: var(--danger);">Failed to connect to dashboard API</p>
-            `;
+            if (offset === 0) {
+                document.getElementById('user-history-section').innerHTML = `
+                    <h3><i class="fa-solid fa-clock-rotate-left"></i> Watch History</h3>
+                    <p style="color: var(--danger);">Failed to connect to dashboard API</p>
+                `;
+            }
         });
 }
 
-function renderMediaUserHistory(history) {
+function renderMediaUserHistory(history, append = false, u = null) {
     const section = document.getElementById('user-history-section');
     if (!section) return;
 
-    if (!history || history.length === 0) {
+    if (!append && (!history || history.length === 0)) {
         section.innerHTML = `
             <h3><i class="fa-solid fa-clock-rotate-left"></i> Watch History</h3>
             <p style="color: var(--muted); text-align: center; padding: 10px;">No recent history found.</p>
@@ -1622,7 +1626,19 @@ function renderMediaUserHistory(history) {
         return;
     }
 
-    let html = `<h3><i class="fa-solid fa-clock-rotate-left"></i> Watch History</h3><div class="history-list-container"><div class="history-list">`;
+    let listContainer = section.querySelector('.history-list');
+
+    if (!append || !listContainer) {
+        section.innerHTML = `
+            <h3><i class="fa-solid fa-clock-rotate-left"></i> Watch History</h3>
+            <div class="history-list-container">
+                <div class="history-list"></div>
+                <div id="history-load-more-container" style="text-align: center; margin-top: 15px;"></div>
+            </div>
+        `;
+        listContainer = section.querySelector('.history-list');
+    }
+
     history.forEach(item => {
         let dateStr = 'Unknown Date';
         if (item.date) {
@@ -1632,18 +1648,37 @@ function renderMediaUserHistory(history) {
             }
         }
 
-        html += `
-            <div class="history-item">
-                <img src="${esc(item.image)}" class="history-item-image" onerror="this.src='assets/img/favicon.svg';">
-                <div class="history-item-details">
-                    <div class="history-item-title">${esc(item.title)}</div>
-                    <div class="history-item-meta">${esc(item.type)} • ${dateStr}</div>
-                </div>
+        const itemEl = document.createElement('div');
+        itemEl.className = 'history-item';
+        itemEl.innerHTML = `
+            <img src="${esc(item.image)}" class="history-item-image" onerror="this.src='assets/img/favicon.svg';">
+            <div class="history-item-details">
+                <div class="history-item-title">${esc(item.title)}</div>
+                <div class="history-item-meta">${esc(item.type)} • ${dateStr}</div>
             </div>
         `;
+        listContainer.appendChild(itemEl);
     });
-    html += `</div></div>`;
-    section.innerHTML = html;
+
+    const loadMoreContainer = document.getElementById('history-load-more-container');
+    if (loadMoreContainer) {
+        if (history.length === historyLimit) {
+            loadMoreContainer.innerHTML = `
+                <button class="btn" id="load-more-history-btn" style="width: 100%; background: var(--bg-hover); border: 1px solid var(--border);">
+                    Load More
+                </button>
+            `;
+            document.getElementById('load-more-history-btn').onclick = () => {
+                currentHistoryOffset += historyLimit;
+                const btn = document.getElementById('load-more-history-btn');
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading...';
+                fetchHistory(u);
+            };
+        } else {
+            loadMoreContainer.innerHTML = '';
+        }
+    }
 }
 
 function closeMediaUserModal() {
