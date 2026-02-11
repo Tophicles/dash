@@ -1473,7 +1473,6 @@ function renderUserSearchResults(users) {
                     <i class="fa-solid fa-circle"></i> ${isWatching ? 'Watching' : 'Idle'}
                 </span>
             </div>
-            ${jumpButton}
         `;
         if (searchJumpBtn) item.appendChild(searchJumpBtn);
 
@@ -1644,7 +1643,7 @@ function renderMediaUserHistory(history) {
         return;
     }
 
-    let html = `<h3><i class="fa-solid fa-clock-rotate-left"></i> Watch History</h3><div class="history-list">`;
+    let html = `<h3><i class="fa-solid fa-clock-rotate-left"></i> Watch History</h3><div class="history-list-container"><div class="history-list">`;
     history.forEach(item => {
         let dateStr = 'Unknown Date';
         if (item.date) {
@@ -1664,7 +1663,7 @@ function renderMediaUserHistory(history) {
             </div>
         `;
     });
-    html += `</div>`;
+    html += `</div></div>`;
     section.innerHTML = html;
 }
 

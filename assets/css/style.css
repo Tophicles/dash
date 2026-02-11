@@ -1978,3 +1978,25 @@ form button:hover { background:#45a049; }
         text-align: center;
     }
 }
+
+.history-list-container {
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 5px;
+    margin-top: 10px;
+}
+/* Style the scrollbar for history list */
+.history-list-container::-webkit-scrollbar {
+    width: 6px;
+}
+.history-list-container::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.1);
+    border-radius: 10px;
+}
+.history-list-container::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+}
+.history-list-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.2);
+}
