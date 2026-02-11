@@ -1373,7 +1373,20 @@ async function fetchMediaUsers() {
 
         if (data.success) {
             ALL_MEDIA_USERS = data.users || [];
-            renderUserSearchResults(ALL_MEDIA_USERS);
+
+            // Apply current filter if user already started typing while fetching
+            const input = document.getElementById('user-search-input');
+            const query = input ? input.value.toLowerCase().trim() : '';
+
+            if (query.length >= 2) {
+                const filtered = ALL_MEDIA_USERS.filter(u =>
+                    u.name.toLowerCase().includes(query) ||
+                    u.serverName.toLowerCase().includes(query)
+                );
+                renderUserSearchResults(filtered);
+            } else {
+                renderUserSearchResults([]);
+            }
         } else {
             container.innerHTML = `<div style="text-align:center; color: #ef5350; padding: 20px;">Error: ${esc(data.error)}</div>`;
         }
@@ -1388,18 +1401,22 @@ function renderUserSearchResults(users) {
     if (!container) return;
 
     if (!users || users.length === 0) {
-        container.innerHTML = '<div style="text-align:center; color:var(--muted); padding: 20px;">No matching users found</div>';
+        const query = document.getElementById('user-search-input')?.value || '';
+        const msg = query.length < 2
+            ? 'Type at least 2 characters to search...'
+            : 'No matching users found';
+        container.innerHTML = `<div style="text-align:center; color:var(--muted); padding: 20px;">${msg}</div>`;
         return;
     }
 
     container.innerHTML = '';
     users.forEach(u => {
         const item = document.createElement('div');
-        item.style.cssText = 'background: rgba(255,255,255,0.05); padding: 12px 15px; border-radius: 8px; display: flex; align-items: center; gap: 12px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: background 0.2s;';
+        item.className = 'user-search-item';
 
-        // Hover effects
-        item.onmouseenter = () => item.style.background = 'rgba(255,255,255,0.1)';
-        item.onmouseleave = () => item.style.background = 'rgba(255,255,255,0.05)';
+        // Determine if watching
+        const sessions = ALL_SESSIONS[u.serverName] || [];
+        const isWatching = sessions.some(s => s.user === u.name);
 
         const serverBadgeClass = `badge server-${esc(u.serverType)}`;
         let badgeColor = '#4caf50';
@@ -1407,12 +1424,17 @@ function renderUserSearchResults(users) {
         if (u.serverType === 'jellyfin') badgeColor = '#aa00aa';
 
         item.innerHTML = `
-            <i class="fa-solid fa-user" style="color: #2196f3; font-size: 1.1rem;"></i>
+            <i class="fa-solid fa-user user-search-icon"></i>
             <div style="flex: 1;">
-                <div style="font-weight: 600; font-size: 1rem;">${esc(u.name)}</div>
-                <div style="font-size: 0.8rem; color: var(--muted);">${esc(u.serverName)}</div>
+                <div class="user-search-name">${esc(u.name)}</div>
+                <div class="user-search-server">${esc(u.serverName)}</div>
             </div>
-            <span class="${serverBadgeClass}" style="background: ${badgeColor}; color: ${u.serverType === 'plex' ? 'black' : 'white'}; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: 700;">${esc(u.serverType.toUpperCase())}</span>
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                <span class="${serverBadgeClass}" style="background: ${badgeColor}; color: ${u.serverType === 'plex' ? 'black' : 'white'};">${esc(u.serverType.toUpperCase())}</span>
+                <span class="user-status-badge ${isWatching ? 'watching' : 'idle'}">
+                    <i class="fa-solid fa-circle"></i> ${isWatching ? 'Watching' : 'Idle'}
+                </span>
+            </div>
         `;
 
         item.onclick = () => {
@@ -3216,10 +3238,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (userSearchInput) {
         userSearchInput.addEventListener('input', (e) => {
             const query = e.target.value.toLowerCase().trim();
-            if (!query) {
-                renderUserSearchResults(ALL_MEDIA_USERS);
+
+            if (query.length < 2) {
+                renderUserSearchResults([]); // Show "Type 2 chars" message
                 return;
             }
+
             const filtered = ALL_MEDIA_USERS.filter(u =>
                 u.name.toLowerCase().includes(query) ||
                 u.serverName.toLowerCase().includes(query)
