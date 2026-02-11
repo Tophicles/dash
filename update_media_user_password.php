@@ -46,10 +46,16 @@ if ($server['type'] !== 'emby' && $server['type'] !== 'jellyfin') {
 }
 
 $type = $server['type'];
-$baseUrl = rtrim($server['url'], '/');
-if (!preg_match('/^https?:\/\//', $baseUrl)) {
-    $baseUrl = 'http://' . $baseUrl;
+
+// Ensure URL has protocol
+function ensureProtocol($url) {
+    if (!preg_match("~^(?:f|ht)tps?://~i", $url)) {
+        return "http://" . $url;
+    }
+    return $url;
 }
+
+$baseUrl = rtrim(ensureProtocol($server['url']), '/');
 $apiKey = isset($server['apiKey']) ? decrypt($server['apiKey']) : '';
 
 // Jellyfin/Emby Password Change API
@@ -59,7 +65,7 @@ $url = $baseUrl . '/Users/' . urlencode($userId) . '/Password';
 $postData = json_encode([
     'CurrentPassword' => '',
     'NewPassword' => $newPassword,
-    'ResetPassword' => false
+    'ResetPassword' => true
 ]);
 
 $ch = curl_init($url);
@@ -89,9 +95,13 @@ if ($httpCode === 204 || $httpCode === 200) {
         $error = "Connection Error: $curlError";
     } else {
         $data = json_decode($res, true);
-        if (isset($data['Message'])) $error = $data['Message'];
+        if (isset($data['Message'])) {
+            $error = $data['Message'];
+        } else if (!empty($res)) {
+            $error = "HTTP $httpCode: " . (strlen($res) > 100 ? substr($res, 0, 100) . "..." : $res);
+        }
     }
 
-    writeLog("Failed to change password for media user ID '$userId' on '{$server['name']}': $error", "ERROR");
+    writeLog("Failed to change password for media user ID '$userId' on '{$server['name']}': $error. Full Response: " . ($res ?: 'Empty'), "ERROR");
     echo json_encode(['success' => false, 'error' => $error]);
 }
