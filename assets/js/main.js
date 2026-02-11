@@ -1473,6 +1473,7 @@ function renderUserSearchResults(users) {
                     <i class="fa-solid fa-circle"></i> ${isWatching ? 'Watching' : 'Idle'}
                 </span>
             </div>
+            ${jumpButton}
         `;
         if (searchJumpBtn) item.appendChild(searchJumpBtn);
 
