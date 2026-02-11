@@ -1427,10 +1427,9 @@ function renderUserSearchResults(users) {
             <i class="fa-solid fa-user user-search-icon"></i>
             <div style="flex: 1;">
                 <div class="user-search-name">${esc(u.name)}</div>
-                <div class="user-search-server">${esc(u.serverName)}</div>
             </div>
             <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
-                <span class="${serverBadgeClass}" style="background: ${badgeColor}; color: ${u.serverType === 'plex' ? 'black' : 'white'};">${esc(u.serverType.toUpperCase())}</span>
+                <span class="${serverBadgeClass}" style="background: ${badgeColor}; color: ${u.serverType === 'plex' ? 'black' : 'white'};">${esc(u.serverName)}</span>
                 <span class="user-status-badge ${isWatching ? 'watching' : 'idle'}">
                     <i class="fa-solid fa-circle"></i> ${isWatching ? 'Watching' : 'Idle'}
                 </span>
