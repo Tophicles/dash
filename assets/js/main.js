@@ -1449,13 +1449,13 @@ function renderUserSearchResults(users) {
         if (serverType === 'plex') badgeColor = '#ffc107';
         if (serverType === 'jellyfin') badgeColor = '#aa00aa';
 
-        let jumpButton = null;
+        let searchJumpBtn = null;
         if (isWatching) {
-            jumpButton = document.createElement('div');
-            jumpButton.className = 'user-search-jump';
-            jumpButton.title = 'Jump to Server';
-            jumpButton.innerHTML = '<i class="fa-solid fa-external-link-alt"></i>';
-            jumpButton.onclick = (e) => {
+            searchJumpBtn = document.createElement('div');
+            searchJumpBtn.className = 'user-search-jump';
+            searchJumpBtn.title = 'Jump to Server';
+            searchJumpBtn.innerHTML = '<i class="fa-solid fa-external-link-alt"></i>';
+            searchJumpBtn.onclick = (e) => {
                 e.stopPropagation();
                 closeUserSearchModal();
                 showSessionsView(u.serverId, u.serverName);
@@ -1475,7 +1475,7 @@ function renderUserSearchResults(users) {
             </div>
             ${jumpButton}
         `;
-        if (jumpButton) item.appendChild(jumpButton);
+        if (searchJumpBtn) item.appendChild(searchJumpBtn);
 
         // Server badge specific click
         const badgeSpan = item.querySelector('.user-search-server-badge span');
