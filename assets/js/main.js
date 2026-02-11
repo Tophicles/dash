@@ -1462,6 +1462,19 @@ function renderUserSearchResults(users) {
             };
         }
 
+        let jumpButton = null;
+        if (isWatching) {
+            jumpButton = document.createElement('div');
+            jumpButton.className = 'user-search-jump';
+            jumpButton.title = 'Jump to Server';
+            jumpButton.innerHTML = '<i class="fa-solid fa-external-link-alt"></i>';
+            jumpButton.onclick = (e) => {
+                e.stopPropagation();
+                closeUserSearchModal();
+                showSessionsView(u.serverId, u.serverName);
+            };
+        }
+
         item.innerHTML = `
             <i class="fa-solid fa-user user-search-icon"></i>
             <div class="user-search-name">${esc(u.name)}</div>
@@ -1473,6 +1486,7 @@ function renderUserSearchResults(users) {
                     <i class="fa-solid fa-circle"></i> ${isWatching ? 'Watching' : 'Idle'}
                 </span>
             </div>
+            ${jumpButton}
         `;
         if (jumpButton) item.appendChild(jumpButton);
 
