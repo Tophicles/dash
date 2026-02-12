@@ -67,6 +67,7 @@ if (!empty($data['token'])) {
 // Add OS/SSH fields
 $newServer['os_type'] = $data['os_type'] ?? 'linux';
 if (!empty($data['ssh_port'])) $newServer['ssh_port'] = $data['ssh_port'];
+$newServer['ssh_user'] = $data['ssh_user'] ?? 'mediasvc';
 
 $config['servers'][] = $newServer;
 

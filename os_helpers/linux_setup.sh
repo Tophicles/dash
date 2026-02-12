@@ -12,6 +12,12 @@ SSHD_CONFIG="/etc/ssh/sshd_config"
 MARKER_START="# BEGIN MEDIASVC-MULTIDASH"
 MARKER_END="# END MEDIASVC-MULTIDASH"
 
+update_vars() {
+    SUDOERS_FILE="/etc/sudoers.d/$USER_NAME"
+    MARKER_START="# BEGIN MEDIASVC-MULTIDASH-$USER_NAME"
+    MARKER_END="# END MEDIASVC-MULTIDASH-$USER_NAME"
+}
+
 ########################################
 # Root check
 ########################################
@@ -117,7 +123,13 @@ install_user() {
     echo "Configuring SSH key..."
     SSH_DIR="/home/$USER_NAME/.ssh"
     mkdir -p "$SSH_DIR"
-    echo "$PUB_KEY" > "$SSH_DIR/authorized_keys"
+    if [ -f "$SSH_DIR/authorized_keys" ]; then
+        if ! grep -qxF "$PUB_KEY" "$SSH_DIR/authorized_keys"; then
+            echo "$PUB_KEY" >> "$SSH_DIR/authorized_keys"
+        fi
+    else
+        echo "$PUB_KEY" > "$SSH_DIR/authorized_keys"
+    fi
     chown -R "$USER_NAME:$USER_NAME" "$SSH_DIR"
     chmod 700 "$SSH_DIR"
     chmod 600 "$SSH_DIR/authorized_keys"
@@ -126,6 +138,8 @@ install_user() {
     generate_sudoers
 
     echo "Locking down SSH..."
+    # Clean up legacy markers and current user markers
+    sed -i "/# BEGIN MEDIASVC-MULTIDASH/,/# END MEDIASVC-MULTIDASH/d" "$SSHD_CONFIG"
     sed -i "/$MARKER_START/,/$MARKER_END/d" "$SSHD_CONFIG"
 
     cat >> "$SSHD_CONFIG" <<EOF
@@ -162,8 +176,16 @@ uninstall_user() {
 # Main
 ########################################
 case "${1:-}" in
-    install) install_user "$@" ;;
-    uninstall) uninstall_user ;;
+    install)
+        USER_NAME="${3:-mediasvc}"
+        update_vars
+        install_user "$@"
+        ;;
+    uninstall)
+        USER_NAME="${2:-mediasvc}"
+        update_vars
+        uninstall_user
+        ;;
     *)
         echo "Usage: sudo ./linux_setup.sh [install|uninstall]"
         read -p "Choice [1] INSTALL USER or [2] REMOVE USER: " c
