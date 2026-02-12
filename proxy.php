@@ -55,7 +55,7 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
 
     // Settings
     $port = $server['ssh_port'] ?: 22;
-    $user = 'mediasvc';
+    $user = $server['ssh_user'] ?: 'mediasvc';
 
     // Determine Service Name based on Type and OS
     $service = '';
@@ -105,13 +105,13 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
     $timeout = 10;
 
     if ($action === 'ssh_update') {
-        $logFile = "/home/mediasvc/multidash_update_{$server['id']}.log";
+        $logFile = "/home/$user/multidash_update_{$server['id']}.log";
 
         // Check allowed sudo paths for update file
         $sudoCheckCmd = "sudo -l";
         $sudoCheckRes = executeSSHCommand($host, $port, $user, $sudoCheckCmd, 5);
 
-        $tmpDeb = "/home/mediasvc/multidash_update.deb"; // Default secure path
+        $tmpDeb = "/home/$user/multidash_update.deb"; // Default secure path
 
         if ($sudoCheckRes['success']) {
              if (strpos($sudoCheckRes['output'], '/tmp/multidash_update.deb') !== false) {
@@ -190,7 +190,7 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
                " > /dev/null 2>&1 &";
 
     } elseif ($action === 'ssh_update_log') {
-        $logFile = "/home/mediasvc/multidash_update_{$server['id']}.log";
+        $logFile = "/home/$user/multidash_update_{$server['id']}.log";
         // Check if file exists first to avoid error spam
         $cmd = "if [ -f $logFile ]; then cat $logFile; else echo \"Waiting for log...\"; fi";
     }

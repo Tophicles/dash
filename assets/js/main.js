@@ -93,6 +93,7 @@ function showModalConfirm(message, title = 'Confirm Action') {
 }
 
 let SERVERS = [];
+let SUGGESTED_SSH_USER = 'mediasvc';
 let ALL_SESSIONS = {};
 let refreshTimer = null;
 let currentView = 'servers'; // 'servers', 'sessions', or 'all'
@@ -109,6 +110,7 @@ function updateServerFormFields() {
     const urlInput = document.getElementById('server-url-input');
     const osSelect = document.getElementById('server-os-select');
     const sshPortGroup = document.getElementById('ssh-port-group');
+    const sshUserGroup = document.getElementById('ssh-user-group');
 
     if (!typeSelect || !apiKeyGroup || !tokenGroup) return;
 
@@ -128,11 +130,13 @@ function updateServerFormFields() {
     }
 
     // OS Logic
-    if (osSelect && sshPortGroup) {
+    if (osSelect && sshPortGroup && sshUserGroup) {
         if (osSelect.value === 'linux') {
             sshPortGroup.style.display = 'flex';
+            sshUserGroup.style.display = 'flex';
         } else {
             sshPortGroup.style.display = 'none';
+            sshUserGroup.style.display = 'none';
         }
     }
 }
@@ -175,6 +179,9 @@ function openServerModal(isEdit = false) {
         btn.textContent = 'Add Server';
         form.reset();
         delete form.dataset.originalName;
+        // Prepopulate SSH user
+        const sshUserInput = form.querySelector('[name="ssh_user"]');
+        if (sshUserInput) sshUserInput.value = SUGGESTED_SSH_USER;
         // Reset visibility for new form
         updateServerFormFields();
     }
@@ -502,6 +509,7 @@ async function loadConfig() {
         // Then sort by order
         return (a.order||0) - (b.order||0);
     });
+    SUGGESTED_SSH_USER = config.suggestedSSHUser || 'mediasvc';
     return config.refreshSeconds || 5;
 }
 
@@ -960,7 +968,8 @@ async function openServerSetupModal(serverId, serverName) {
 
             // Linux Command
             const scriptUrl = `${baseUrl}/os_helpers/linux_setup.sh`;
-            cmd = `wget -qO- "${scriptUrl}" | sudo bash -s install "${data.key}"`;
+            const sshUser = server ? (server.ssh_user || 'mediasvc') : 'mediasvc';
+            cmd = `wget -qO- "${scriptUrl}" | sudo bash -s install "${data.key}" "${sshUser}"`;
 
             cmdDisplay.innerText = cmd;
             verifyBtn.disabled = false;
@@ -991,7 +1000,8 @@ function openSSHConnectedModal(serverId, serverName) {
 
     // Linux Command
     const scriptUrl = `${baseUrl}/os_helpers/linux_setup.sh`;
-    cmd = `wget -qO- "${scriptUrl}" | sudo bash -s uninstall`;
+    const sshUser = server ? (server.ssh_user || 'mediasvc') : 'mediasvc';
+    cmd = `wget -qO- "${scriptUrl}" | sudo bash -s uninstall "${sshUser}"`;
 
     cmdDisplay.innerText = cmd;
     modal.classList.add('visible');
@@ -2725,6 +2735,7 @@ function openEditServerModal(serverId) {
 
     form.querySelector('[name="os_type"]').value = server.os_type || 'linux';
     form.querySelector('[name="ssh_port"]').value = server.ssh_port || '22';
+    form.querySelector('[name="ssh_user"]').value = server.ssh_user || 'mediasvc';
 
     // Store server ID for update
     form.dataset.originalName = server.id;
@@ -2806,7 +2817,8 @@ document.getElementById('add-server-form').addEventListener('submit', async e=>{
         apiKey:f.apiKey.value,
         token:f.token.value,
         os_type: f.os_type.value,
-        ssh_port: f.ssh_port.value
+        ssh_port: f.ssh_port.value,
+        ssh_user: f.ssh_user.value
     };
 
     // If editing, include server ID

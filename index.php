@@ -357,6 +357,11 @@ $isAdmin = isAdmin();
                 <label>SSH Port (Linux Only)</label>
                 <input type="number" name="ssh_port" value="22" placeholder="22">
             </div>
+
+            <div class="server-form-group" id="ssh-user-group">
+                <label>SSH Username (Linux Only)</label>
+                <input type="text" name="ssh_user" value="mediasvc" placeholder="mediasvc">
+            </div>
         </div>
 
         <div class="server-form-group" style="margin-top: 10px;">

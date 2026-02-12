@@ -28,6 +28,9 @@ if (validateAndMigrateConfig($config)) {
 
 $isAdmin = isAdmin();
 
+// Generate a unique suggested SSH user for this instance
+$config['suggestedSSHUser'] = 'media_' . substr(hash('sha256', getSecretKey()), 0, 6);
+
 if (isset($config['servers']) && is_array($config['servers'])) {
     foreach ($config['servers'] as &$server) {
         if ($isAdmin) {
