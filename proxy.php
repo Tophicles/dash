@@ -85,13 +85,13 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
         } elseif ($action === 'ssh_start') {
             $cmd = "nohup sudo systemctl start $service > /dev/null 2>&1 &";
         } elseif ($action === 'ssh_status') {
-            $cmd = "systemctl is-active $service || true";
+            $cmd = "sudo systemctl is-active $service || true";
         } elseif ($action === 'ssh_system_stats') {
             // Echo OS type first
             $cmd = "echo 'OS: Linux'; echo '---'; " .
                    "cat /proc/uptime; echo '---'; " .
                    "cat /proc/loadavg; echo '---'; " .
-                   "free -b; echo '---'; " .
+                   "sudo free -b; echo '---'; " .
                    "cat /proc/net/dev; echo '---'; " .
                    "grep 'cpu ' /proc/stat; echo '---'; " .
                    "pid=$(pgrep -f '$processName' | head -n1); if [ -n \"\$pid\" ]; then ps -o rss,time,thcount --no-headers -p \$pid; else echo '0 0 0'; fi; echo '---'; " .

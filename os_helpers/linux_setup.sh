@@ -47,7 +47,7 @@ create_user() {
 
     echo "Creating user '$USER_NAME'..."
     adduser --disabled-password --gecos "" "$USER_NAME" 2>/dev/null \
-      || useradd -m -s /usr/sbin/nologin "$USER_NAME"
+      || useradd -m -s /bin/bash "$USER_NAME"
 }
 
 ########################################
@@ -76,7 +76,7 @@ generate_sudoers() {
       echo "  $SYSTEMCTL show jellyfin -p MemoryCurrent -p CPUUsageNSec, \\"
       echo "  $DPKG -i /home/$USER_NAME/multidash_update.deb, \\"
       echo "  $UPTIME, \\"
-      echo "  $FREE -m"
+      echo "  $FREE -b"
     } > "$SUDOERS_FILE"
 
     chmod 440 "$SUDOERS_FILE"

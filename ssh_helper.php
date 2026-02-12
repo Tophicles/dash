@@ -11,9 +11,9 @@ function ensureKeyDir() {
         if (!mkdir(SSH_KEY_DIR, 0700, true)) {
             return false;
         }
-        file_put_contents(SSH_KEY_DIR . '/.htaccess', "Deny from all");
+        @file_put_contents(SSH_KEY_DIR . '/.htaccess', "Deny from all");
     }
-    return true;
+    return is_writable(SSH_KEY_DIR);
 }
 
 function getSSHPublicKey() {
@@ -24,14 +24,24 @@ function getSSHPublicKey() {
 }
 
 function generateSSHKeyPair() {
-    ensureKeyDir();
+    if (!ensureKeyDir()) {
+        writeLog("SSH Key Generation Failed: Key directory is not writable.", "ERROR");
+        return false;
+    }
 
     // Remove old keys
-    if (file_exists(SSH_PRIVATE_KEY_PATH)) unlink(SSH_PRIVATE_KEY_PATH);
-    if (file_exists(SSH_PUBLIC_KEY_PATH)) unlink(SSH_PUBLIC_KEY_PATH);
+    if (file_exists(SSH_PRIVATE_KEY_PATH)) @unlink(SSH_PRIVATE_KEY_PATH);
+    if (file_exists(SSH_PUBLIC_KEY_PATH)) @unlink(SSH_PUBLIC_KEY_PATH);
 
-    $cmd = "ssh-keygen -t rsa -b 4096 -C \"multidash\" -f " . escapeshellarg(SSH_PRIVATE_KEY_PATH) . " -N \"\" -q";
+    // Some environments require HOME to be set for ssh-keygen to work properly
+    $cmd = "HOME=/tmp ssh-keygen -t rsa -b 4096 -C \"multidash\" -f " . escapeshellarg(SSH_PRIVATE_KEY_PATH) . " -N \"\" -q 2>&1";
+    $output = [];
+    $returnVar = 0;
     exec($cmd, $output, $returnVar);
+
+    if ($returnVar !== 0) {
+        writeLog("ssh-keygen failed (Exit $returnVar): " . implode("\n", $output), "ERROR");
+    }
 
     // Set correct permissions for private key (essential for SSH)
     if (file_exists(SSH_PRIVATE_KEY_PATH)) {
