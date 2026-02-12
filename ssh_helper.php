@@ -8,6 +8,11 @@ define('SSH_PUBLIC_KEY_PATH', SSH_PRIVATE_KEY_PATH . '.pub');
 
 function ensureKeyDir() {
     if (!file_exists(SSH_KEY_DIR)) {
+        // Ensure parent DATA_DIR is writable before creating the keys subdirectory
+        if (!is_writable(DATA_DIR)) {
+            writeLog("SSH Key Generation Failed: DATA_DIR (" . DATA_DIR . ") is not writable.", "ERROR");
+            return false;
+        }
         if (!mkdir(SSH_KEY_DIR, 0700, true)) {
             return false;
         }
@@ -64,8 +69,9 @@ function executeSSHCommand($host, $port, $user, $command, $timeout = 10) {
     // -o BatchMode=yes: Don't ask for passwords
 
     // Use `timeout` command to prevent execution hang
+    // Some environments require HOME to be set for ssh to work properly
     $sshCmd = sprintf(
-        "timeout %d ssh -i %s -p %d -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ConnectTimeout=5 -o BatchMode=yes %s@%s %s 2>&1",
+        "timeout %d env HOME=/tmp ssh -i %s -p %d -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ConnectTimeout=5 -o BatchMode=yes %s@%s %s 2>&1",
         (int)$timeout,
         escapeshellarg(SSH_PRIVATE_KEY_PATH),
         (int)$port,
