@@ -23,6 +23,22 @@ if ($action === 'get_public_key') {
     exit;
 }
 
+if ($action === 'get_ssh_user') {
+    echo json_encode(['success' => true, 'user' => getGlobalSSHUser()]);
+    exit;
+}
+
+if ($action === 'set_ssh_user') {
+    $input = json_decode(file_get_contents('php://input'), true);
+    $user = $input['user'] ?? '';
+    if (setGlobalSSHUser($user)) {
+        echo json_encode(['success' => true]);
+    } else {
+        echo json_encode(['success' => false, 'error' => 'Failed to save SSH user']);
+    }
+    exit;
+}
+
 if ($action === 'generate') {
     $input = json_decode(file_get_contents('php://input'), true);
     $agreed = $input['agreed'] ?? false;

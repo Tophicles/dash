@@ -55,7 +55,7 @@ if (in_array($action, ['ssh_restart', 'ssh_stop', 'ssh_start', 'ssh_status', 'ss
 
     // Settings
     $port = $server['ssh_port'] ?: 22;
-    $user = $server['ssh_user'] ?: 'mediasvc';
+    $user = getGlobalSSHUser();
 
     // Determine Service Name based on Type and OS
     $service = '';

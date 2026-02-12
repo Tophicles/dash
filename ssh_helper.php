@@ -5,6 +5,22 @@ require_once 'path_helper.php';
 define('SSH_KEY_DIR', DATA_DIR . 'keys');
 define('SSH_PRIVATE_KEY_PATH', SSH_KEY_DIR . '/id_rsa');
 define('SSH_PUBLIC_KEY_PATH', SSH_PRIVATE_KEY_PATH . '.pub');
+define('SSH_USER_PATH', SSH_KEY_DIR . '/ssh_user.txt');
+
+function getGlobalSSHUser() {
+    if (file_exists(SSH_USER_PATH)) {
+        $user = trim(file_get_contents(SSH_USER_PATH));
+        if (!empty($user)) return $user;
+    }
+    return 'mediasvc';
+}
+
+function setGlobalSSHUser($user) {
+    ensureKeyDir();
+    $user = trim($user);
+    if (empty($user)) return false;
+    return file_put_contents(SSH_USER_PATH, $user) !== false;
+}
 
 function ensureKeyDir() {
     if (!file_exists(SSH_KEY_DIR)) {
@@ -50,6 +66,11 @@ function generateSSHKeyPair() {
 function executeSSHCommand($host, $port, $user, $command, $timeout = 10) {
     if (!file_exists(SSH_PRIVATE_KEY_PATH)) {
         return ['success' => false, 'error' => 'No SSH private key found. Generate one in settings.'];
+    }
+
+    // Use global user if not specified
+    if (empty($user)) {
+        $user = getGlobalSSHUser();
     }
 
     // Construct the SSH command

@@ -46,12 +46,18 @@ DPKG=$(command -v dpkg)
 # User creation
 ########################################
 create_user() {
+    if [ -z "$USER_NAME" ]; then
+        echo "❌ USER_NAME is not set."
+        exit 1
+    fi
+
     if id "$USER_NAME" &>/dev/null; then
         echo "User '$USER_NAME' already exists."
         return
     fi
 
     echo "Creating user '$USER_NAME'..."
+    # Attempt adduser (Debian/Ubuntu) then fallback to useradd (RHEL/CentOS/Arch)
     adduser --disabled-password --gecos "" "$USER_NAME" 2>/dev/null \
       || useradd -m -s /usr/sbin/nologin "$USER_NAME"
 }
@@ -138,7 +144,7 @@ install_user() {
     generate_sudoers
 
     echo "Locking down SSH..."
-    # Clean up legacy markers and current user markers
+    # Clean up legacy markers and current user markers to avoid duplicates
     sed -i "/# BEGIN MEDIASVC-MULTIDASH/,/# END MEDIASVC-MULTIDASH/d" "$SSHD_CONFIG"
     sed -i "/$MARKER_START/,/$MARKER_END/d" "$SSHD_CONFIG"
 

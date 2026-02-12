@@ -94,6 +94,7 @@ function showModalConfirm(message, title = 'Confirm Action') {
 
 let SERVERS = [];
 let SUGGESTED_SSH_USER = 'mediasvc';
+let GLOBAL_SSH_USER = 'mediasvc';
 let ALL_SESSIONS = {};
 let refreshTimer = null;
 let currentView = 'servers'; // 'servers', 'sessions', or 'all'
@@ -110,7 +111,6 @@ function updateServerFormFields() {
     const urlInput = document.getElementById('server-url-input');
     const osSelect = document.getElementById('server-os-select');
     const sshPortGroup = document.getElementById('ssh-port-group');
-    const sshUserGroup = document.getElementById('ssh-user-group');
 
     if (!typeSelect || !apiKeyGroup || !tokenGroup) return;
 
@@ -130,13 +130,11 @@ function updateServerFormFields() {
     }
 
     // OS Logic
-    if (osSelect && sshPortGroup && sshUserGroup) {
+    if (osSelect && sshPortGroup) {
         if (osSelect.value === 'linux') {
             sshPortGroup.style.display = 'flex';
-            sshUserGroup.style.display = 'flex';
         } else {
             sshPortGroup.style.display = 'none';
-            sshUserGroup.style.display = 'none';
         }
     }
 }
@@ -179,9 +177,6 @@ function openServerModal(isEdit = false) {
         btn.textContent = 'Add Server';
         form.reset();
         delete form.dataset.originalName;
-        // Prepopulate SSH user
-        const sshUserInput = form.querySelector('[name="ssh_user"]');
-        if (sshUserInput) sshUserInput.value = SUGGESTED_SSH_USER;
         // Reset visibility for new form
         updateServerFormFields();
     }
@@ -510,6 +505,7 @@ async function loadConfig() {
         return (a.order||0) - (b.order||0);
     });
     SUGGESTED_SSH_USER = config.suggestedSSHUser || 'mediasvc';
+    GLOBAL_SSH_USER = config.ssh_user || 'mediasvc';
     return config.refreshSeconds || 5;
 }
 
@@ -690,6 +686,12 @@ async function openSSHModal() {
     const modal = document.getElementById('ssh-modal');
     modal.classList.add('visible');
 
+    // Load current user
+    const userDisplay = document.getElementById('ssh-global-user');
+    if (userDisplay) {
+        userDisplay.value = GLOBAL_SSH_USER;
+    }
+
     // Load current key
     const keyDisplay = document.getElementById('ssh-public-key');
     keyDisplay.value = 'Loading...';
@@ -773,6 +775,42 @@ if (sshCopyBtn) {
             this.innerText = 'Copied!';
             setTimeout(() => this.innerText = originalText, 2000);
         });
+    });
+}
+
+const sshUserSaveBtn = document.getElementById('ssh-user-save-btn');
+if (sshUserSaveBtn) {
+    sshUserSaveBtn.addEventListener('click', async function() {
+        const userInput = document.getElementById('ssh-global-user');
+        const user = userInput.value.trim();
+        if (!user) {
+            showModalAlert('SSH Username cannot be empty');
+            return;
+        }
+
+        this.disabled = true;
+        this.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+
+        try {
+            const res = await fetch('ssh_manager.php?action=set_ssh_user', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ user: user })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                GLOBAL_SSH_USER = user;
+                showModalAlert('Global SSH Username saved successfully!');
+            } else {
+                showModalAlert('Error: ' + (data.error || 'Unknown error'));
+            }
+        } catch (e) {
+            showModalAlert('Failed to save user: ' + e.message);
+        }
+
+        this.disabled = false;
+        this.innerHTML = 'Save User';
     });
 }
 
@@ -968,7 +1006,7 @@ async function openServerSetupModal(serverId, serverName) {
 
             // Linux Command
             const scriptUrl = `${baseUrl}/os_helpers/linux_setup.sh`;
-            const sshUser = server ? (server.ssh_user || 'mediasvc') : 'mediasvc';
+            const sshUser = GLOBAL_SSH_USER || 'mediasvc';
             cmd = `wget -qO- "${scriptUrl}" | sudo bash -s install "${data.key}" "${sshUser}"`;
 
             cmdDisplay.innerText = cmd;
@@ -1000,7 +1038,7 @@ function openSSHConnectedModal(serverId, serverName) {
 
     // Linux Command
     const scriptUrl = `${baseUrl}/os_helpers/linux_setup.sh`;
-    const sshUser = server ? (server.ssh_user || 'mediasvc') : 'mediasvc';
+    const sshUser = GLOBAL_SSH_USER || 'mediasvc';
     cmd = `wget -qO- "${scriptUrl}" | sudo bash -s uninstall "${sshUser}"`;
 
     cmdDisplay.innerText = cmd;
@@ -1846,10 +1884,15 @@ function renderServerGrid() {
 
         // OS Badge Logic
         let osIcon = 'fa-server';
+        let iconType = 'fa-brands';
         if (!server.os_type || server.os_type === 'linux') osIcon = 'fa-linux';
+        else if (server.os_type === 'windows') osIcon = 'fa-windows';
         else if (server.os_type === 'docker') osIcon = 'fa-docker';
         else if (server.os_type === 'macos') osIcon = 'fa-apple';
-        else if (server.os_type === 'other') osIcon = 'fa-server';
+        else {
+            osIcon = 'fa-server';
+            iconType = 'fa-solid';
+        }
 
         // Drag Handle (Always included if admin, CSS controls visibility)
         const dragHandleHtml = IS_ADMIN ? '<div class="drag-handle"><i class="fa-solid fa-bars"></i></div>' : '';
@@ -1867,7 +1910,7 @@ function renderServerGrid() {
                 <div class="status-dot ${isActive ? 'active server-' + esc(server.type) : ''}"></div>
                 ${isActive ? `${sessions.length} playing` : 'Idle'}
             </div>
-            <div class="card-os-badge"><i class="fa-brands ${osIcon}"></i></div>
+            <div class="card-os-badge"><i class="${iconType} ${osIcon}"></i></div>
         `;
 
         // Click to view sessions (only if not clicking drag handle)
@@ -2045,12 +2088,17 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
     // Header OS Icon (Left)
     if (server) {
         let osIcon = 'fa-server';
+        let iconType = 'fa-brands';
         if (!server.os_type || server.os_type === 'linux') osIcon = 'fa-linux';
+        else if (server.os_type === 'windows') osIcon = 'fa-windows';
         else if (server.os_type === 'docker') osIcon = 'fa-docker';
         else if (server.os_type === 'macos') osIcon = 'fa-apple';
-        else if (server.os_type === 'other') osIcon = 'fa-server';
+        else {
+            osIcon = 'fa-server';
+            iconType = 'fa-solid';
+        }
 
-        headerHtml += `<div class="header-os-badge" title="OS: ${esc(server.os_type || 'linux')}"><i class="fa-brands ${osIcon}"></i></div>`;
+        headerHtml += `<div class="header-os-badge" title="OS: ${esc(server.os_type || 'linux')}"><i class="${iconType} ${osIcon}"></i></div>`;
     }
 
     headerHtml += `
@@ -2735,7 +2783,6 @@ function openEditServerModal(serverId) {
 
     form.querySelector('[name="os_type"]').value = server.os_type || 'linux';
     form.querySelector('[name="ssh_port"]').value = server.ssh_port || '22';
-    form.querySelector('[name="ssh_user"]').value = server.ssh_user || 'mediasvc';
 
     // Store server ID for update
     form.dataset.originalName = server.id;
@@ -2817,8 +2864,7 @@ document.getElementById('add-server-form').addEventListener('submit', async e=>{
         apiKey:f.apiKey.value,
         token:f.token.value,
         os_type: f.os_type.value,
-        ssh_port: f.ssh_port.value,
-        ssh_user: f.ssh_user.value
+        ssh_port: f.ssh_port.value
     };
 
     // If editing, include server ID

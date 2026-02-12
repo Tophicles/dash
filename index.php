@@ -195,6 +195,12 @@ $isAdmin = isAdmin();
     <h2 style="margin-bottom: 20px;">SSH Key Management</h2>
 
     <div class="ssh-status-box">
+      <label>SSH Username (Global for all Linux servers)</label>
+      <div style="display:flex; gap:8px; margin-bottom: 15px;">
+        <input type="text" id="ssh-global-user" class="btn" style="flex:1; text-align:left; cursor:text; background:rgba(255,255,255,0.05); border:1px solid var(--border);" placeholder="mediasvc">
+        <button class="btn primary" id="ssh-user-save-btn">Save User</button>
+      </div>
+
       <label>Public Key (for authorized_keys)</label>
       <textarea id="ssh-public-key" readonly class="ssh-key-display" placeholder="No key generated yet."></textarea>
       <button class="btn" id="ssh-copy-btn" style="margin-top: 8px;">Copy to Clipboard</button>
@@ -347,6 +353,7 @@ $isAdmin = isAdmin();
                 <label>OS Type</label>
                 <select name="os_type" id="server-os-select">
                     <option value="linux">Linux</option>
+                    <option value="windows">Windows</option>
                     <option value="docker">Docker</option>
                     <option value="macos">macOS</option>
                     <option value="other">Other</option>
@@ -356,11 +363,6 @@ $isAdmin = isAdmin();
             <div class="server-form-group" id="ssh-port-group">
                 <label>SSH Port (Linux Only)</label>
                 <input type="number" name="ssh_port" value="22" placeholder="22">
-            </div>
-
-            <div class="server-form-group" id="ssh-user-group">
-                <label>SSH Username (Linux Only)</label>
-                <input type="text" name="ssh_user" value="mediasvc" placeholder="mediasvc">
             </div>
         </div>
 
