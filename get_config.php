@@ -28,6 +28,9 @@ if (validateAndMigrateConfig($config)) {
 
 $isAdmin = isAdmin();
 
+require_once 'ssh_helper.php';
+$config['ssh_user'] = getGlobalSSHUser();
+
 // Generate a unique suggested SSH user for this instance
 $config['suggestedSSHUser'] = 'media_' . substr(hash('sha256', getSecretKey()), 0, 6);
 

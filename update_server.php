@@ -38,7 +38,7 @@ if($serverIndex === null) {
 $existingServer = $servers['servers'][$serverIndex];
 
 // Fields to update if present in $data, otherwise keep existing
-$updatableFields = ['name', 'type', 'url', 'os_type', 'ssh_port', 'ssh_user', 'order', 'enabled', 'ssh_initialized'];
+$updatableFields = ['name', 'type', 'url', 'os_type', 'ssh_port', 'order', 'enabled', 'ssh_initialized'];
 
 foreach ($updatableFields as $field) {
     if (isset($data[$field])) {
