@@ -30,8 +30,14 @@ function generateSSHKeyPair() {
     if (file_exists(SSH_PRIVATE_KEY_PATH)) unlink(SSH_PRIVATE_KEY_PATH);
     if (file_exists(SSH_PUBLIC_KEY_PATH)) unlink(SSH_PUBLIC_KEY_PATH);
 
-    $cmd = "ssh-keygen -t rsa -b 4096 -C \"multidash\" -f " . escapeshellarg(SSH_PRIVATE_KEY_PATH) . " -N \"\" -q";
+    // Set HOME=/tmp to ensure ssh-keygen can write temporary files if needed
+    // even if the web user doesn't have a writable home directory.
+    $cmd = "env HOME=/tmp ssh-keygen -t rsa -b 4096 -C \"multidash\" -f " . escapeshellarg(SSH_PRIVATE_KEY_PATH) . " -N \"\" -q 2>&1";
     exec($cmd, $output, $returnVar);
+
+    if ($returnVar !== 0) {
+        writeLog("SSH Key Generation Failed: " . implode("\n", $output), "ERROR");
+    }
 
     // Set correct permissions for private key (essential for SSH)
     if (file_exists(SSH_PRIVATE_KEY_PATH)) {
@@ -54,8 +60,9 @@ function executeSSHCommand($host, $port, $user, $command, $timeout = 10) {
     // -o BatchMode=yes: Don't ask for passwords
 
     // Use `timeout` command to prevent execution hang
+    // Set HOME=/tmp to ensure ssh can access a writable directory for temporary files
     $sshCmd = sprintf(
-        "timeout %d ssh -i %s -p %d -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ConnectTimeout=5 -o BatchMode=yes %s@%s %s 2>&1",
+        "env HOME=/tmp timeout %d ssh -i %s -p %d -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ConnectTimeout=5 -o BatchMode=yes %s@%s %s 2>&1",
         (int)$timeout,
         escapeshellarg(SSH_PRIVATE_KEY_PATH),
         (int)$port,
