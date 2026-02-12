@@ -58,7 +58,7 @@ $isAdmin = isAdmin();
             <i class="fa-solid fa-sort"></i> <span>Reorder Servers</span>
           </div>
           <div class="menu-item" id="users-btn">
-            <i class="fa-solid fa-users"></i> <span>Manage Users</span>
+            <i class="fa-solid fa-users"></i> <span>MultiDash Users</span>
           </div>
           <div class="menu-item" id="ssh-keys-nav-btn">
             <i class="fa-solid fa-key"></i> <span>SSH Keys</span>
@@ -407,7 +407,7 @@ $isAdmin = isAdmin();
   <div class="modal-content">
     <span class="modal-close" onclick="closeUsersModal()">&times;</span>
     <div id="users-modal-body">
-      <h2 style="margin-bottom: 20px;">User Management</h2>
+      <h2 style="margin-bottom: 20px;">MultiDash Users</h2>
       
       <!-- Add User Form -->
       <div class="user-form-container">
