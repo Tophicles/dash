@@ -96,6 +96,7 @@ let SERVERS = [];
 let SUGGESTED_SSH_USER = 'mediasvc';
 let GLOBAL_SSH_USER = 'mediasvc';
 let ALL_SESSIONS = {};
+let ALL_SCANS = {};
 let refreshTimer = null;
 let currentView = 'servers'; // 'servers', 'sessions', or 'all'
 let selectedServerId = null;
@@ -557,12 +558,16 @@ async function fetchServer(server){
         });
         clearTimeout(timeoutId);
 
-        if (checkSessionExpiry(res)) return [];
+        if (checkSessionExpiry(res)) return { sessions: [], scans: [] };
 
-        if(!res.ok) return [];
+        if(!res.ok) return { sessions: [], scans: [] };
         const data = await res.json();
+
+        let sessions = [];
+        let scans = [];
+
         if(server.type==="emby" || server.type==="jellyfin"){
-            return data.filter(s=>s.NowPlayingItem).map(s=>({
+            sessions = (data.sessions || []).filter(s=>s.NowPlayingItem).map(s=>({
                 server: server.name,
                 user: s.UserName,
                 title: s.NowPlayingItem.Name,
@@ -585,9 +590,25 @@ async function fetchServer(server){
                 device: s.DeviceName||"",
                 client: s.Client||""
             }));
+
+            scans = (data.scans || []).filter(t => {
+                const status = (t.Status || '').toLowerCase();
+                const key = (t.Key || '').toLowerCase();
+                const name = (t.Name || '').toLowerCase();
+                return status === 'running' && (
+                    key.includes('library') ||
+                    key.includes('scan') ||
+                    name.includes('library') ||
+                    name.includes('scan')
+                );
+            }).map(t => ({
+                id: t.Id,
+                name: t.Name,
+                progress: (t.CurrentProgressPercentage !== undefined && t.CurrentProgressPercentage !== null) ? Math.round(t.CurrentProgressPercentage) : null
+            }));
         } else { // Plex
-            const meta = data.MediaContainer?.Metadata || [];
-            return meta.map(m=>({
+            const meta = data.sessions || [];
+            sessions = meta.map(m=>({
                 server: server.name,
                 user: m.User?.title||"Unknown",
                 title: m.title,
@@ -619,13 +640,23 @@ async function fetchServer(server){
                 device: m.Player?.title||"",
                 client: m.Player?.product||""
             }));
+
+            scans = (data.scans || []).filter(a => {
+                const type = (a.type || '').toLowerCase();
+                return type.includes('library.refresh') || type.includes('metadata.refresh');
+            }).map(a => ({
+                id: a.uuid,
+                name: a.subtitle || a.title || 'Library Scan',
+                progress: (a.progress !== undefined && a.progress !== null) ? Math.round(a.progress) : null
+            }));
         }
+        return { sessions, scans };
     } catch(e){
         // Ignore expected AbortError during server restarts/offline
         if (e.name !== 'AbortError') {
             console.error('Server fetch error', e);
         }
-        return [];
+        return { sessions: [], scans: [] };
     }
 }
 
@@ -1795,6 +1826,43 @@ function closeMediaUserModal() {
 }
 
 
+function renderScans(scans) {
+    if (!scans || scans.length === 0) return '';
+
+    return `
+        <div class="server-scans-list">
+            ${scans.map(scan => {
+                const prog = scan.progress !== null ? scan.progress : 100;
+                const isIndeterminate = scan.progress === null;
+                return `
+                    <div class="scan-progress-container ${isIndeterminate ? 'indeterminate' : ''}" title="${esc(scan.name)}: ${isIndeterminate ? 'Scanning...' : prog + '%'}">
+                        <div class="scan-progress-bar" style="width: ${prog}%"></div>
+                        <div class="scan-progress-text">${esc(scan.name)} ${!isIndeterminate ? prog + '%' : ''}</div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
+}
+
+function renderServerScans(serverId, serverName) {
+    const container = document.getElementById('server-scans-container');
+    if (!container) return;
+
+    const scans = ALL_SCANS[serverName] || [];
+    if (scans.length === 0) {
+        container.style.display = 'none';
+        container.innerHTML = '';
+        return;
+    }
+
+    container.innerHTML = `
+        <div style="font-size:0.75rem; font-weight:700; color:var(--muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.05em;">Active Scans</div>
+        ${renderScans(scans)}
+    `;
+    container.style.display = 'block';
+}
+
 // Render server cards
 function renderServerGrid() {
     // Get search filter
@@ -1910,6 +1978,7 @@ function renderServerGrid() {
                 <div class="status-dot ${isActive ? 'active server-' + esc(server.type) : ''}"></div>
                 ${isActive ? `${sessions.length} playing` : 'Idle'}
             </div>
+            ${renderScans(ALL_SCANS[server.name])}
             <div class="card-os-badge"><i class="${iconType} ${osIcon}"></i></div>
         `;
 
@@ -2200,6 +2269,9 @@ function showSessionsView(serverId, serverName, highlightUser = null) {
         libsEl.style.display = 'none';
         libsEl.innerHTML = '';
     }
+
+    // Render Scans
+    renderServerScans(serverId, serverName);
 
     // Trigger async load of controls if admin and supported OS
     if (IS_ADMIN && server && (!server.os_type || server.os_type === 'linux')) {
@@ -2674,13 +2746,14 @@ async function loadAll(){
     }
 
     const requests = SERVERS.map(async server => {
-        const sessions = await fetchServer(server);
-        ALL_SESSIONS[server.name] = sessions;
+        const result = await fetchServer(server);
+        ALL_SESSIONS[server.name] = result.sessions;
+        ALL_SCANS[server.name] = result.scans;
         loaded++;
         if (progressEl) {
             progressEl.textContent = `Loading servers: ${loaded}/${total}`;
         }
-        return sessions;
+        return result;
     });
     await Promise.all(requests);
 
@@ -2692,6 +2765,7 @@ async function loadAll(){
         const server = SERVERS.find(s => s.id === selectedServerId);
         if (server) {
             renderSessions(server.name);
+            renderServerScans(server.id, server.name);
         }
     } else if (currentView === 'all') {
         renderSessions(null);
