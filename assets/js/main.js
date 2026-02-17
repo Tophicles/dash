@@ -3218,6 +3218,38 @@ async function scanAllInlineLibraries(btn) {
     showModalAlert(`Triggered scan for ${count} libraries.`);
 }
 
+async function globalScanAllLibraries() {
+    if (!await showModalConfirm('Are you sure you want to scan ALL libraries on ALL servers? This may put high load on your infrastructure.')) return;
+
+    let successCount = 0;
+    let failCount = 0;
+
+    // Use Promise.all to trigger all scans concurrently for better performance
+    const scanRequests = SERVERS.map(async (server) => {
+        try {
+            const res = await fetch(`library_actions.php?action=scan&server=${encodeURIComponent(server.name)}&library_id=all`);
+            const data = await res.json();
+            if (data.success) {
+                successCount++;
+            } else {
+                console.error(`Scan failed for ${server.name}:`, data.error);
+                failCount++;
+            }
+        } catch (e) {
+            console.error(`Scan request failed for ${server.name}:`, e);
+            failCount++;
+        }
+    });
+
+    await Promise.all(scanRequests);
+
+    if (successCount > 0) {
+        showModalAlert(`${successCount} servers have been ordered to scan all their libraries.` + (failCount > 0 ? ` (${failCount} failed)` : ''));
+    } else {
+        showModalAlert('Failed to initiate scan on any server.', 'Scan Error');
+    }
+}
+
 async function fetchServerStats(serverId) {
     const statsEl = document.getElementById('server-stats');
     if (!statsEl) return;
@@ -3601,6 +3633,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial load of media users to support User Modals from dashboard badges
     fetchMediaUsers();
+
+    // Global Scan All Button
+    const globalScanBtn = document.getElementById('global-scan-menu-btn');
+    if (globalScanBtn) {
+        globalScanBtn.addEventListener('click', () => {
+            globalScanAllLibraries();
+            if (menuDropdown) menuDropdown.classList.remove('visible');
+        });
+    }
 });
 
 // Donate Modal Logic
