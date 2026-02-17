@@ -573,9 +573,11 @@ body {
 .search-container {
   margin-bottom: 20px;
   position: relative;
+  display: flex;
+  gap: 10px;
 }
 .search-container input {
-  width: 100%;
+  flex: 1;
   padding: 12px 16px;
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid var(--border);
