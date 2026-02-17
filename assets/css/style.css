@@ -2040,3 +2040,64 @@ form button:hover { background:#45a049; }
 .history-list-container::-webkit-scrollbar-thumb:hover {
     background: rgba(255,255,255,0.2);
 }
+
+/* Library Scan Progress Bars */
+.server-scans-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 4px;
+}
+.scan-progress-container {
+    height: 18px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.scan-progress-bar {
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.5s ease-in-out;
+    box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+}
+.scan-progress-text {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.9);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 8px;
+    box-sizing: border-box;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+.scan-progress-container.indeterminate .scan-progress-bar {
+    width: 100% !important;
+    background: linear-gradient(90deg, var(--accent), #81c784, var(--accent));
+    background-size: 200% 100%;
+    animation: scan-pulse 2s infinite linear;
+}
+@keyframes scan-pulse {
+    0% { background-position: 200% 0; }
+    100% { background-position: 0 0; }
+}
+
+[data-theme="light"] .scan-progress-container {
+    background: rgba(0, 0, 0, 0.05);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+[data-theme="light"] .scan-progress-text {
+    text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+}
