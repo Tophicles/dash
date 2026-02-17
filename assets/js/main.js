@@ -3218,6 +3218,52 @@ async function scanAllInlineLibraries(btn) {
     showModalAlert(`Triggered scan for ${count} libraries.`);
 }
 
+async function globalScanAllLibraries() {
+    if (!await showModalConfirm('Are you sure you want to scan ALL libraries on ALL servers? This may put high load on your infrastructure.')) return;
+
+    const btn = document.getElementById('global-scan-btn');
+    const originalContent = btn.innerHTML;
+    const originalText = btn.querySelector('.btn-text')?.textContent || 'Scan All';
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span class="btn-text">Scanning...</span>';
+
+    let successCount = 0;
+    let failCount = 0;
+
+    // Use Promise.all to trigger all scans concurrently for better performance
+    const scanRequests = SERVERS.map(async (server) => {
+        try {
+            const res = await fetch(`library_actions.php?action=scan&server=${encodeURIComponent(server.name)}&library_id=all`);
+            const data = await res.json();
+            if (data.success) {
+                successCount++;
+            } else {
+                console.error(`Scan failed for ${server.name}:`, data.error);
+                failCount++;
+            }
+        } catch (e) {
+            console.error(`Scan request failed for ${server.name}:`, e);
+            failCount++;
+        }
+    });
+
+    await Promise.all(scanRequests);
+
+    btn.innerHTML = `<i class="fa-solid fa-check"></i> <span class="btn-text">Done</span>`;
+
+    setTimeout(() => {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-arrows-rotate"></i> <span class="btn-text">${esc(originalText)}</span>`;
+    }, 3000);
+
+    if (successCount > 0) {
+        showModalAlert(`Scan initiated for ${successCount} servers.` + (failCount > 0 ? ` (${failCount} failed)` : ''));
+    } else {
+        showModalAlert('Failed to initiate scan on any server.', 'Scan Error');
+    }
+}
+
 async function fetchServerStats(serverId) {
     const statsEl = document.getElementById('server-stats');
     if (!statsEl) return;
@@ -3601,6 +3647,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial load of media users to support User Modals from dashboard badges
     fetchMediaUsers();
+
+    // Global Scan All Button
+    const globalScanBtn = document.getElementById('global-scan-btn');
+    if (globalScanBtn) {
+        globalScanBtn.addEventListener('click', globalScanAllLibraries);
+    }
 });
 
 // Donate Modal Logic
