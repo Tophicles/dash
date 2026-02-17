@@ -314,10 +314,18 @@ if ($server['type'] === 'plex') {
     $active = null;
     do {
         $status = curl_multi_exec($mh, $active);
-        if ($active) {
-            if (curl_multi_select($mh) == -1) { usleep(100); }
+    } while ($status == -1); // CURLM_CALL_MULTI_PERFORM is -1 in some older PHP versions
+
+    while ($active && $status == CURLM_OK) {
+        if (curl_multi_select($mh) != -1) {
+            do {
+                $status = curl_multi_exec($mh, $active);
+            } while ($status == -1);
+        } else {
+            usleep(100);
+            $status = curl_multi_exec($mh, $active);
         }
-    } while ($active && $status == CURLM_OK);
+    }
 
     $resSessions = curl_multi_getcontent($ch1);
     $resActivities = curl_multi_getcontent($ch2);
@@ -328,6 +336,8 @@ if ($server['type'] === 'plex') {
     curl_multi_remove_handle($mh, $ch1);
     curl_multi_remove_handle($mh, $ch2);
     curl_multi_close($mh);
+    curl_close($ch1);
+    curl_close($ch2);
 
     $duration = microtime(true) - $startTime;
 
@@ -347,8 +357,8 @@ if ($server['type'] === 'plex') {
         logWatchers($server['name'], 'plex', $resSessions);
     }
 
-    $dataSessions = json_decode($resSessions, true);
-    $dataActivities = json_decode($resActivities, true);
+    $dataSessions = json_decode($resSessions, true) ?: [];
+    $dataActivities = json_decode($resActivities, true) ?: [];
 
     echo json_encode([
         'sessions' => $dataSessions['MediaContainer']['Metadata'] ?? [],
@@ -465,10 +475,18 @@ if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
     $active = null;
     do {
         $status = curl_multi_exec($mh, $active);
-        if ($active) {
-            if (curl_multi_select($mh) == -1) { usleep(100); }
+    } while ($status == CURLM_CALL_MULTI_PERFORM);
+
+    while ($active && $status == CURLM_OK) {
+        if (curl_multi_select($mh) != -1) {
+            do {
+                $status = curl_multi_exec($mh, $active);
+            } while ($status == CURLM_CALL_MULTI_PERFORM);
+        } else {
+            usleep(100);
+            $status = curl_multi_exec($mh, $active);
         }
-    } while ($active && $status == CURLM_OK);
+    }
 
     $resSessions = curl_multi_getcontent($ch1);
     $resTasks = curl_multi_getcontent($ch2);
@@ -479,6 +497,8 @@ if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
     curl_multi_remove_handle($mh, $ch1);
     curl_multi_remove_handle($mh, $ch2);
     curl_multi_close($mh);
+    curl_close($ch1);
+    curl_close($ch2);
 
     $duration = microtime(true) - $startTime;
 
@@ -497,12 +517,12 @@ if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
         logWatchers($server['name'], 'emby', $resSessions);
     }
 
-    $dataSessions = json_decode($resSessions, true);
-    $dataTasks = json_decode($resTasks, true);
+    $dataSessions = json_decode($resSessions, true) ?: [];
+    $dataTasks = json_decode($resTasks, true) ?: [];
 
     echo json_encode([
-        'sessions' => $dataSessions ?: [],
-        'scans' => $dataTasks ?: []
+        'sessions' => $dataSessions,
+        'scans' => $dataTasks
     ]);
     exit;
 }

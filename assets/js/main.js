@@ -598,8 +598,10 @@ async function fetchServer(server){
                 return status === 'running' && (
                     key.includes('library') ||
                     key.includes('scan') ||
+                    key.includes('refresh') ||
                     name.includes('library') ||
-                    name.includes('scan')
+                    name.includes('scan') ||
+                    name.includes('refresh')
                 );
             }).map(t => ({
                 id: t.Id,
@@ -643,7 +645,7 @@ async function fetchServer(server){
 
             scans = (data.scans || []).filter(a => {
                 const type = (a.type || '').toLowerCase();
-                return type.includes('library.refresh') || type.includes('metadata.refresh');
+                return type.includes('library') || type.includes('metadata');
             }).map(a => ({
                 id: a.uuid,
                 name: a.subtitle || a.title || 'Library Scan',
