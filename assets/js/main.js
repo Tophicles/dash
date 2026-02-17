@@ -3221,13 +3221,6 @@ async function scanAllInlineLibraries(btn) {
 async function globalScanAllLibraries() {
     if (!await showModalConfirm('Are you sure you want to scan ALL libraries on ALL servers? This may put high load on your infrastructure.')) return;
 
-    const btn = document.getElementById('global-scan-btn');
-    const originalContent = btn.innerHTML;
-    const originalText = btn.querySelector('.btn-text')?.textContent || 'Scan All';
-
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span class="btn-text">Scanning...</span>';
-
     let successCount = 0;
     let failCount = 0;
 
@@ -3250,15 +3243,8 @@ async function globalScanAllLibraries() {
 
     await Promise.all(scanRequests);
 
-    btn.innerHTML = `<i class="fa-solid fa-check"></i> <span class="btn-text">Done</span>`;
-
-    setTimeout(() => {
-        btn.disabled = false;
-        btn.innerHTML = `<i class="fa-solid fa-arrows-rotate"></i> <span class="btn-text">${esc(originalText)}</span>`;
-    }, 3000);
-
     if (successCount > 0) {
-        showModalAlert(`Scan initiated for ${successCount} servers.` + (failCount > 0 ? ` (${failCount} failed)` : ''));
+        showModalAlert(`${successCount} servers have been ordered to scan all their libraries.` + (failCount > 0 ? ` (${failCount} failed)` : ''));
     } else {
         showModalAlert('Failed to initiate scan on any server.', 'Scan Error');
     }
@@ -3649,9 +3635,12 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchMediaUsers();
 
     // Global Scan All Button
-    const globalScanBtn = document.getElementById('global-scan-btn');
+    const globalScanBtn = document.getElementById('global-scan-menu-btn');
     if (globalScanBtn) {
-        globalScanBtn.addEventListener('click', globalScanAllLibraries);
+        globalScanBtn.addEventListener('click', () => {
+            globalScanAllLibraries();
+            if (menuDropdown) menuDropdown.classList.remove('visible');
+        });
     }
 });
 
