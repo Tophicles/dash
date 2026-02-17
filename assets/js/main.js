@@ -3161,14 +3161,6 @@ async function fetchAndRenderInlineLibraries(serverName) {
             // Header
             html += '<div style="font-size:0.8rem; font-weight:700; color:var(--muted); margin-right:8px; letter-spacing:0.05em;">LIBRARIES</div>';
 
-            // Scan All Button
-            html += `
-                <button class="btn" style="padding:4px 10px; font-size:0.8rem; background:#37474f; border:1px solid var(--border);" onclick="scanAllInlineLibraries(this)" title="Scan All Libraries">
-                    <i class="fa-solid fa-layer-group"></i> Scan All
-                </button>
-                <div style="width:1px; height:20px; background:var(--border); margin:0 4px;"></div>
-            `;
-
             data.libraries.forEach(lib => {
                 const countBadge = lib.count !== undefined ? `<span style="color:var(--muted); font-size:0.75rem;">(${lib.count})</span>` : '';
                 html += `
@@ -3216,6 +3208,38 @@ async function scanAllInlineLibraries(btn) {
     }, 2000);
 
     showModalAlert(`Triggered scan for ${count} libraries.`);
+}
+
+async function globalScanAllLibraries() {
+    if (!await showModalConfirm('Are you sure you want to scan ALL libraries on ALL servers? This may put high load on your infrastructure.')) return;
+
+    let successCount = 0;
+    let failCount = 0;
+
+    // Use Promise.all to trigger all scans concurrently for better performance
+    const scanRequests = SERVERS.map(async (server) => {
+        try {
+            const res = await fetch(`library_actions.php?action=scan&server=${encodeURIComponent(server.name)}&library_id=all`);
+            const data = await res.json();
+            if (data.success) {
+                successCount++;
+            } else {
+                console.error(`Scan failed for ${server.name}:`, data.error);
+                failCount++;
+            }
+        } catch (e) {
+            console.error(`Scan request failed for ${server.name}:`, e);
+            failCount++;
+        }
+    });
+
+    await Promise.all(scanRequests);
+
+    if (successCount > 0) {
+        showModalAlert(`${successCount} servers have been ordered to scan all their libraries.` + (failCount > 0 ? ` (${failCount} failed)` : ''));
+    } else {
+        showModalAlert('Failed to initiate scan on any server.', 'Scan Error');
+    }
 }
 
 async function fetchServerStats(serverId) {
@@ -3601,6 +3625,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial load of media users to support User Modals from dashboard badges
     fetchMediaUsers();
+
+    // Global Scan All Button
+    const globalScanBtn = document.getElementById('global-scan-menu-btn');
+    if (globalScanBtn) {
+        globalScanBtn.addEventListener('click', () => {
+            globalScanAllLibraries();
+            if (menuDropdown) menuDropdown.classList.remove('visible');
+        });
+    }
 });
 
 // Donate Modal Logic

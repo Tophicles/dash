@@ -63,6 +63,9 @@ $isAdmin = isAdmin();
           <div class="menu-item" id="ssh-keys-nav-btn">
             <i class="fa-solid fa-key"></i> <span>SSH Keys</span>
           </div>
+          <div class="menu-item" id="global-scan-menu-btn">
+            <i class="fa-solid fa-arrows-rotate"></i> <span>Global Library Scan</span>
+          </div>
           <div class="menu-item" id="logs-btn" onclick="window.open('view_logs.php', 'SystemLogs')">
             <i class="fa-solid fa-file-lines"></i> <span>System Logs</span>
           </div>
