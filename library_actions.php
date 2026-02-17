@@ -134,7 +134,58 @@ if ($type === 'plex') {
         exit;
     }
     elseif ($action === 'scan') {
-        if (!$libraryId) {
+        if ($libraryId === 'all') {
+            // Handle global Plex scan by iterating sections
+            $url = rtrim($baseUrl, '/') . '/library/sections';
+
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                "X-Plex-Token: $token",
+                "Accept: application/json"
+            ]);
+
+            $res = curl_exec($ch);
+            curl_close($ch);
+
+            $data = json_decode($res, true);
+            $sections = $data['MediaContainer']['Directory'] ?? [];
+
+            if (empty($sections)) {
+                echo json_encode(['error' => 'No libraries found to scan']);
+                exit;
+            }
+
+            $successCount = 0;
+            foreach ($sections as $sec) {
+                $secId = $sec['key'];
+                $scanUrl = rtrim($baseUrl, '/') . "/library/sections/$secId/refresh";
+
+                $chS = curl_init();
+                curl_setopt($chS, CURLOPT_URL, $scanUrl);
+                curl_setopt($chS, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($chS, CURLOPT_CONNECTTIMEOUT, 2);
+                curl_setopt($chS, CURLOPT_TIMEOUT, 5);
+                curl_setopt($chS, CURLOPT_HTTPHEADER, ["X-Plex-Token: $token"]);
+                curl_exec($chS);
+                $code = curl_getinfo($chS, CURLINFO_HTTP_CODE);
+                curl_close($chS);
+
+                if ($code === 200 || $code === 201) $successCount++;
+            }
+
+            if ($successCount > 0) {
+                $user = getCurrentUser()['username'] ?? 'Unknown';
+                writeLog("Global Library Scan Initiated: Plex server '$serverName' ($successCount libraries) by user '$user'", "INFO");
+                echo json_encode(['success' => true, 'message' => "Scan started for $successCount libraries"]);
+            } else {
+                echo json_encode(['error' => 'Failed to initiate scans for any library']);
+            }
+            exit;
+        } elseif (!$libraryId) {
             echo json_encode(['error' => 'Missing library ID']);
             exit;
         }
@@ -154,7 +205,7 @@ if ($type === 'plex') {
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        if ($httpCode === 200) {
+        if ($httpCode === 200 || $httpCode === 201) {
             $user = getCurrentUser()['username'] ?? 'Unknown';
             writeLog("Library Scan Initiated: Plex server '$serverName', Library '$libraryName' (ID: $libraryId) by user '$user'", "INFO");
             echo json_encode(['success' => true, 'message' => 'Scan started']);
