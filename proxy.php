@@ -245,6 +245,8 @@ if ($server['type'] === 'plex') {
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_HTTPHEADER, ["X-Plex-Token: $token", "Accept: application/json"]);
             curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
             $r = curl_exec($ch);
             curl_close($ch);
             return json_decode($r, true);
@@ -295,11 +297,15 @@ if ($server['type'] === 'plex') {
     curl_setopt($ch1, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch1, CURLOPT_HTTPHEADER, $headers);
     curl_setopt($ch1, CURLOPT_TIMEOUT, 10);
+    curl_setopt($ch1, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch1, CURLOPT_SSL_VERIFYHOST, false);
 
     $ch2 = curl_init($urlActivities);
     curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch2, CURLOPT_HTTPHEADER, $headers);
     curl_setopt($ch2, CURLOPT_TIMEOUT, 10);
+    curl_setopt($ch2, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch2, CURLOPT_SSL_VERIFYHOST, false);
 
     $mh = curl_multi_init();
     curl_multi_add_handle($mh, $ch1);
@@ -367,6 +373,8 @@ if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
             "X-MediaBrowser-Token: $apiKey"
         ]);
         curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
         $res = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
@@ -394,6 +402,8 @@ if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
         $res = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
@@ -438,11 +448,15 @@ if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
     curl_setopt($ch1, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch1, CURLOPT_HTTPHEADER, $headers);
     curl_setopt($ch1, CURLOPT_TIMEOUT, 10);
+    curl_setopt($ch1, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch1, CURLOPT_SSL_VERIFYHOST, false);
 
     $ch2 = curl_init($urlTasks);
     curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch2, CURLOPT_HTTPHEADER, $headers);
     curl_setopt($ch2, CURLOPT_TIMEOUT, 10);
+    curl_setopt($ch2, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch2, CURLOPT_SSL_VERIFYHOST, false);
 
     $mh = curl_multi_init();
     curl_multi_add_handle($mh, $ch1);
