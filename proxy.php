@@ -245,6 +245,8 @@ if ($server['type'] === 'plex') {
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_HTTPHEADER, ["X-Plex-Token: $token", "Accept: application/json"]);
             curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
             $r = curl_exec($ch);
             curl_close($ch);
             return json_decode($r, true);
@@ -279,30 +281,69 @@ if ($server['type'] === 'plex') {
 
         echo json_encode($response);
         exit;
-    } else {
-        $url = rtrim($baseUrl, '/') . '/status/sessions';
     }
 
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    // Default action: sessions + activities
+    $urlSessions = rtrim($baseUrl, '/') . '/status/sessions';
+    $urlActivities = rtrim($baseUrl, '/') . '/activities';
+    $headers = [
         "X-Plex-Token: $token",
         "Accept: application/json"
-    ]);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+    ];
 
     $startTime = microtime(true);
-    $res = curl_exec($ch);
-    $duration = microtime(true) - $startTime;
 
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $error = curl_error($ch);
-    curl_close($ch);
+    $ch1 = curl_init($urlSessions);
+    curl_setopt($ch1, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch1, CURLOPT_HTTPHEADER, $headers);
+    curl_setopt($ch1, CURLOPT_TIMEOUT, 10);
+    curl_setopt($ch1, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch1, CURLOPT_SSL_VERIFYHOST, false);
+
+    $ch2 = curl_init($urlActivities);
+    curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch2, CURLOPT_HTTPHEADER, $headers);
+    curl_setopt($ch2, CURLOPT_TIMEOUT, 10);
+    curl_setopt($ch2, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch2, CURLOPT_SSL_VERIFYHOST, false);
+
+    $mh = curl_multi_init();
+    curl_multi_add_handle($mh, $ch1);
+    curl_multi_add_handle($mh, $ch2);
+
+    $active = null;
+    do {
+        $status = curl_multi_exec($mh, $active);
+    } while ($status == -1); // CURLM_CALL_MULTI_PERFORM is -1 in some older PHP versions
+
+    while ($active && $status == CURLM_OK) {
+        if (curl_multi_select($mh) != -1) {
+            do {
+                $status = curl_multi_exec($mh, $active);
+            } while ($status == -1);
+        } else {
+            usleep(100);
+            $status = curl_multi_exec($mh, $active);
+        }
+    }
+
+    $resSessions = curl_multi_getcontent($ch1);
+    $resActivities = curl_multi_getcontent($ch2);
+
+    $httpCode = curl_getinfo($ch1, CURLINFO_HTTP_CODE);
+    $error = curl_error($ch1);
+
+    curl_multi_remove_handle($mh, $ch1);
+    curl_multi_remove_handle($mh, $ch2);
+    curl_multi_close($mh);
+    curl_close($ch1);
+    curl_close($ch2);
+
+    $duration = microtime(true) - $startTime;
 
     // Log slow requests (> 2 seconds)
     if ($duration > 2.0) {
-        writeLog("Slow Plex response from {$server['name']}: " . round($duration, 2) . "s", "WARN");
+        writeLog("Slow Plex response (multi) from {$server['name']}: " . round($duration, 2) . "s", "WARN");
     }
 
     if ($error) {
@@ -312,11 +353,17 @@ if ($server['type'] === 'plex') {
         writeLog("Plex API HTTP $httpCode for {$server['name']}", "ERROR");
     }
 
-    if ($res && $httpCode === 200) {
-        logWatchers($server['name'], 'plex', $res);
+    if ($resSessions && $httpCode === 200) {
+        logWatchers($server['name'], 'plex', $resSessions);
     }
 
-    echo $res ?: json_encode(['MediaContainer'=>['Metadata'=>[]]]);
+    $dataSessions = json_decode($resSessions, true) ?: [];
+    $dataActivities = json_decode($resActivities, true) ?: [];
+
+    echo json_encode([
+        'sessions' => $dataSessions['MediaContainer']['Metadata'] ?? [],
+        'scans' => $dataActivities['MediaContainer']['Activity'] ?? []
+    ]);
     exit;
 }
 
@@ -336,6 +383,8 @@ if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
             "X-MediaBrowser-Token: $apiKey"
         ]);
         curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
         $res = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
@@ -363,6 +412,8 @@ if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
         $res = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
@@ -390,31 +441,69 @@ if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
 
         echo json_encode($response);
         exit;
-    } else {
-        $url = rtrim($baseUrl, '/') . '/Sessions';
     }
 
+    // Default action: sessions + scheduled tasks
+    $urlSessions = rtrim($baseUrl, '/') . '/Sessions';
+    $urlTasks = rtrim($baseUrl, '/') . '/ScheduledTasks';
     $headers = [
         "X-Emby-Token: $apiKey",
-        "X-MediaBrowser-Token: $apiKey" // Jellyfin compatibility
+        "X-MediaBrowser-Token: $apiKey",
+        "Accept: application/json"
     ];
 
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-
     $startTime = microtime(true);
-    $res = curl_exec($ch);
+
+    $ch1 = curl_init($urlSessions);
+    curl_setopt($ch1, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch1, CURLOPT_HTTPHEADER, $headers);
+    curl_setopt($ch1, CURLOPT_TIMEOUT, 10);
+    curl_setopt($ch1, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch1, CURLOPT_SSL_VERIFYHOST, false);
+
+    $ch2 = curl_init($urlTasks);
+    curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch2, CURLOPT_HTTPHEADER, $headers);
+    curl_setopt($ch2, CURLOPT_TIMEOUT, 10);
+    curl_setopt($ch2, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch2, CURLOPT_SSL_VERIFYHOST, false);
+
+    $mh = curl_multi_init();
+    curl_multi_add_handle($mh, $ch1);
+    curl_multi_add_handle($mh, $ch2);
+
+    $active = null;
+    do {
+        $status = curl_multi_exec($mh, $active);
+    } while ($status == CURLM_CALL_MULTI_PERFORM);
+
+    while ($active && $status == CURLM_OK) {
+        if (curl_multi_select($mh) != -1) {
+            do {
+                $status = curl_multi_exec($mh, $active);
+            } while ($status == CURLM_CALL_MULTI_PERFORM);
+        } else {
+            usleep(100);
+            $status = curl_multi_exec($mh, $active);
+        }
+    }
+
+    $resSessions = curl_multi_getcontent($ch1);
+    $resTasks = curl_multi_getcontent($ch2);
+
+    $httpCode = curl_getinfo($ch1, CURLINFO_HTTP_CODE);
+    $error = curl_error($ch1);
+
+    curl_multi_remove_handle($mh, $ch1);
+    curl_multi_remove_handle($mh, $ch2);
+    curl_multi_close($mh);
+    curl_close($ch1);
+    curl_close($ch2);
+
     $duration = microtime(true) - $startTime;
 
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $error = curl_error($ch);
-    curl_close($ch);
-
     if ($duration > 2.0) {
-        writeLog("Slow Emby response from {$server['name']}: " . round($duration, 2) . "s", "WARN");
+        writeLog("Slow Emby response (multi) from {$server['name']}: " . round($duration, 2) . "s", "WARN");
     }
 
     if ($error) {
@@ -424,11 +513,17 @@ if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
         writeLog("Emby API HTTP $httpCode for {$server['name']}", "ERROR");
     }
 
-    if ($res && $httpCode === 200) {
-        logWatchers($server['name'], 'emby', $res);
+    if ($resSessions && $httpCode === 200) {
+        logWatchers($server['name'], 'emby', $resSessions);
     }
 
-    echo $res ?: json_encode([]);
+    $dataSessions = json_decode($resSessions, true) ?: [];
+    $dataTasks = json_decode($resTasks, true) ?: [];
+
+    echo json_encode([
+        'sessions' => $dataSessions,
+        'scans' => $dataTasks
+    ]);
     exit;
 }
 
