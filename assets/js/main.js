@@ -591,7 +591,17 @@ async function fetchServer(server){
                 client: s.Client||""
             }));
 
-            scans = (data.scans || []).filter(t => t.Status === 'Running' && (t.Key === 'RefreshLibrary' || t.Name.includes('Library'))).map(t => ({
+            scans = (data.scans || []).filter(t => {
+                const status = (t.Status || '').toLowerCase();
+                const key = (t.Key || '').toLowerCase();
+                const name = (t.Name || '').toLowerCase();
+                return status === 'running' && (
+                    key.includes('library') ||
+                    key.includes('scan') ||
+                    name.includes('library') ||
+                    name.includes('scan')
+                );
+            }).map(t => ({
                 id: t.Id,
                 name: t.Name,
                 progress: (t.CurrentProgressPercentage !== undefined && t.CurrentProgressPercentage !== null) ? Math.round(t.CurrentProgressPercentage) : null
@@ -631,7 +641,10 @@ async function fetchServer(server){
                 client: m.Player?.product||""
             }));
 
-            scans = (data.scans || []).filter(a => a.type === 'library.refresh.items' || a.type === 'library.refresh').map(a => ({
+            scans = (data.scans || []).filter(a => {
+                const type = (a.type || '').toLowerCase();
+                return type.includes('library.refresh') || type.includes('metadata.refresh');
+            }).map(a => ({
                 id: a.uuid,
                 name: a.subtitle || a.title || 'Library Scan',
                 progress: (a.progress !== undefined && a.progress !== null) ? Math.round(a.progress) : null
