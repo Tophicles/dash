@@ -3772,7 +3772,7 @@ document.addEventListener('DOMContentLoaded', () => {
     //        globalScanAllLibraries();
     //        if (menuDropdown) menuDropdown.classList.remove('visible');
     //    });
-    }
+    //}
 });
 
 // Donate Modal Logic
