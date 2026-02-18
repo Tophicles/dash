@@ -3269,14 +3269,6 @@ async function fetchAndRenderInlineLibraries(serverName) {
             // Header
             html += '<div style="font-size:0.8rem; font-weight:700; color:var(--muted); margin-right:8px; letter-spacing:0.05em;">LIBRARIES</div>';
 
-            // Scan All Button
-            html += `
-                <button class="btn" style="padding:4px 10px; font-size:0.8rem; background:#37474f; border:1px solid var(--border);" onclick="scanAllInlineLibraries(this)" title="Scan All Libraries">
-                    <i class="fa-solid fa-layer-group"></i> Scan All
-                </button>
-                <div style="width:1px; height:20px; background:var(--border); margin:0 4px;"></div>
-            `;
-
             data.libraries.forEach(lib => {
                 const countBadge = lib.count !== undefined ? `<span style="color:var(--muted); font-size:0.75rem;">(${lib.count})</span>` : '';
                 html += `
