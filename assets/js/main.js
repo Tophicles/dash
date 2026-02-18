@@ -591,17 +591,23 @@ async function fetchServer(server){
                 client: s.Client||""
             }));
 
-            scans = (data.scans || []).filter(t => {
-                const status = (t.Status || '').toLowerCase();
+            let rawScans = data.scans || [];
+            if (!Array.isArray(rawScans) && rawScans.Items) rawScans = rawScans.Items;
+            if (!Array.isArray(rawScans)) rawScans = [];
+
+            scans = rawScans.filter(t => {
+                const state = (t.State || t.Status || '').toLowerCase();
                 const key = (t.Key || '').toLowerCase();
                 const name = (t.Name || '').toLowerCase();
-                return status === 'running' && (
+                return state === 'running' && (
                     key.includes('library') ||
                     key.includes('scan') ||
                     key.includes('refresh') ||
+                    key.includes('metadata') ||
                     name.includes('library') ||
                     name.includes('scan') ||
-                    name.includes('refresh')
+                    name.includes('refresh') ||
+                    name.includes('metadata')
                 );
             }).map(t => ({
                 id: t.Id,

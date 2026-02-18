@@ -299,6 +299,7 @@ if ($server['type'] === 'plex') {
     curl_setopt($ch1, CURLOPT_TIMEOUT, 10);
     curl_setopt($ch1, CURLOPT_SSL_VERIFYPEER, false);
     curl_setopt($ch1, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($ch1, CURLOPT_FOLLOWLOCATION, true);
 
     $ch2 = curl_init($urlActivities);
     curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
@@ -306,6 +307,7 @@ if ($server['type'] === 'plex') {
     curl_setopt($ch2, CURLOPT_TIMEOUT, 10);
     curl_setopt($ch2, CURLOPT_SSL_VERIFYPEER, false);
     curl_setopt($ch2, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($ch2, CURLOPT_FOLLOWLOCATION, true);
 
     $mh = curl_multi_init();
     curl_multi_add_handle($mh, $ch1);
@@ -314,24 +316,23 @@ if ($server['type'] === 'plex') {
     $active = null;
     do {
         $status = curl_multi_exec($mh, $active);
-    } while ($status == -1); // CURLM_CALL_MULTI_PERFORM is -1 in some older PHP versions
+    } while ($status == CURLM_CALL_MULTI_PERFORM);
 
     while ($active && $status == CURLM_OK) {
         if (curl_multi_select($mh) != -1) {
             do {
                 $status = curl_multi_exec($mh, $active);
-            } while ($status == -1);
-        } else {
-            usleep(100);
-            $status = curl_multi_exec($mh, $active);
+            } while ($status == CURLM_CALL_MULTI_PERFORM);
         }
     }
 
     $resSessions = curl_multi_getcontent($ch1);
     $resActivities = curl_multi_getcontent($ch2);
 
-    $httpCode = curl_getinfo($ch1, CURLINFO_HTTP_CODE);
-    $error = curl_error($ch1);
+    $httpCode1 = curl_getinfo($ch1, CURLINFO_HTTP_CODE);
+    $httpCode2 = curl_getinfo($ch2, CURLINFO_HTTP_CODE);
+    $error1 = curl_error($ch1);
+    $error2 = curl_error($ch2);
 
     curl_multi_remove_handle($mh, $ch1);
     curl_multi_remove_handle($mh, $ch2);
@@ -346,14 +347,13 @@ if ($server['type'] === 'plex') {
         writeLog("Slow Plex response (multi) from {$server['name']}: " . round($duration, 2) . "s", "WARN");
     }
 
-    if ($error) {
-        writeLog("Plex API Error for {$server['name']}: $error", "ERROR");
-    }
-    if ($httpCode !== 200) {
-        writeLog("Plex API HTTP $httpCode for {$server['name']}", "ERROR");
-    }
+    if ($error1) writeLog("Plex Sessions Error for {$server['name']}: $error1", "ERROR");
+    if ($error2) writeLog("Plex Activities Error for {$server['name']}: $error2", "ERROR");
 
-    if ($resSessions && $httpCode === 200) {
+    if ($httpCode1 !== 200) writeLog("Plex Sessions HTTP $httpCode1 for {$server['name']}", "ERROR");
+    if ($httpCode2 !== 200) writeLog("Plex Activities HTTP $httpCode2 for {$server['name']}", "ERROR");
+
+    if ($resSessions && $httpCode1 === 200) {
         logWatchers($server['name'], 'plex', $resSessions);
     }
 
@@ -460,6 +460,7 @@ if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
     curl_setopt($ch1, CURLOPT_TIMEOUT, 10);
     curl_setopt($ch1, CURLOPT_SSL_VERIFYPEER, false);
     curl_setopt($ch1, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($ch1, CURLOPT_FOLLOWLOCATION, true);
 
     $ch2 = curl_init($urlTasks);
     curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
@@ -467,6 +468,7 @@ if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
     curl_setopt($ch2, CURLOPT_TIMEOUT, 10);
     curl_setopt($ch2, CURLOPT_SSL_VERIFYPEER, false);
     curl_setopt($ch2, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($ch2, CURLOPT_FOLLOWLOCATION, true);
 
     $mh = curl_multi_init();
     curl_multi_add_handle($mh, $ch1);
@@ -482,17 +484,16 @@ if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
             do {
                 $status = curl_multi_exec($mh, $active);
             } while ($status == CURLM_CALL_MULTI_PERFORM);
-        } else {
-            usleep(100);
-            $status = curl_multi_exec($mh, $active);
         }
     }
 
     $resSessions = curl_multi_getcontent($ch1);
     $resTasks = curl_multi_getcontent($ch2);
 
-    $httpCode = curl_getinfo($ch1, CURLINFO_HTTP_CODE);
-    $error = curl_error($ch1);
+    $httpCode1 = curl_getinfo($ch1, CURLINFO_HTTP_CODE);
+    $httpCode2 = curl_getinfo($ch2, CURLINFO_HTTP_CODE);
+    $error1 = curl_error($ch1);
+    $error2 = curl_error($ch2);
 
     curl_multi_remove_handle($mh, $ch1);
     curl_multi_remove_handle($mh, $ch2);
@@ -506,14 +507,13 @@ if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
         writeLog("Slow Emby response (multi) from {$server['name']}: " . round($duration, 2) . "s", "WARN");
     }
 
-    if ($error) {
-        writeLog("Emby API Error for {$server['name']}: $error", "ERROR");
-    }
-    if ($httpCode !== 200) {
-        writeLog("Emby API HTTP $httpCode for {$server['name']}", "ERROR");
-    }
+    if ($error1) writeLog("Emby Sessions Error for {$server['name']}: $error1", "ERROR");
+    if ($error2) writeLog("Emby Tasks Error for {$server['name']}: $error2", "ERROR");
 
-    if ($resSessions && $httpCode === 200) {
+    if ($httpCode1 !== 200) writeLog("Emby Sessions HTTP $httpCode1 for {$server['name']}", "ERROR");
+    if ($httpCode2 !== 200) writeLog("Emby Tasks HTTP $httpCode2 for {$server['name']}", "ERROR");
+
+    if ($resSessions && $httpCode1 === 200) {
         logWatchers($server['name'], 'emby', $resSessions);
     }
 
