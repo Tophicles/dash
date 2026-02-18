@@ -1867,7 +1867,7 @@ function renderScans(scans) {
                     //displayName += ' Library';
                 //}
 
-                const text = `Scan: ${displayName} ${!isIndeterminate ? prog + '%' : ''}`;
+                const text = `${displayName} ${!isIndeterminate ? prog + '%' : ''}`;
 
                 return `
                     <div class="scan-progress-container ${isIndeterminate ? 'indeterminate' : ''}" title="${esc(scan.name)}: ${isIndeterminate ? 'Scanning...' : prog + '%'}">
