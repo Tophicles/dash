@@ -1900,10 +1900,16 @@ form button:hover { background:#45a049; }
 .user-status-badge i {
     font-size: 0.6rem;
 }
-.user-status-badge.watching {
+.user-status-badge.watching,
+.user-status-badge.playing {
     background: rgba(76, 175, 80, 0.15);
     color: #81c784;
     border-color: rgba(76, 175, 80, 0.3);
+}
+.user-status-badge.paused {
+    background: rgba(255, 152, 0, 0.15);
+    color: #ffb74d;
+    border-color: rgba(255, 152, 0, 0.3);
 }
 .user-status-badge.idle {
     background: rgba(158, 158, 158, 0.1);
