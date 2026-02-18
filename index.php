@@ -354,6 +354,20 @@ $isAdmin = isAdmin();
           <input type="password" name="token">
         </div>
 
+        <!-- Update Branch Configuration -->
+        <div class="server-form-group">
+            <label>Update Branch</label>
+            <div class="branch-selector" id="server-branch-selector">
+                <input type="hidden" name="branch" id="server-branch-select" value="stable">
+                <button type="button" class="branch-btn active" data-branch="stable">
+                    <i class="fa-solid fa-box"></i> Stable
+                </button>
+                <button type="button" class="branch-btn" data-branch="beta">
+                    <i class="fa-solid fa-flask"></i> Beta
+                </button>
+            </div>
+        </div>
+
         <!-- OS Configuration -->
         <div style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 15px;">
             <h3 style="margin-bottom: 10px; font-size: 1rem; color: var(--accent);">Operating System</h3>

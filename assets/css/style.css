@@ -454,6 +454,34 @@ body {
   filter: grayscale(0);
 }
 
+/* Add Server Card */
+.add-server-card {
+    border: 2px dashed rgba(255,255,255,0.2) !important;
+    background: transparent !important;
+    min-height: 120px;
+    justify-content: center;
+    align-items: center;
+    opacity: 0.6;
+}
+.add-server-card:hover {
+    opacity: 1 !important;
+    border-style: solid !important;
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.2);
+}
+.add-server-card.server-emby:hover {
+    border-color: #4caf50 !important;
+    background: rgba(76, 175, 80, 0.1) !important;
+}
+.add-server-card.server-jellyfin:hover {
+    border-color: #aa00aa !important;
+    background: rgba(170, 0, 170, 0.1) !important;
+}
+.add-server-card.server-plex:hover {
+    border-color: #ffc107 !important;
+    background: rgba(255, 193, 7, 0.1) !important;
+}
+
 .server-card-wrapper {
   display: flex;
   flex-direction: column;
