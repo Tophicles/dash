@@ -15,7 +15,16 @@ body {
   padding: 20px;
 }
 
-.login-container, .setup-container {
+.auth-wrapper {
+  display: flex;
+  gap: 30px;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  max-width: 900px;
+}
+
+.login-container, .setup-container, .donation-container {
   /* Glassmorphism */
   background: rgba(30, 30, 30, 0.6);
   backdrop-filter: blur(12px);
@@ -31,6 +40,87 @@ body {
 
 .setup-container {
     max-width: 500px;
+}
+
+.donation-container {
+    text-align: center;
+}
+
+.donation-header h2 {
+    color: #fff;
+    font-size: 1.8rem;
+    margin-bottom: 20px;
+}
+
+.donation-plea {
+    color: #aaa;
+    line-height: 1.6;
+    margin-bottom: 30px;
+    font-size: 0.95rem;
+}
+
+.donation-form label {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+    color: #ccc;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.donate-input-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.currency-symbol {
+  font-size: 1.5rem;
+  color: #4caf50;
+  margin-right: 10px;
+  font-weight: 600;
+}
+
+.donate-input {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 1.5rem;
+  padding: 8px;
+  width: 100px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.donate-input:focus {
+  outline: none;
+  border-color: #4caf50;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+/* Hide number spinner controls */
+.donate-input::-webkit-inner-spin-button,
+.donate-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.donate-input {
+  -moz-appearance: textfield;
+}
+
+.paypal-btn {
+  background: linear-gradient(135deg, #0070ba, #1546a0) !important;
+}
+
+@media (max-width: 850px) {
+  .auth-wrapper {
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+    padding: 20px 0;
+  }
 }
 
 @keyframes slideUp {
