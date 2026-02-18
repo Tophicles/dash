@@ -18,13 +18,15 @@ body {
 .auth-wrapper {
   display: flex;
   gap: 30px;
-  align-items: flex-start;
+  align-items: stretch;
   justify-content: center;
   width: 100%;
   max-width: 900px;
 }
 
 .login-container, .setup-container, .donation-container {
+  display: flex;
+  flex-direction: column;
   /* Glassmorphism */
   background: rgba(30, 30, 30, 0.6);
   backdrop-filter: blur(12px);
@@ -44,6 +46,7 @@ body {
 
 .donation-container {
     text-align: center;
+    justify-content: center;
 }
 
 .donation-header h2 {
