@@ -164,7 +164,7 @@ if (urlInput) {
     });
 }
 
-function openServerModal(isEdit = false) {
+function openServerModal(isEdit = false, type = null) {
     const modal = document.getElementById('server-modal');
     const title = document.getElementById('server-modal-title');
     const btn = document.getElementById('server-submit-btn');
@@ -178,6 +178,21 @@ function openServerModal(isEdit = false) {
         btn.textContent = 'Add Server';
         form.reset();
         delete form.dataset.originalName;
+
+        // Default branch to stable
+        const branchInput = document.getElementById('server-branch-select');
+        if (branchInput) branchInput.value = 'stable';
+        const branchBtns = document.querySelectorAll('#server-branch-selector .branch-btn');
+        branchBtns.forEach(b => {
+            if (b.dataset.branch === 'stable') b.classList.add('active');
+            else b.classList.remove('active');
+        });
+
+        if (type) {
+            const typeSelect = document.getElementById('server-type-select');
+            if (typeSelect) typeSelect.value = type;
+        }
+
         // Reset visibility for new form
         updateServerFormFields();
     }
@@ -218,13 +233,9 @@ function openUpdateModal(serverId) {
     const logOutput = document.getElementById('update-log-output');
     logOutput.textContent = 'Ready to start update...';
 
-    // Infer branch from version
+    // Use configured branch
     const server = SERVERS.find(s => s.id === serverId);
-    let initialBranch = 'stable';
-    if (server && server.version) {
-        const isBeta = server.version.toLowerCase().includes('beta');
-        initialBranch = isBeta ? 'beta' : 'stable';
-    }
+    const initialBranch = (server && server.branch) ? server.branch : 'stable';
 
     // Set active button
     document.getElementById('update-branch-select').value = initialBranch;
@@ -261,15 +272,20 @@ document.getElementById('update-modal').addEventListener('click', function(e) {
 });
 
 // Branch selection logic
-document.querySelectorAll('.branch-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const branch = this.dataset.branch;
-        document.getElementById('update-branch-select').value = branch;
+document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.branch-btn');
+    if (!btn) return;
 
-        // Update UI
-        document.querySelectorAll('.branch-btn').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-    });
+    const container = btn.closest('.branch-selector');
+    if (!container) return;
+
+    const branch = btn.dataset.branch;
+    const input = container.querySelector('input[type="hidden"]');
+    if (input) input.value = branch;
+
+    // Update UI within this container only
+    container.querySelectorAll('.branch-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
 });
 
 document.getElementById('start-update-btn').addEventListener('click', async function() {
@@ -1913,135 +1929,138 @@ function renderServerGrid() {
     const container = document.getElementById("server-grid");
     container.innerHTML = "";
 
-    let currentType = null;
-    let hasActiveServers = false;
+    const TYPES = ['emby', 'jellyfin', 'plex'];
 
-    SERVERS.forEach(server => {
-        const sessions = ALL_SESSIONS[server.name] || [];
-        const isActive = sessions.length > 0;
+    TYPES.forEach(type => {
+        const typeServers = SERVERS.filter(s => s.type === type);
 
-        // Apply Search Filter: Match user, title, or server name
-        let matchPreview = null;
-        if (query) {
+        // Apply Search Filter to servers of this type
+        const filteredServers = typeServers.filter(server => {
+            if (!query) return true;
+
+            const sessions = ALL_SESSIONS[server.name] || [];
             const serverNameMatch = server.name.toLowerCase().includes(query);
-            let sessionMatch = false;
-
-            // Find specific match to display
-            const matchingSession = sessions.find(s =>
+            const sessionMatch = sessions.some(s =>
                 (s.user && s.user.toLowerCase().includes(query)) ||
                 (s.title && s.title.toLowerCase().includes(query)) ||
                 (s.series && s.series.toLowerCase().includes(query))
             );
+            return serverNameMatch || sessionMatch;
+        });
 
-            if (matchingSession) {
-                sessionMatch = true;
+        // If searching and no matches for this type, skip rendering this section
+        if (query && filteredServers.length === 0) return;
 
-                // Helper for truncation
-                const trunc = (s, l=17) => s.length > l ? s.substring(0, l) + '...' : s;
+        // Add section divider
+        const totalWatchers = typeServers.reduce((acc, s) => {
+            const sSessions = ALL_SESSIONS[s.name] || [];
+            return acc + sSessions.length;
+        }, 0);
 
-                 if (matchingSession.user.toLowerCase().includes(query)) {
-                    matchPreview = `<i class="fa-solid fa-user"></i> ${trunc(matchingSession.user)}`;
-                } else if (matchingSession.title && matchingSession.title.toLowerCase().includes(query)) {
-                    matchPreview = `<i class="fa-solid fa-film"></i> ${trunc(matchingSession.title)}`;
-                } else if (matchingSession.series && matchingSession.series.toLowerCase().includes(query)) {
-                    matchPreview = `<i class="fa-solid fa-tv"></i> ${trunc(matchingSession.series)}`;
+        const divider = document.createElement('div');
+        divider.className = `section-divider ${type}`;
+        divider.textContent = `${type.toUpperCase()} SERVERS [${totalWatchers}]`;
+        container.appendChild(divider);
+
+        filteredServers.forEach(server => {
+            const sessions = ALL_SESSIONS[server.name] || [];
+            const isActive = sessions.length > 0;
+
+            let matchPreview = null;
+            if (query) {
+                const matchingSession = sessions.find(s =>
+                    (s.user && s.user.toLowerCase().includes(query)) ||
+                    (s.title && s.title.toLowerCase().includes(query)) ||
+                    (s.series && s.series.toLowerCase().includes(query))
+                );
+
+                if (matchingSession) {
+                    const trunc = (s, l=17) => s.length > l ? s.substring(0, l) + '...' : s;
+
+                    if (matchingSession.user.toLowerCase().includes(query)) {
+                        matchPreview = `<i class="fa-solid fa-user"></i> ${trunc(matchingSession.user)}`;
+                    } else if (matchingSession.title && matchingSession.title.toLowerCase().includes(query)) {
+                        matchPreview = `<i class="fa-solid fa-film"></i> ${trunc(matchingSession.title)}`;
+                    } else if (matchingSession.series && matchingSession.series.toLowerCase().includes(query)) {
+                        matchPreview = `<i class="fa-solid fa-tv"></i> ${trunc(matchingSession.series)}`;
+                    }
                 }
             }
 
-            if (!serverNameMatch && !sessionMatch) {
-                return;
-            }
-        }
+            const wrapper = document.createElement('div');
+            wrapper.className = 'server-card-wrapper';
 
-        hasActiveServers = hasActiveServers || isActive;
+            const card = document.createElement('div');
+            card.className = `server-card server-${server.type} ${isActive ? 'active' : 'idle'}`;
+            card.draggable = IS_ADMIN;
+            card.dataset.serverId = server.id;
 
-        // Add section divider when type changes
-        if (server.type !== currentType) {
-            // Calculate total watchers for this type
-            const typeServers = SERVERS.filter(s => s.type === server.type);
-            const totalWatchers = typeServers.reduce((acc, s) => {
-                const sSessions = ALL_SESSIONS[s.name] || [];
-                return acc + sSessions.length;
-            }, 0);
+            if (reorderMode && IS_ADMIN) card.classList.add('reorder-mode');
 
-            const divider = document.createElement('div');
-            divider.className = `section-divider ${server.type}`;
-            divider.textContent = `${server.type.toUpperCase()} SERVERS [${totalWatchers}]`;
-            container.appendChild(divider);
-            currentType = server.type;
-        }
+            // OS Badge Logic
+            let osIcon = 'fa-server';
+            let iconType = 'fa-brands';
+            if (!server.os_type || server.os_type === 'linux') osIcon = 'fa-linux';
+            else if (server.os_type === 'windows') osIcon = 'fa-windows';
+            else if (server.os_type === 'docker') osIcon = 'fa-docker';
+            else if (server.os_type === 'macos') osIcon = 'fa-apple';
+            else { osIcon = 'fa-server'; iconType = 'fa-solid'; }
 
-        const wrapper = document.createElement('div');
-        wrapper.className = 'server-card-wrapper';
+            const dragHandleHtml = IS_ADMIN ? '<div class="drag-handle"><i class="fa-solid fa-bars"></i></div>' : '';
 
-        const card = document.createElement('div');
-        card.className = `server-card server-${server.type} ${isActive ? 'active' : 'idle'}`;
-        card.draggable = IS_ADMIN;
-        card.dataset.serverId = server.id;
-
-        if (reorderMode && IS_ADMIN) {
-            card.classList.add('reorder-mode');
-        }
-
-        const dragHandle = IS_ADMIN ? '<div class="drag-handle"><i class="fa-solid fa-bars"></i></div>' : '';
-
-        // OS Badge Logic
-        let osIcon = 'fa-server';
-        let iconType = 'fa-brands';
-        if (!server.os_type || server.os_type === 'linux') osIcon = 'fa-linux';
-        else if (server.os_type === 'windows') osIcon = 'fa-windows';
-        else if (server.os_type === 'docker') osIcon = 'fa-docker';
-        else if (server.os_type === 'macos') osIcon = 'fa-apple';
-        else {
-            osIcon = 'fa-server';
-            iconType = 'fa-solid';
-        }
-
-        // Drag Handle (Always included if admin, CSS controls visibility)
-        const dragHandleHtml = IS_ADMIN ? '<div class="drag-handle"><i class="fa-solid fa-bars"></i></div>' : '';
-
-        card.innerHTML = `
-            ${dragHandleHtml}
-            <div class="server-name">${esc(server.name)}</div>
-            ${server.version ? `
-                <div class="server-version">
-                    v${esc(server.version)}
-                    ${server.hasUpdate ? '<i class="fa-solid fa-circle-up update-available" title="Update Available: New version ready!"></i>' : ''}
+            card.innerHTML = `
+                ${dragHandleHtml}
+                <div class="server-name">${esc(server.name)}</div>
+                ${server.version ? `
+                    <div class="server-version">
+                        v${esc(server.version)}
+                        ${server.hasUpdate ? '<i class="fa-solid fa-circle-up update-available" title="Update Available: New version ready!"></i>' : ''}
+                    </div>
+                ` : ''}
+                <div class="server-status">
+                    <div class="status-dot ${isActive ? 'active server-' + esc(server.type) : ''}"></div>
+                    ${isActive ? `${sessions.length} playing` : 'Idle'}
                 </div>
-            ` : ''}
-            <div class="server-status">
-                <div class="status-dot ${isActive ? 'active server-' + esc(server.type) : ''}"></div>
-                ${isActive ? `${sessions.length} playing` : 'Idle'}
-            </div>
-            ${renderScans(ALL_SCANS[server.name])}
-            <div class="card-os-badge"><i class="${iconType} ${osIcon}"></i></div>
-        `;
+                ${renderScans(ALL_SCANS[server.name])}
+                <div class="card-os-badge"><i class="${iconType} ${osIcon}"></i></div>
+            `;
 
-        // Click to view sessions (only if not clicking drag handle)
-        card.addEventListener('click', (e) => {
-            if (!e.target.classList.contains('drag-handle') && !e.target.closest('a') && !reorderMode) {
-                showSessionsView(server.id, server.name);
+            card.addEventListener('click', (e) => {
+                if (!e.target.classList.contains('drag-handle') && !e.target.closest('a') && !reorderMode) {
+                    showSessionsView(server.id, server.name);
+                }
+            });
+
+            card.addEventListener('dragstart', handleDragStart);
+            card.addEventListener('dragend', handleDragEnd);
+            card.addEventListener('dragover', handleDragOver);
+            card.addEventListener('drop', handleDrop);
+
+            wrapper.appendChild(card);
+            if (matchPreview) {
+                const preview = document.createElement('div');
+                preview.className = 'server-match-preview';
+                preview.innerHTML = matchPreview;
+                wrapper.appendChild(preview);
             }
+            container.appendChild(wrapper);
         });
 
-        // Drag events
-        card.addEventListener('dragstart', handleDragStart);
-        card.addEventListener('dragend', handleDragEnd);
-        card.addEventListener('dragover', handleDragOver);
-        card.addEventListener('drop', handleDrop);
-
-        wrapper.appendChild(card);
-
-        if (matchPreview) {
-            const preview = document.createElement('div');
-            preview.className = 'server-match-preview';
-            preview.innerHTML = matchPreview;
-            wrapper.appendChild(preview);
+        // Add "+ Add Server" card for this type if admin and NOT searching
+        if (IS_ADMIN && !query) {
+            const addCard = document.createElement('div');
+            const typeLabel = type.charAt(0).toUpperCase() + type.slice(1);
+            addCard.className = `server-card add-server-card server-${type}`;
+            addCard.innerHTML = `
+                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; gap:10px;">
+                    <i class="fa-solid fa-plus" style="font-size:1.5rem;"></i>
+                    <div style="font-weight:700; text-transform:uppercase; font-size:0.8rem;">Add ${typeLabel} Server</div>
+                </div>
+            `;
+            addCard.onclick = () => openServerModal(false, type);
+            container.appendChild(addCard);
         }
-
-        container.appendChild(wrapper);
     });
-
 }
 
 // Render sessions for a specific server or all servers
@@ -2893,6 +2912,16 @@ function openEditServerModal(serverId) {
     form.querySelector('[name="os_type"]').value = server.os_type || 'linux';
     form.querySelector('[name="ssh_port"]').value = server.ssh_port || '22';
 
+    // Branch
+    const branch = server.branch || 'stable';
+    const branchInput = document.getElementById('server-branch-select');
+    if (branchInput) branchInput.value = branch;
+    const branchBtns = document.querySelectorAll('#server-branch-selector .branch-btn');
+    branchBtns.forEach(b => {
+        if (b.dataset.branch === branch) b.classList.add('active');
+        else b.classList.remove('active');
+    });
+
     // Store server ID for update
     form.dataset.originalName = server.id;
 
@@ -2972,6 +3001,7 @@ document.getElementById('add-server-form').addEventListener('submit', async e=>{
         url:fullUrl,
         apiKey:f.apiKey.value,
         token:f.token.value,
+        branch: f.branch.value,
         os_type: f.os_type.value,
         ssh_port: f.ssh_port.value
     };

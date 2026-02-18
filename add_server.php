@@ -53,7 +53,8 @@ $newServer = [
     'type' => $data['type'],
     'url' => $data['url'],
     'enabled' => true,
-    'order' => $maxOrder + 1
+    'order' => $maxOrder + 1,
+    'branch' => $data['branch'] ?? 'stable'
 ];
 
 // Add optional fields with encryption
