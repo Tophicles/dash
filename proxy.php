@@ -323,6 +323,9 @@ if ($server['type'] === 'plex') {
             do {
                 $status = curl_multi_exec($mh, $active);
             } while ($status == CURLM_CALL_MULTI_PERFORM);
+        } else {
+            usleep(100);
+            $status = curl_multi_exec($mh, $active);
         }
     }
 
@@ -484,6 +487,9 @@ if ($server['type'] === 'emby' || $server['type'] === 'jellyfin') {
             do {
                 $status = curl_multi_exec($mh, $active);
             } while ($status == CURLM_CALL_MULTI_PERFORM);
+        } else {
+            usleep(100);
+            $status = curl_multi_exec($mh, $active);
         }
     }
 

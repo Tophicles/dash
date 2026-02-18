@@ -609,11 +609,18 @@ async function fetchServer(server){
                     name.includes('refresh') ||
                     name.includes('metadata')
                 );
-            }).map(t => ({
-                id: t.Id,
-                name: t.Name,
-                progress: (t.CurrentProgressPercentage !== undefined && t.CurrentProgressPercentage !== null) ? Math.round(t.CurrentProgressPercentage) : null
-            }));
+            }).map(t => {
+                let name = t.Name || 'Library';
+                // Normalize common Emby task name
+                if (name.toLowerCase().includes('refresh media library')) {
+                    name = 'All Libraries';
+                }
+                return {
+                    id: t.Id,
+                    name: name,
+                    progress: (t.CurrentProgressPercentage !== undefined && t.CurrentProgressPercentage !== null) ? Math.round(t.CurrentProgressPercentage) : null
+                };
+            });
         } else { // Plex
             const meta = data.sessions || [];
             sessions = meta.map(m=>({
@@ -652,11 +659,19 @@ async function fetchServer(server){
             scans = (data.scans || []).filter(a => {
                 const type = (a.type || '').toLowerCase();
                 return type.includes('library') || type.includes('metadata');
-            }).map(a => ({
-                id: a.uuid,
-                name: a.subtitle || a.title || 'Library Scan',
-                progress: (a.progress !== undefined && a.progress !== null) ? Math.round(a.progress) : null
-            }));
+            }).map(a => {
+                let name = a.subtitle || a.title || 'Library';
+                // If it's a metadata refresh, the subtitle is often the item title.
+                // The user doesn't want titles.
+                if ((a.type || '').toLowerCase().includes('metadata')) {
+                    name = 'Metadata';
+                }
+                return {
+                    id: a.uuid,
+                    name: name,
+                    progress: (a.progress !== undefined && a.progress !== null) ? Math.round(a.progress) : null
+                };
+            });
         }
         return { sessions, scans };
     } catch(e){
@@ -1842,10 +1857,21 @@ function renderScans(scans) {
             ${scans.map(scan => {
                 const prog = scan.progress !== null ? scan.progress : 100;
                 const isIndeterminate = scan.progress === null;
+
+                // User requirement: "SCANNING XXX library %%" and "don't have to display the titles"
+                let displayName = scan.name.toUpperCase();
+
+                // If it doesn't have "LIBRARY" and isn't "METADATA" or "ALL LIBRARIES", append "LIBRARY"
+                if (!displayName.includes('LIBRARY') && !displayName.includes('METADATA')) {
+                    displayName += ' LIBRARY';
+                }
+
+                const text = `SCANNING ${displayName} ${!isIndeterminate ? prog + '%' : ''}`;
+
                 return `
                     <div class="scan-progress-container ${isIndeterminate ? 'indeterminate' : ''}" title="${esc(scan.name)}: ${isIndeterminate ? 'Scanning...' : prog + '%'}">
                         <div class="scan-progress-bar" style="width: ${prog}%"></div>
-                        <div class="scan-progress-text">${esc(scan.name)} ${!isIndeterminate ? prog + '%' : ''}</div>
+                        <div class="scan-progress-text">${esc(text)}</div>
                     </div>
                 `;
             }).join('')}
