@@ -237,11 +237,6 @@ $isAdmin = isAdmin();
 <div id="server-view" class="view-container visible">
   <div class="search-container">
     <input type="text" id="server-search" placeholder="Filter servers...">
-    <?php if ($isAdmin): ?>
-    <button class="btn" id="global-scan-btn" title="Scan All Libraries on All Servers">
-        <i class="fa-solid fa-arrows-rotate"></i> <span class="btn-text">Scan All</span>
-    </button>
-    <?php endif; ?>
   </div>
   <div id="server-grid" class="server-grid"></div>
   <div class="user-lists-container">
