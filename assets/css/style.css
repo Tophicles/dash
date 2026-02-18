@@ -352,7 +352,12 @@ body {
   background: linear-gradient(135deg, #aa00aa, #7b1fa2) !important;
   color: white !important;
 }
-.server-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:16px; }
+.server-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+  gap:16px;
+  align-items: start;
+}
 .server-card {
   background: var(--card);
   backdrop-filter: blur(12px);
@@ -365,9 +370,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  min-height: auto;
+  min-height: 130px;
   position: relative;
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  box-sizing: border-box;
 }
 .server-card.server-emby {
   background: var(--emby-color);
@@ -458,7 +464,7 @@ body {
 .add-server-card {
     border: 2px dashed rgba(255,255,255,0.2) !important;
     background: transparent !important;
-    min-height: 120px;
+    min-height: 130px;
     justify-content: center;
     align-items: center;
     opacity: 0.6;

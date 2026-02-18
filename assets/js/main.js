@@ -2048,6 +2048,9 @@ function renderServerGrid() {
 
         // Add "+ Add Server" card for this type if admin and NOT searching
         if (IS_ADMIN && !query) {
+            const addWrapper = document.createElement('div');
+            addWrapper.className = 'server-card-wrapper';
+
             const addCard = document.createElement('div');
             const typeLabel = type.charAt(0).toUpperCase() + type.slice(1);
             addCard.className = `server-card add-server-card server-${type}`;
@@ -2058,7 +2061,8 @@ function renderServerGrid() {
                 </div>
             `;
             addCard.onclick = () => openServerModal(false, type);
-            container.appendChild(addCard);
+            addWrapper.appendChild(addCard);
+            container.appendChild(addWrapper);
         }
     });
 }
