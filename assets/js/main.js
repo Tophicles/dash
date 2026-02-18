@@ -3766,13 +3766,13 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchMediaUsers();
 
     // Global Scan All Button
-    //const globalScanBtn = document.getElementById('global-scan-menu-btn');
-    //if (globalScanBtn) {
-    //    globalScanBtn.addEventListener('click', () => {
-    //        globalScanAllLibraries();
-    //        if (menuDropdown) menuDropdown.classList.remove('visible');
-    //    });
-    //}
+    const globalScanBtn = document.getElementById('global-scan-menu-btn');
+    if (globalScanBtn) {
+        globalScanBtn.addEventListener('click', () => {
+            globalScanAllLibraries();
+            if (menuDropdown) menuDropdown.classList.remove('visible');
+        });
+    }
 });
 
 // Donate Modal Logic
