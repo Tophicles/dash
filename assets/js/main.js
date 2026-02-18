@@ -1591,7 +1591,16 @@ function renderUserSearchResults(users) {
             const serverName = u.serverName || 'Unknown Server';
             const serverType = u.serverType || 'emby';
             const sessions = ALL_SESSIONS[serverName] || [];
-            const isWatching = sessions.some(s => s.user === u.name);
+            const userSession = sessions.find(s => s.user === u.name);
+            const isWatching = !!userSession;
+            const isPaused = userSession ? userSession.paused : false;
+
+            let statusClass = 'idle';
+            let statusText = 'Idle';
+            if (isWatching) {
+                statusClass = isPaused ? 'paused' : 'playing';
+                statusText = isPaused ? 'Paused' : 'Playing';
+            }
 
             const serverBadgeClass = `badge server-${esc(serverType)}`;
             let badgeColor = '#4caf50';
@@ -1603,8 +1612,8 @@ function renderUserSearchResults(users) {
                     <span class="${serverBadgeClass}" style="background: ${badgeColor}; color: ${u.serverType === 'plex' ? 'black' : 'white'}; cursor: pointer;" title="Jump to Server">${esc(u.serverName)}</span>
                 </div>
                 <div class="user-search-status">
-                    <span class="user-status-badge ${isWatching ? 'watching' : 'idle'}">
-                        <i class="fa-solid fa-circle"></i> ${isWatching ? 'Watching' : 'Idle'}
+                    <span class="user-status-badge ${statusClass}">
+                        <i class="fa-solid fa-circle"></i> ${statusText}
                     </span>
                 </div>
             `;
@@ -1667,6 +1676,14 @@ function openMediaUserModal(u) {
     const sessions = ALL_SESSIONS[u.serverName] || [];
     const activeSession = sessions.find(s => s.user === u.name);
     const isWatching = !!activeSession;
+    const isPaused = activeSession ? activeSession.paused : false;
+
+    let statusClass = 'idle';
+    let statusText = 'Idle';
+    if (isWatching) {
+        statusClass = isPaused ? 'paused' : 'playing';
+        statusText = isPaused ? 'Paused' : 'Playing';
+    }
 
     let lastSeenStr = 'Never';
     if (u.lastLogin) {
@@ -1682,8 +1699,8 @@ function openMediaUserModal(u) {
                 <h2>${esc(u.name)}</h2>
                 <p>${esc(u.serverName)} (${esc(u.serverType)})</p>
                 <div style="margin-top: 8px;">
-                    <span class="user-status-badge ${isWatching ? 'watching' : 'idle'}">
-                        <i class="fa-solid fa-circle"></i> ${isWatching ? 'Watching' : 'Idle'}
+                    <span class="user-status-badge ${statusClass}">
+                        <i class="fa-solid fa-circle"></i> ${statusText}
                     </span>
                 </div>
             </div>
@@ -1706,7 +1723,7 @@ function openMediaUserModal(u) {
                         <i class="fa-solid fa-external-link-alt"></i> Jump to Server
                     </button>
                 </div>
-                <div class="progress-bar" style="margin-top: 0; background: rgba(255,255,255,0.1);">
+                <div class="progress-bar ${isPaused ? 'paused' : ''}" style="margin-top: 0; background: rgba(255,255,255,0.1);">
                     <div class="progress" style="width: ${activeSession.progress || 0}%;"></div>
                 </div>
             </div>
