@@ -1858,15 +1858,16 @@ function renderScans(scans) {
                 const prog = scan.progress !== null ? scan.progress : 100;
                 const isIndeterminate = scan.progress === null;
 
-                // User requirement: "SCANNING XXX library %%" and "don't have to display the titles"
-                let displayName = scan.name.toUpperCase();
+                // User requirement: Just "Scan: [library name ]%%"
+                let displayName = scan.name;
 
-                // If it doesn't have "LIBRARY" and isn't "METADATA" or "ALL LIBRARIES", append "LIBRARY"
-                if (!displayName.includes('LIBRARY') && !displayName.includes('METADATA')) {
-                    displayName += ' LIBRARY';
-                }
+                // If it doesn't have "Library" and isn't "Metadata" or "All Libraries", append "Library"
+                const upperName = displayName.toUpperCase();
+                //if (!upperName.includes('LIBRARY') && !upperName.includes('METADATA')) {
+                    //displayName += ' Library';
+                //}
 
-                const text = `SCANNING ${displayName} ${!isIndeterminate ? prog + '%' : ''}`;
+                const text = `Scan: ${displayName} ${!isIndeterminate ? prog + '%' : ''}`;
 
                 return `
                     <div class="scan-progress-container ${isIndeterminate ? 'indeterminate' : ''}" title="${esc(scan.name)}: ${isIndeterminate ? 'Scanning...' : prog + '%'}">
