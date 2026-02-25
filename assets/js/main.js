@@ -224,11 +224,13 @@ function openUpdateModal(serverId) {
 
     updateUpdateModalTabs();
 
+    const server = SERVERS.find(s => s.id === serverId);
+    const activeUpdate = ACTIVE_UPDATES[serverId];
+
     // Restore UI state (in case it was used for logs)
     const title = modal.querySelector('h2');
-    title.textContent = 'Update Server';
-
-    const activeUpdate = ACTIVE_UPDATES[serverId];
+    const isUpdate = activeUpdate ? (activeUpdate.type === 'update') : (server && server.hasUpdate);
+    title.textContent = isUpdate ? 'Update Server' : 'Reinstall Server';
     const logOutput = document.getElementById('update-log-output');
     const startBtn = document.getElementById('start-update-btn');
     const branchControls = modal.querySelector('.server-form-group');
@@ -360,11 +362,16 @@ document.getElementById('start-update-btn').addEventListener('click', async func
 
         if (data.success) {
             logOutput.textContent += 'Update command sent successfully.\nMonitoring progress...\n';
+
+            const server = SERVERS.find(s => s.id === currentUpdateServerId);
+            const type = (server && server.hasUpdate) ? 'update' : 'reinstall';
+
             // Store branch in active update state
             if (!ACTIVE_UPDATES[currentUpdateServerId]) {
-                 ACTIVE_UPDATES[currentUpdateServerId] = { log: logOutput.textContent, status: 'updating', completed: false, branch: branch };
+                 ACTIVE_UPDATES[currentUpdateServerId] = { log: logOutput.textContent, status: 'updating', completed: false, branch: branch, type: type };
             } else {
                  ACTIVE_UPDATES[currentUpdateServerId].branch = branch;
+                 ACTIVE_UPDATES[currentUpdateServerId].type = type;
             }
             startUpdatePolling(currentUpdateServerId);
 
@@ -424,7 +431,8 @@ function startUpdatePolling(serverId) {
                         }
                         const closeBtn = document.querySelector('#update-modal .btn:not(.primary)');
                         if (closeBtn) closeBtn.style.display = '';
-                        showModalAlert('Update Completed Successfully for server!');
+                        const op = ACTIVE_UPDATES[serverId].type === 'reinstall' ? 'Reinstall' : 'Update';
+                        showModalAlert(`${op} Completed Successfully for server!`);
                     }
 
                     renderServerGrid();
@@ -476,7 +484,8 @@ function startUpdatePolling(serverId) {
                         }
                         const closeBtn = document.querySelector('#update-modal .btn:not(.primary)');
                         if (closeBtn) closeBtn.style.display = '';
-                        showModalAlert('Update Failed for server. Check logs.');
+                        const op = ACTIVE_UPDATES[serverId].type === 'reinstall' ? 'Reinstall' : 'Update';
+                        showModalAlert(`${op} Failed for server. Check logs.`);
                     }
                     renderServerGrid();
                 }
@@ -844,7 +853,7 @@ async function startBulkUpdate() {
             const res = await fetch(`proxy.php?id=${encodeURIComponent(server.id)}&action=ssh_update&branch=${encodeURIComponent(branch)}`);
             const data = await res.json();
             if (data.success) {
-                ACTIVE_UPDATES[server.id] = { log: 'Bulk update initiated...\n', status: 'updating', completed: false, branch: branch };
+                ACTIVE_UPDATES[server.id] = { log: 'Bulk update initiated...\n', status: 'updating', completed: false, branch: branch, type: 'update' };
                 startUpdatePolling(server.id);
             } else {
                 console.error(`Failed to start bulk update for ${server.name}:`, data.error);
@@ -2023,13 +2032,17 @@ function closeMediaUserModal() {
 
 function renderUpdateProgressBar(serverId) {
     const update = ACTIVE_UPDATES[serverId];
-    if (!update || update.completed) return '';
+    if (!update) return '';
+
+    const isVerifying = update.completed;
+    const label = isVerifying ? 'Verifying Version...' : (update.type === 'reinstall' ? 'Reinstalling Server...' : 'Updating Server...');
+    const title = isVerifying ? 'Update complete, verifying new version...' : (update.type === 'reinstall' ? 'Server Reinstall in Progress...' : 'Server Update in Progress...');
 
     return `
         <div class="server-scans-list" style="margin-top: 4px;">
-            <div class="scan-progress-container update-progress indeterminate" title="Server Update in Progress...">
+            <div class="scan-progress-container update-progress indeterminate" title="${esc(title)}">
                 <div class="scan-progress-bar" style="width: 100%"></div>
-                <div class="scan-progress-text">Updating Server...</div>
+                <div class="scan-progress-text">${esc(label)}</div>
             </div>
         </div>
     `;
