@@ -66,6 +66,9 @@ $isAdmin = isAdmin();
           <div class="menu-item" id="global-scan-menu-btn">
             <i class="fa-solid fa-arrows-rotate"></i> <span>Global Library Scan</span>
           </div>
+          <div class="menu-item" id="bulk-update-menu-btn">
+            <i class="fa-solid fa-circle-up"></i> <span>Bulk Server Update</span>
+          </div>
           <div class="menu-item" id="logs-btn" onclick="window.open('view_logs.php', 'SystemLogs')">
             <i class="fa-solid fa-file-lines"></i> <span>System Logs</span>
           </div>
@@ -478,6 +481,8 @@ $isAdmin = isAdmin();
 
     <div id="update-modal-body" style="padding: 20px;">
         <h2 style="margin-bottom: 20px;">Update Server</h2>
+
+        <div id="update-modal-tabs" style="display:none; margin-bottom:15px; flex-wrap:wrap; gap:5px; border-bottom:1px solid var(--border); padding-bottom:10px;"></div>
 
         <div class="server-form-group">
             <label>Update Branch</label>
