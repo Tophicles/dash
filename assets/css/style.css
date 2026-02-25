@@ -2129,6 +2129,22 @@ form button:hover { background:#45a049; }
     background-size: 200% 100%;
     animation: scan-pulse 2s infinite linear;
 }
+
+/* Update Progress Bars (Cyan) */
+.scan-progress-container.update-progress .scan-progress-bar {
+    background: #00bcd4;
+    box-shadow: 0 0 10px rgba(0, 188, 212, 0.4);
+}
+.scan-progress-container.update-progress .scan-progress-text {
+    color: #000 !important;
+    text-shadow: none !important;
+    font-weight: 900;
+}
+.scan-progress-container.update-progress.indeterminate .scan-progress-bar {
+    background: linear-gradient(90deg, #00bcd4, #4dd0e1, #00bcd4);
+    background-size: 200% 100%;
+}
+
 @keyframes scan-pulse {
     0% { background-position: 200% 0; }
     100% { background-position: 0 0; }

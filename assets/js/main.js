@@ -214,7 +214,7 @@ document.getElementById('server-modal').addEventListener('click', function(e) {
 
 
 // Update Modal Logic
-let updatePollInterval = null;
+let ACTIVE_UPDATES = {}; // { serverId: { interval: null, log: '', branch: '', status: 'updating', completed: false } }
 let currentUpdateServerId = null;
 
 function openUpdateModal(serverId) {
@@ -222,48 +222,91 @@ function openUpdateModal(serverId) {
     modal.classList.add('visible');
     currentUpdateServerId = serverId;
 
+    updateUpdateModalTabs();
+
     // Restore UI state (in case it was used for logs)
     const title = modal.querySelector('h2');
     title.textContent = 'Update Server';
-    const controls = modal.querySelector('.server-form-group');
-    if (controls) controls.style.display = 'block';
-    const startBtn = document.getElementById('start-update-btn');
-    if (startBtn) startBtn.style.display = '';
 
+    const activeUpdate = ACTIVE_UPDATES[serverId];
     const logOutput = document.getElementById('update-log-output');
-    logOutput.textContent = 'Ready to start update...';
+    const startBtn = document.getElementById('start-update-btn');
+    const branchControls = modal.querySelector('.server-form-group');
+    const closeBtn = document.querySelector('#update-modal .btn:not(.primary)');
 
-    // Use configured branch
-    const server = SERVERS.find(s => s.id === serverId);
-    const initialBranch = (server && server.branch) ? server.branch : 'stable';
+    if (activeUpdate) {
+        // Show current progress
+        if (branchControls) branchControls.style.display = 'none';
+        logOutput.textContent = activeUpdate.log || 'Polling for logs...';
+        logOutput.scrollTop = logOutput.scrollHeight;
 
-    // Set active button
-    document.getElementById('update-branch-select').value = initialBranch;
-    document.querySelectorAll('.branch-btn').forEach(btn => {
-        if (btn.dataset.branch === initialBranch) {
-            btn.classList.add('active');
+        if (activeUpdate.completed) {
+            startBtn.disabled = false;
+            startBtn.textContent = 'Close';
+            if (closeBtn) closeBtn.style.display = '';
         } else {
-            btn.classList.remove('active');
+            startBtn.disabled = true;
+            startBtn.textContent = 'Updating...';
+            if (closeBtn) closeBtn.style.display = 'none';
         }
+    } else {
+        // Ready to start
+        if (branchControls) branchControls.style.display = 'block';
+        if (startBtn) startBtn.style.display = '';
+        if (closeBtn) closeBtn.style.display = '';
+        startBtn.disabled = false;
+        startBtn.textContent = 'Start Update';
+        logOutput.textContent = 'Ready to start update...';
+
+        // Use configured branch
+        const server = SERVERS.find(s => s.id === serverId);
+        const initialBranch = (server && server.branch) ? server.branch : 'stable';
+
+        // Set active button
+        document.getElementById('update-branch-select').value = initialBranch;
+        document.querySelectorAll('#update-modal .branch-btn').forEach(btn => {
+            if (btn.dataset.branch === initialBranch) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+    }
+}
+
+function updateUpdateModalTabs() {
+    const tabs = document.getElementById('update-modal-tabs');
+    if (!tabs) return;
+
+    const updatingIds = Object.keys(ACTIVE_UPDATES);
+    if (updatingIds.length === 0) {
+        tabs.style.display = 'none';
+        return;
+    }
+
+    tabs.style.display = 'flex';
+    tabs.innerHTML = '';
+
+    updatingIds.forEach(id => {
+        const server = SERVERS.find(s => s.id == id);
+        const name = server ? server.name : id;
+        const btn = document.createElement('button');
+        btn.className = `btn ${id == currentUpdateServerId ? 'primary' : ''}`;
+        btn.style.fontSize = '0.75rem';
+        btn.style.padding = '5px 10px';
+        btn.innerHTML = `<i class="fa-solid fa-server"></i> ${esc(name)}`;
+        btn.onclick = () => openUpdateModal(id);
+        tabs.appendChild(btn);
     });
 
-    // Enable/Disable button
-    const btn = document.getElementById('start-update-btn');
-    btn.disabled = false;
-    btn.textContent = 'Start Update';
-
-    // Ensure close button is visible
-    const closeBtn = document.querySelector('#update-modal .btn:not(.primary)');
-    if (closeBtn) closeBtn.style.display = '';
+    // Also add "Add another" if current isn't in updating?
+    // No, they can just close and click another.
 }
 
 function closeUpdateModal() {
     const modal = document.getElementById('update-modal');
     modal.classList.remove('visible');
-    if (updatePollInterval) {
-        clearInterval(updatePollInterval);
-        updatePollInterval = null;
-    }
+    // We don't clear intervals here anymore, updates continue in background
     currentUpdateServerId = null;
 }
 
@@ -317,71 +360,134 @@ document.getElementById('start-update-btn').addEventListener('click', async func
 
         if (data.success) {
             logOutput.textContent += 'Update command sent successfully.\nMonitoring progress...\n';
+            // Store branch in active update state
+            if (!ACTIVE_UPDATES[currentUpdateServerId]) {
+                 ACTIVE_UPDATES[currentUpdateServerId] = { log: logOutput.textContent, status: 'updating', completed: false, branch: branch };
+            } else {
+                 ACTIVE_UPDATES[currentUpdateServerId].branch = branch;
+            }
             startUpdatePolling(currentUpdateServerId);
+
+            // If we are in sessions view for this server, we might want to stay there but show progress
+            // No action needed, renderUpdateProgressBar handles it on server grid,
+            // and openUpdateModal handles it if modal stays open.
         } else {
             logOutput.textContent += 'Error: ' + (data.error || 'Unknown error') + '\n';
             btn.disabled = false;
             btn.textContent = 'Retry Update';
+            if (closeBtn) closeBtn.style.display = '';
         }
     } catch (e) {
         logOutput.textContent += 'Request failed: ' + e.message + '\n';
         btn.disabled = false;
         btn.textContent = 'Retry Update';
+        if (closeBtn) closeBtn.style.display = '';
     }
 });
 
 function startUpdatePolling(serverId) {
-    if (updatePollInterval) clearInterval(updatePollInterval);
+    if (ACTIVE_UPDATES[serverId] && ACTIVE_UPDATES[serverId].interval) {
+        clearInterval(ACTIVE_UPDATES[serverId].interval);
+    }
 
-    updatePollInterval = setInterval(async () => {
+    if (!ACTIVE_UPDATES[serverId]) {
+        ACTIVE_UPDATES[serverId] = { log: '', status: 'updating', completed: false };
+    }
+
+    ACTIVE_UPDATES[serverId].interval = setInterval(async () => {
         try {
             const res = await fetch(`proxy.php?id=${encodeURIComponent(serverId)}&action=ssh_update_log`);
             const data = await res.json();
 
             if (data.success && data.output) {
-                const logEl = document.getElementById('update-log-output');
-                logEl.textContent = data.output;
-                logEl.scrollTop = logEl.scrollHeight; // Auto-scroll
+                ACTIVE_UPDATES[serverId].log = data.output;
+
+                // Update UI if this server is currently selected in modal
+                if (currentUpdateServerId == serverId) {
+                    const logEl = document.getElementById('update-log-output');
+                    if (logEl) {
+                        logEl.textContent = data.output;
+                        logEl.scrollTop = logEl.scrollHeight;
+                    }
+                }
 
                 if (data.output.includes('UPDATE_COMPLETE')) {
-                    clearInterval(updatePollInterval);
-                    updatePollInterval = null;
+                    clearInterval(ACTIVE_UPDATES[serverId].interval);
+                    ACTIVE_UPDATES[serverId].interval = null;
+                    ACTIVE_UPDATES[serverId].completed = true;
 
-                    const btn = document.getElementById('start-update-btn');
-                    btn.disabled = false;
-                    btn.textContent = 'Close';
+                    if (currentUpdateServerId == serverId) {
+                        const btn = document.getElementById('start-update-btn');
+                        if (btn) {
+                            btn.disabled = false;
+                            btn.textContent = 'Close';
+                        }
+                        const closeBtn = document.querySelector('#update-modal .btn:not(.primary)');
+                        if (closeBtn) closeBtn.style.display = '';
+                        showModalAlert('Update Completed Successfully for server!');
+                    }
 
-                    showModalAlert('Update Completed Successfully!');
-                    fetchServerStatus(serverId); // Refresh status (it might be restarting)
+                    renderServerGrid();
+                    updateUpdateModalTabs();
+                    fetchServerStatus(serverId);
 
-                    // Force refresh of version info
+                    // Robust Version Refresh Logic
                     const server = SERVERS.find(s => s.id === serverId);
                     if (server) {
-                        // Wait a moment for service to potentially restart before checking version
-                        setTimeout(async () => {
+                        let retries = 0;
+                        const maxRetries = 6;
+                        const retryInterval = 10000; // 10 seconds
+
+                        const tryRefresh = async () => {
+                            console.log(`Refreshing version for ${server.name} (Attempt ${retries + 1})...`);
                             const info = await fetchServerInfo(server);
-                            if (info) {
+                            if (info && info.version && info.version !== 'Unknown') {
                                 server.version = info.version;
                                 server.hasUpdate = info.hasUpdate;
+                                delete ACTIVE_UPDATES[serverId]; // Remove from active updates once fully verified
                                 renderServerGrid();
+                                updateUpdateModalTabs();
                                 if (currentView === 'sessions' && selectedServerId === serverId) {
                                     showSessionsView(serverId, server.name);
                                 }
+                                console.log(`Version refreshed for ${server.name}: ${server.version}`);
+                            } else if (retries < maxRetries) {
+                                retries++;
+                                setTimeout(tryRefresh, retryInterval);
+                            } else {
+                                console.warn(`Failed to refresh version for ${server.name} after ${maxRetries} attempts.`);
+                                delete ACTIVE_UPDATES[serverId];
+                                renderServerGrid();
+                                updateUpdateModalTabs();
                             }
-                        }, 5000);
+                        };
+                        setTimeout(tryRefresh, 5000); // Initial wait
                     }
                 } else if (data.output.includes('UPDATE_FAILED')) {
-                    clearInterval(updatePollInterval);
-                    updatePollInterval = null;
-                    document.getElementById('start-update-btn').disabled = false;
-                    document.getElementById('start-update-btn').textContent = 'Retry Update';
-                    showModalAlert('Update Failed. Check logs.');
+                    clearInterval(ACTIVE_UPDATES[serverId].interval);
+                    ACTIVE_UPDATES[serverId].interval = null;
+                    ACTIVE_UPDATES[serverId].completed = false; // Stay in list so user can see error
+
+                    if (currentUpdateServerId == serverId) {
+                        const btn = document.getElementById('start-update-btn');
+                        if (btn) {
+                            btn.disabled = false;
+                            btn.textContent = 'Retry Update';
+                        }
+                        const closeBtn = document.querySelector('#update-modal .btn:not(.primary)');
+                        if (closeBtn) closeBtn.style.display = '';
+                        showModalAlert('Update Failed for server. Check logs.');
+                    }
+                    renderServerGrid();
                 }
             }
         } catch (e) {
             console.error('Update polling error', e);
         }
     }, 1000);
+
+    renderServerGrid(); // Show "Updating" on card immediately
+    updateUpdateModalTabs();
 }
 
 if (IS_ADMIN) {
@@ -718,6 +824,39 @@ async function fetchServerInfo(server) {
 }
 
 // Test server update simulation
+async function startBulkUpdate() {
+    const serversWithUpdates = SERVERS.filter(s => s.hasUpdate && s.os_type === 'linux');
+    if (serversWithUpdates.length === 0) {
+        showModalAlert('No Linux servers have updates available.');
+        return;
+    }
+
+    const list = serversWithUpdates.map(s => s.name).join(', ');
+    const confirmed = await showModalConfirm(`Start update for ${serversWithUpdates.length} servers? (${list})\n\nThe services will be restarted.`);
+    if (!confirmed) return;
+
+    for (const server of serversWithUpdates) {
+        // Skip if already updating
+        if (ACTIVE_UPDATES[server.id]) continue;
+
+        const branch = server.branch || 'stable';
+        try {
+            const res = await fetch(`proxy.php?id=${encodeURIComponent(server.id)}&action=ssh_update&branch=${encodeURIComponent(branch)}`);
+            const data = await res.json();
+            if (data.success) {
+                ACTIVE_UPDATES[server.id] = { log: 'Bulk update initiated...\n', status: 'updating', completed: false, branch: branch };
+                startUpdatePolling(server.id);
+            } else {
+                console.error(`Failed to start bulk update for ${server.name}:`, data.error);
+            }
+        } catch (e) {
+            console.error(`Bulk update request failed for ${server.name}:`, e);
+        }
+    }
+
+    showModalAlert(`${serversWithUpdates.length} servers have been ordered to update. Monitor progress on their cards or in the Update Modal.`);
+}
+
 async function testServerUpdate(serverId) {
     try {
         const res = await fetch(`proxy.php?id=${encodeURIComponent(serverId)}&action=info&test_update=1`);
@@ -1882,6 +2021,20 @@ function closeMediaUserModal() {
 }
 
 
+function renderUpdateProgressBar(serverId) {
+    const update = ACTIVE_UPDATES[serverId];
+    if (!update || update.completed) return '';
+
+    return `
+        <div class="server-scans-list" style="margin-top: 4px;">
+            <div class="scan-progress-container update-progress indeterminate" title="Server Update in Progress...">
+                <div class="scan-progress-bar" style="width: 100%"></div>
+                <div class="scan-progress-text">Updating Server...</div>
+            </div>
+        </div>
+    `;
+}
+
 function renderScans(scans) {
     if (!scans || scans.length === 0) return '';
 
@@ -2038,6 +2191,7 @@ function renderServerGrid() {
                     <div class="status-dot ${isActive ? 'active server-' + esc(server.type) : ''}"></div>
                     ${isActive ? `${sessions.length} playing` : 'Idle'}
                 </div>
+                ${renderUpdateProgressBar(server.id)}
                 ${renderScans(ALL_SCANS[server.name])}
                 <div class="card-os-badge"><i class="${iconType} ${osIcon}"></i></div>
             `;
@@ -3738,6 +3892,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     showModalAlert('Reset Request Failed: ' + e.message);
                 }
             });
+        }
+
+        const bulkUpdateBtn = document.getElementById('bulk-update-menu-btn');
+        if (bulkUpdateBtn) {
+            bulkUpdateBtn.addEventListener('click', startBulkUpdate);
         }
     }
 
