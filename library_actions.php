@@ -257,8 +257,8 @@ if ($type === 'emby' || $type === 'jellyfin') {
             // Emby uses ItemId, Jellyfin uses Id
             $id = $item['ItemId'] ?? $item['Id'] ?? '';
             if ($id) {
-                // Fetch count
-                $countUrl = rtrim($baseUrl, '/') . "/Items?ParentId=$id&Recursive=true&Limit=0";
+                // Fetch count - Filter by primary media types to avoid counting seasons/episodes/trailers
+                $countUrl = rtrim($baseUrl, '/') . "/Items?ParentId=$id&Recursive=true&IncludeItemTypes=Movie,Series,MusicArtist,Audio,Photo,PhotoAlbum,Book,Video&Limit=0";
 
                 $chCount = curl_init();
                 curl_setopt($chCount, CURLOPT_URL, $countUrl);
