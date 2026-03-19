@@ -257,8 +257,27 @@ if ($type === 'emby' || $type === 'jellyfin') {
             // Emby uses ItemId, Jellyfin uses Id
             $id = $item['ItemId'] ?? $item['Id'] ?? '';
             if ($id) {
+                $collectionType = strtolower($item['CollectionType'] ?? '');
+
+                $includeTypes = 'Movie,Series,MusicArtist,Audio,Photo,PhotoAlbum,Book,Video'; // Fallback
+                if ($collectionType === 'movies') {
+                    $includeTypes = 'Movie';
+                } elseif ($collectionType === 'tvshows') {
+                    $includeTypes = 'Series';
+                } elseif ($collectionType === 'music') {
+                    $includeTypes = 'MusicArtist';
+                } elseif ($collectionType === 'books') {
+                    $includeTypes = 'Book';
+                } elseif ($collectionType === 'photos') {
+                    $includeTypes = 'Photo,PhotoAlbum';
+                } elseif ($collectionType === 'musicvideos') {
+                    $includeTypes = 'MusicVideo';
+                } elseif ($collectionType === 'homevideos') {
+                    $includeTypes = 'Video';
+                }
+
                 // Fetch count - Filter by primary media types to avoid counting seasons/episodes/trailers
-                $countUrl = rtrim($baseUrl, '/') . "/Items?ParentId=$id&Recursive=true&IncludeItemTypes=Movie,Series,MusicArtist,Audio,Photo,PhotoAlbum,Book,Video&Limit=0";
+                $countUrl = rtrim($baseUrl, '/') . "/Items?ParentId=$id&Recursive=true&IncludeItemTypes=$includeTypes&Limit=0";
 
                 $chCount = curl_init();
                 curl_setopt($chCount, CURLOPT_URL, $countUrl);
