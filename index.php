@@ -283,7 +283,12 @@ $isAdmin = isAdmin();
 <div id="user-search-modal" class="modal">
   <div class="modal-content" style="max-width: 650px;">
     <span class="modal-close" onclick="closeUserSearchModal()">&times;</span>
-    <h2 style="margin-bottom: 20px;"><i class="fa-solid fa-users"></i> Media Users</h2>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <h2><i class="fa-solid fa-users"></i> Media Users</h2>
+      <button class="btn primary" onclick="openMigrateUserModal()">
+        <i class="fa-solid fa-exchange-alt"></i> Migrate User
+      </button>
+    </div>
 
     <div class="search-container" style="margin-bottom: 15px;">
         <input type="text" id="user-search-input" placeholder="Start typing a name..." autocomplete="off">
