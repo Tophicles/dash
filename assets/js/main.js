@@ -3256,7 +3256,7 @@ function openMigrateUserModal() {
     sourceSelect.innerHTML = '<option value="">Select a server...</option>';
     targetSelect.innerHTML = '<option value="">Select a server...</option>';
 
-    ALL_SERVERS.forEach(s => {
+    SERVERS.forEach(s => {
         const option = `<option value="${s.id}">${s.name} (${s.type})</option>`;
         sourceSelect.innerHTML += option;
 
