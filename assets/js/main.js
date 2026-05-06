@@ -3242,6 +3242,160 @@ function closeUsersModal() {
     document.getElementById('add-user-form').reset();
 }
 
+/* ================= Migrate User Logic ================= */
+
+let migrateEventSource = null;
+
+function openMigrateUserModal() {
+    document.getElementById('migrate-user-modal').classList.add('visible');
+
+    // Populate Source Servers
+    const sourceSelect = document.getElementById('migrate-source-server');
+    const targetSelect = document.getElementById('migrate-target-server');
+
+    sourceSelect.innerHTML = '<option value="">Select a server...</option>';
+    targetSelect.innerHTML = '<option value="">Select a server...</option>';
+
+    ALL_SERVERS.forEach(s => {
+        const option = `<option value="${s.id}">${s.name} (${s.type})</option>`;
+        sourceSelect.innerHTML += option;
+
+        // Target can only be Emby or Jellyfin
+        if (s.type === 'emby' || s.type === 'jellyfin') {
+            targetSelect.innerHTML += option;
+        }
+    });
+
+    document.getElementById('migrate-source-user').innerHTML = '<option value="">Select a user...</option>';
+    document.getElementById('migrate-target-user').innerHTML = '<option value="">Select a user...</option>';
+    document.getElementById('migrate-log-container').style.display = 'none';
+    document.getElementById('migrate-log-output').innerHTML = '';
+}
+
+function closeMigrateUserModal() {
+    document.getElementById('migrate-user-modal').classList.remove('visible');
+    if (migrateEventSource) {
+        migrateEventSource.close();
+        migrateEventSource = null;
+    }
+}
+
+function toggleMigrateUserFields() {
+    const type = document.querySelector('input[name="migrate-user-type"]:checked').value;
+    if (type === 'existing') {
+        document.getElementById('migrate-existing-user-group').style.display = 'flex';
+        document.getElementById('migrate-new-user-group').style.display = 'none';
+    } else {
+        document.getElementById('migrate-existing-user-group').style.display = 'none';
+        document.getElementById('migrate-new-user-group').style.display = 'flex';
+    }
+}
+
+function loadMigrateSourceUsers() {
+    const serverId = document.getElementById('migrate-source-server').value;
+    const userSelect = document.getElementById('migrate-source-user');
+    userSelect.innerHTML = '<option value="">Select a user...</option>';
+
+    if (!serverId) return;
+
+    const users = ALL_MEDIA_USERS.filter(u => u.serverId === serverId);
+    users.forEach(u => {
+        userSelect.innerHTML += `<option value="${u.id}">${u.name}</option>`;
+    });
+}
+
+function loadMigrateTargetUsers() {
+    const serverId = document.getElementById('migrate-target-server').value;
+    const userSelect = document.getElementById('migrate-target-user');
+    userSelect.innerHTML = '<option value="">Select a user...</option>';
+
+    if (!serverId) return;
+
+    const users = ALL_MEDIA_USERS.filter(u => u.serverId === serverId);
+    users.forEach(u => {
+        userSelect.innerHTML += `<option value="${u.id}">${u.name}</option>`;
+    });
+}
+
+function startMigration() {
+    const sourceServerId = document.getElementById('migrate-source-server').value;
+    const sourceUserId = document.getElementById('migrate-source-user').value;
+    const targetServerId = document.getElementById('migrate-target-server').value;
+
+    const userType = document.querySelector('input[name="migrate-user-type"]:checked').value;
+    const targetUserId = userType === 'existing' ? document.getElementById('migrate-target-user').value : '';
+    const newUserName = userType === 'new' ? document.getElementById('migrate-new-username').value : '';
+    const newUserPassword = userType === 'new' ? document.getElementById('migrate-new-password').value : '';
+
+    if (!sourceServerId || !sourceUserId || !targetServerId) {
+        showModalAlert("Please select source and target servers and users.");
+        return;
+    }
+
+    if (userType === 'existing' && !targetUserId) {
+        showModalAlert("Please select an existing target user.");
+        return;
+    }
+
+    if (userType === 'new' && !newUserName) {
+        showModalAlert("Please provide a new username.");
+        return;
+    }
+
+    const logContainer = document.getElementById('migrate-log-container');
+    const logOutput = document.getElementById('migrate-log-output');
+    logContainer.style.display = 'block';
+    logOutput.innerHTML = '';
+
+    document.getElementById('start-migrate-btn').disabled = true;
+
+    if (migrateEventSource) {
+        migrateEventSource.close();
+    }
+
+    const params = new URLSearchParams({
+        sourceServerId,
+        sourceUserId,
+        targetServerId,
+        targetUserId,
+        newUserName,
+        newUserPassword
+    });
+
+    migrateEventSource = new EventSource(`migrate_user.php?${params.toString()}`);
+
+    migrateEventSource.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        const div = document.createElement('div');
+        div.textContent = data.message;
+
+        if (data.type === 'error') {
+            div.style.color = '#ef5350';
+        } else if (data.type === 'success') {
+            div.style.color = '#66bb6a';
+        }
+
+        logOutput.appendChild(div);
+        logContainer.scrollTop = logContainer.scrollHeight;
+
+        if (data.type === 'error' || data.type === 'success' || (data.percent && data.percent >= 100)) {
+            migrateEventSource.close();
+            document.getElementById('start-migrate-btn').disabled = false;
+        }
+    };
+
+    migrateEventSource.onerror = function() {
+        const div = document.createElement('div');
+        div.textContent = "Error connecting to migration script. Stream ended.";
+        div.style.color = '#ef5350';
+        logOutput.appendChild(div);
+        logContainer.scrollTop = logContainer.scrollHeight;
+        migrateEventSource.close();
+        document.getElementById('start-migrate-btn').disabled = false;
+    };
+}
+
+
 async function loadUsersList() {
     try {
         const response = await fetch('manage_users.php');
