@@ -435,7 +435,12 @@ $isAdmin = isAdmin();
   <div class="modal-content">
     <span class="modal-close" onclick="closeUsersModal()">&times;</span>
     <div id="users-modal-body">
-      <h2 style="margin-bottom: 20px;">MultiDash Users</h2>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2>MultiDash Users</h2>
+        <button class="btn primary" onclick="openMigrateUserModal()">
+          <i class="fa-solid fa-exchange-alt"></i> Migrate Media User
+        </button>
+      </div>
       
       <!-- Add User Form -->
       <div class="user-form-container">
@@ -470,6 +475,72 @@ $isAdmin = isAdmin();
         <h3>Existing Users</h3>
         <div id="users-list"></div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Migrate User Modal -->
+<div id="migrate-user-modal" class="modal">
+  <div class="modal-content" style="max-width: 600px;">
+    <span class="modal-close" onclick="closeMigrateUserModal()">&times;</span>
+    <h2 style="margin-bottom: 20px;"><i class="fa-solid fa-exchange-alt"></i> Migrate Media User</h2>
+
+    <div style="background: var(--surface-light); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+      <div class="server-form-group">
+        <label>Source Server (Plex, Emby, Jellyfin)</label>
+        <select id="migrate-source-server" onchange="loadMigrateSourceUsers()"></select>
+      </div>
+      <div class="server-form-group" style="margin-top: 10px;">
+        <label>Source User</label>
+        <select id="migrate-source-user">
+            <option value="">Select a user...</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="background: var(--surface-light); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+      <div class="server-form-group">
+        <label>Destination Server (Emby/Jellyfin Only)</label>
+        <select id="migrate-target-server" onchange="loadMigrateTargetUsers()"></select>
+      </div>
+
+      <div style="margin-top: 15px; margin-bottom: 10px;">
+          <label style="display:inline-flex; align-items:center; cursor:pointer; margin-right: 15px;">
+              <input type="radio" name="migrate-user-type" value="existing" checked onchange="toggleMigrateUserFields()">
+              <span style="margin-left:5px;">Map to Existing User</span>
+          </label>
+          <label style="display:inline-flex; align-items:center; cursor:pointer;">
+              <input type="radio" name="migrate-user-type" value="new" onchange="toggleMigrateUserFields()">
+              <span style="margin-left:5px;">Create New User</span>
+          </label>
+      </div>
+
+      <div class="server-form-group" id="migrate-existing-user-group">
+        <label>Target User</label>
+        <select id="migrate-target-user">
+            <option value="">Select a user...</option>
+        </select>
+      </div>
+
+      <div id="migrate-new-user-group" style="display:none; gap: 10px; flex-direction: column;">
+          <div class="server-form-group">
+            <label>New Username</label>
+            <input type="text" id="migrate-new-username" placeholder="e.g. JohnDoe">
+          </div>
+          <div class="server-form-group">
+            <label>Password (Optional)</label>
+            <input type="password" id="migrate-new-password">
+          </div>
+      </div>
+    </div>
+
+    <div class="log-container" id="migrate-log-container" style="display:none; background: #111; color: #0f0; padding: 10px; border-radius: 4px; font-family: monospace; height: 150px; overflow-y: auto; margin-bottom: 20px; border: 1px solid #333; font-size: 0.85rem;">
+        <div id="migrate-log-output"></div>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button class="btn" onclick="closeMigrateUserModal()">Cancel</button>
+        <button class="btn primary" id="start-migrate-btn" onclick="startMigration()">Start Migration</button>
     </div>
   </div>
 </div>
