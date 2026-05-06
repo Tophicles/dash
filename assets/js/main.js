@@ -3298,7 +3298,7 @@ function loadMigrateSourceUsers() {
 
     if (!serverId) return;
 
-    const users = ALL_MEDIA_USERS.filter(u => u.serverId === serverId);
+    const users = ALL_MEDIA_USERS.filter(u => String(u.serverId) === String(serverId));
     users.forEach(u => {
         userSelect.innerHTML += `<option value="${u.id}">${u.name}</option>`;
     });
@@ -3311,13 +3311,13 @@ function loadMigrateTargetUsers() {
 
     if (!serverId) return;
 
-    const users = ALL_MEDIA_USERS.filter(u => u.serverId === serverId);
+    const users = ALL_MEDIA_USERS.filter(u => String(u.serverId) === String(serverId));
     users.forEach(u => {
         userSelect.innerHTML += `<option value="${u.id}">${u.name}</option>`;
     });
 }
 
-function startMigration() {
+async function startMigration() {
     const sourceServerId = document.getElementById('migrate-source-server').value;
     const sourceUserId = document.getElementById('migrate-source-user').value;
     const targetServerId = document.getElementById('migrate-target-server').value;
@@ -3347,52 +3347,83 @@ function startMigration() {
     logContainer.style.display = 'block';
     logOutput.innerHTML = '';
 
-    document.getElementById('start-migrate-btn').disabled = true;
+    const startBtn = document.getElementById('start-migrate-btn');
+    startBtn.disabled = true;
+    startBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Working...';
 
-    if (migrateEventSource) {
-        migrateEventSource.close();
-    }
-
-    const params = new URLSearchParams({
+    // We use POST fetch with streaming instead of EventSource so we don't leak passwords in GET URL.
+    const payload = {
         sourceServerId,
         sourceUserId,
         targetServerId,
         targetUserId,
         newUserName,
         newUserPassword
-    });
-
-    migrateEventSource = new EventSource(`migrate_user.php?${params.toString()}`);
-
-    migrateEventSource.onmessage = function(event) {
-        const data = JSON.parse(event.data);
-        const div = document.createElement('div');
-        div.textContent = data.message;
-
-        if (data.type === 'error') {
-            div.style.color = '#ef5350';
-        } else if (data.type === 'success') {
-            div.style.color = '#66bb6a';
-        }
-
-        logOutput.appendChild(div);
-        logContainer.scrollTop = logContainer.scrollHeight;
-
-        if (data.type === 'error' || data.type === 'success' || (data.percent && data.percent >= 100)) {
-            migrateEventSource.close();
-            document.getElementById('start-migrate-btn').disabled = false;
-        }
     };
 
-    migrateEventSource.onerror = function() {
+    try {
+        const response = await fetch('migrate_user.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let buffer = '';
+
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            let lines = buffer.split('\n');
+            buffer = lines.pop(); // Keep the last partial line in the buffer
+
+            for (let line of lines) {
+                if (line.startsWith('data: ')) {
+                    try {
+                        const dataStr = line.substring(6).trim();
+                        if (!dataStr) continue;
+                        const data = JSON.parse(dataStr);
+
+                        const div = document.createElement('div');
+                        div.textContent = data.message;
+
+                        if (data.type === 'error') {
+                            div.style.color = '#ef5350';
+                        } else if (data.type === 'success') {
+                            div.style.color = '#66bb6a';
+                        }
+
+                        logOutput.appendChild(div);
+                        logContainer.scrollTop = logContainer.scrollHeight;
+
+                        if (data.type === 'success' && data.percent >= 100) {
+                            // Only naturally stop if we reached 100% completion
+                        }
+                    } catch (e) {
+                        console.error('Error parsing SSE data:', e, line);
+                    }
+                }
+            }
+        }
+    } catch (err) {
         const div = document.createElement('div');
-        div.textContent = "Error connecting to migration script. Stream ended.";
+        div.textContent = "Error connecting to migration script: " + err.message;
         div.style.color = '#ef5350';
         logOutput.appendChild(div);
         logContainer.scrollTop = logContainer.scrollHeight;
-        migrateEventSource.close();
-        document.getElementById('start-migrate-btn').disabled = false;
-    };
+    } finally {
+        startBtn.disabled = false;
+        startBtn.innerHTML = 'Start Migration';
+    }
 }
 
 

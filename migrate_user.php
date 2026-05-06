@@ -24,12 +24,14 @@ function sendProgress($message, $type = 'info', $percent = null) {
     flush();
 }
 
-$sourceServerId = $_GET['sourceServerId'] ?? '';
-$sourceUserId = $_GET['sourceUserId'] ?? '';
-$targetServerId = $_GET['targetServerId'] ?? '';
-$targetUserId = $_GET['targetUserId'] ?? ''; // if empty, we create new user
-$newUserName = $_GET['newUserName'] ?? '';
-$newUserPassword = $_GET['newUserPassword'] ?? '';
+$input = json_decode(file_get_contents('php://input'), true) ?? [];
+
+$sourceServerId = $input['sourceServerId'] ?? '';
+$sourceUserId = $input['sourceUserId'] ?? '';
+$targetServerId = $input['targetServerId'] ?? '';
+$targetUserId = $input['targetUserId'] ?? ''; // if empty, we create new user
+$newUserName = $input['newUserName'] ?? '';
+$newUserPassword = $input['newUserPassword'] ?? '';
 
 if (!$sourceServerId || !$sourceUserId || !$targetServerId) {
     sendProgress("Missing required parameters.", "error");
@@ -180,9 +182,9 @@ function findTargetItemsByGuids($baseUrl, $apiKey, $guids) {
 
     $queryParts = [];
     foreach ($guids as $provider => $id) {
-        $queryParts[] = "AnyProviderIdEquals=" . ucfirst($provider) . ".$id";
+        $queryParts[] = ucfirst($provider) . ".$id";
     }
-    $queryString = implode('&', $queryParts);
+    $queryString = "AnyProviderIdEquals=" . implode(',', $queryParts);
 
     // We search recursively to find movies, series, episodes
     $url = "$baseUrl/Items?Recursive=true&$queryString";
@@ -308,7 +310,7 @@ if ($sourceType === 'plex') {
     // Fetch from Emby/Jellyfin
     // Note: Emby/Jellyfin `Filters=A,B` does a logical AND. We must fetch everything with UserData
     // and filter locally to ensure we get watched, favorite, or resumable.
-    $url = "$sourceBaseUrl/Users/$sourceUserId/Items?Recursive=true&Fields=UserData&EnableUserData=true";
+    $url = "$sourceBaseUrl/Users/$sourceUserId/Items?Recursive=true&Fields=UserData,ProviderIds&EnableUserData=true";
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, ["X-Emby-Token: $sourceToken", "X-MediaBrowser-Token: $sourceToken", "Accept: application/json"]);
@@ -359,6 +361,9 @@ $migratedCount = 0;
 $notFoundCount = 0;
 
 foreach ($itemsToMigrate as $i => $item) {
+    $title = $item['title'];
+    $percent = round((($i + 1) / $totalItems) * 100);
+
     $guids = [];
     if ($sourceType === 'plex') {
         $guids = getPlexItemGuids($sourceBaseUrl, $sourceToken, $item['id']);
@@ -372,6 +377,7 @@ foreach ($itemsToMigrate as $i => $item) {
     if (empty($guids)) {
         // No external IDs, can't map
         $notFoundCount++;
+        sendProgress("Skipping '$title' - No external IDs found.", "error", $percent);
         continue;
     }
 
@@ -391,14 +397,10 @@ foreach ($itemsToMigrate as $i => $item) {
             );
         }
         $migratedCount++;
+        sendProgress("Migrated '$title' successfully.", "info", $percent);
     } else {
         $notFoundCount++;
-    }
-
-    // Update progress every 10 items or at the end
-    if ($i % 10 === 0 || $i === $totalItems - 1) {
-        $percent = round(($i / $totalItems) * 100);
-        sendProgress("Processing item $i of $totalItems...", "info", $percent);
+        sendProgress("Skipping '$title' - Not found on destination server.", "error", $percent);
     }
 }
 
