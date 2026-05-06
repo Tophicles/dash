@@ -299,7 +299,10 @@ $isAdmin = isAdmin();
     </div>
 
 
-    <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+    <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+        <button class="btn primary" onclick="openMigrateUserModal()">
+          <i class="fa-solid fa-exchange-alt"></i> Migrate User
+        </button>
         <button class="btn" onclick="closeUserSearchModal()">Close</button>
     </div>
   </div>
