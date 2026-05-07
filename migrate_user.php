@@ -7,12 +7,25 @@ require_once 'encryption_helper.php';
 require_once 'logging.php';
 requireLogin();
 
-// Since migration can take a while, allow script to run longer
-set_time_limit(300);
+// Close the session immediately so we don't lock the UI while processing
+session_write_close();
+
+// Since migration can take a while, allow script to run indefinitely
+set_time_limit(0);
+ignore_user_abort(true);
+
+// Completely disable output buffering to ensure real-time streaming
+ini_set('output_buffering', 'off');
+ini_set('zlib.output_compression', false);
 
 header('Content-Type: text/event-stream');
-header('Cache-Control: no-cache');
+header('Cache-Control: no-cache, no-store, must-revalidate');
+header('X-Accel-Buffering: no'); // For Nginx
 header('Connection: keep-alive');
+
+while (ob_get_level() > 0) {
+    ob_end_flush();
+}
 
 function sendProgress($message, $type = 'info', $percent = null) {
     $data = ['message' => $message, 'type' => $type];
@@ -317,7 +330,7 @@ if ($sourceType === 'plex') {
     foreach ($filtersToFetch as $filter) {
         // We use StartIndex and Limit to paginate just in case
         $offset = 0;
-        $limit = 2000;
+        $limit = 500; // Reduced from 2000 to stream progress faster
 
         while (true) {
             $url = "$sourceBaseUrl/Users/$sourceUserId/Items?Recursive=true&Fields=UserData,ProviderIds&EnableUserData=true&Filters=$filter&StartIndex=$offset&Limit=$limit";
