@@ -308,44 +308,62 @@ if ($sourceType === 'plex') {
 
 } else {
     // Fetch from Emby/Jellyfin
-    // Note: Emby/Jellyfin `Filters=A,B` does a logical AND. We must fetch everything with UserData
-    // and filter locally to ensure we get watched, favorite, or resumable.
-    $url = "$sourceBaseUrl/Users/$sourceUserId/Items?Recursive=true&Fields=UserData,ProviderIds&EnableUserData=true";
-    $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ["X-Emby-Token: $sourceToken", "X-MediaBrowser-Token: $sourceToken", "Accept: application/json"]);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    $res = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+    // Emby/Jellyfin `Filters=A,B` does a logical AND.
+    // So we fetch Played, Favorite, and Resumable separately to get an OR effect.
+    $embyItemsSeen = [];
 
-    if ($httpCode === 200 && $res) {
-        $data = json_decode($res, true);
-        $items = $data['Items'] ?? [];
-        foreach ($items as $item) {
-            $userData = $item['UserData'] ?? [];
-            if (empty($userData)) continue;
+    $filtersToFetch = ['IsPlayed', 'IsFavorite', 'IsResumable'];
 
-            $isWatched = $userData['Played'] ?? false;
-            $isFavorite = $userData['IsFavorite'] ?? false;
-            $resumePositionTicks = $userData['PlaybackPositionTicks'] ?? 0;
+    foreach ($filtersToFetch as $filter) {
+        // We use StartIndex and Limit to paginate just in case
+        $offset = 0;
+        $limit = 2000;
 
-            if ($isWatched || $isFavorite || $resumePositionTicks > 0) {
+        while (true) {
+            $url = "$sourceBaseUrl/Users/$sourceUserId/Items?Recursive=true&Fields=UserData,ProviderIds&EnableUserData=true&Filters=$filter&StartIndex=$offset&Limit=$limit";
+            $ch = curl_init($url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ["X-Emby-Token: $sourceToken", "X-MediaBrowser-Token: $sourceToken", "Accept: application/json"]);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            $res = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if ($httpCode !== 200 || !$res) {
+                sendProgress("Error or empty response while fetching $filter items from Emby/Jellyfin source.", "error");
+                break;
+            }
+
+            $data = json_decode($res, true);
+            $items = $data['Items'] ?? [];
+            if (empty($items)) break;
+
+            foreach ($items as $item) {
+                $itemId = $item['Id'];
+
+                // Avoid adding the same item multiple times if it's both played and favorited
+                if (isset($embyItemsSeen[$itemId])) continue;
+                $embyItemsSeen[$itemId] = true;
+
+                $userData = $item['UserData'] ?? [];
+
                 $itemsToMigrate[] = [
-                    'id' => $item['Id'],
+                    'id' => $itemId,
                     'title' => $item['Name'] ?? 'Unknown',
-                    'isWatched' => $isWatched,
-                    'isFavorite' => $isFavorite,
+                    'isWatched' => $userData['Played'] ?? false,
+                    'isFavorite' => $userData['IsFavorite'] ?? false,
                     'lastPlayedDate' => $userData['LastPlayedDate'] ?? null,
-                    'resumePositionTicks' => $resumePositionTicks,
+                    'resumePositionTicks' => $userData['PlaybackPositionTicks'] ?? 0,
                     'providerIds' => $item['ProviderIds'] ?? []
                 ];
             }
+
+            if (count($items) < $limit) break;
+            $offset += $limit;
         }
-        sendProgress("Fetched " . count($itemsToMigrate) . " items to migrate from source server.", "info");
-    } else {
-        sendProgress("Failed to fetch items from Emby/Jellyfin source.", "error");
     }
+
+    sendProgress("Fetched " . count($itemsToMigrate) . " unique items to migrate from source server.", "info");
 }
 
 // 3. Migrate items
